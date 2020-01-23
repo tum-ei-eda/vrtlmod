@@ -59,10 +59,14 @@ export VERILATOR_ROOT=<path-to-verilator-installation>
 2. **Required inputs:**
 
 	- <a href="https://gitlab.lrz.de/ge29noy/regpicker" title="regpicker git">RegPicker</a>'s XML output: `<XML-file>`
-	- <a href="https://www.veripool.org/wiki/verilator" title="Verilator homepage">Verilator</a> output: `<VRTL-Cpp-files>`
+	- <a href="https://www.veripool.org/wiki/verilator" title="Verilator homepage">Verilator</a> output: `<VRTL-Cpp-files>` `<VRTL-Hpp-files>`
 	
 3. **Execution:**
 
 ```
 vrtlmod --out=<outputdir> --regxml=<XML-file> <VRTL-Cpp-files> -- clang++ -std=c++0x -I<VRTL-Hpp-files> -I$LLVM_DIR/lib/clang/9.0.0/include -I$VERILATOR_ROOT/include
 ```	
+
+The output can be found at `<outputdir>` in form of altered Cpp files (`<VRTL-Cpp-files>_vrtlmod.cpp`) and the built injection API inside `<outputdir>/InjAPI` concluding:
+- Target dictionary
+- Injection methods 
