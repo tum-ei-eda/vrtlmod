@@ -17,12 +17,16 @@
 /// \brief Frontend user option category
 static llvm::cl::OptionCategory UserCat("User Options");
 ////////////////////////////////////////////////////////////////////////////////
-/// \brief Frontend user option "regxml". Gets input Xml
+/// \brief Frontend user option "regxml". Sets input Xml
 static llvm::cl::opt<std::string> RegisterXmlFilename("regxml", llvm::cl::Required, llvm::cl::desc("Specify input register xml"),
 		llvm::cl::value_desc("file name"), llvm::cl::cat(UserCat));
 ////////////////////////////////////////////////////////////////////////////////
-/// \brief Frontend user option "out". Gets output directory path
-static llvm::cl::opt<std::string> OUTdir("out", llvm::cl::Optional, llvm::cl::desc("Specify output directory"), llvm::cl::value_desc("path"),
+/// \brief Frontend user option "out". Sets output directory path
+static llvm::cl::opt<std::string> OUTdir("out", llvm::cl::Required, llvm::cl::desc("Specify output directory"), llvm::cl::value_desc("path"),
+		llvm::cl::cat(UserCat));
+////////////////////////////////////////////////////////////////////////////////
+/// \brief Frontend user option "override".
+static llvm::cl::opt<bool> Override("override", llvm::cl::Optional, llvm::cl::desc("Override source files"),
 		llvm::cl::cat(UserCat));
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -39,21 +43,23 @@ int main(int argc, const char **argv) {
 	std::vector<std::string> sources = op.getSourcePathList();
 
 	// prepare *_vrtlmod.cpp files: create, de-macro, clean comments.
-	for (size_t i = 0; i < sources.size(); i++) {
-		std::stringstream tmp;
-		std::string srcName;
-		auto lSl = sources[i].rfind("/");
-		auto dcpp = sources[i].rfind(".cpp");
-		if (lSl != std::string::npos) {
-			srcName = sources[i].substr(lSl + 1, dcpp - lSl - 1);
-		} else {
-			srcName = sources[i].substr(0, dcpp - 1);
+	if(Override == false){
+		for (size_t i = 0; i < sources.size(); i++) {
+			std::stringstream tmp;
+			std::string srcName;
+			auto lSl = sources[i].rfind("/");
+			auto dcpp = sources[i].rfind(".cpp");
+			if (lSl != std::string::npos) {
+				srcName = sources[i].substr(lSl + 1, dcpp - lSl - 1);
+			} else {
+				srcName = sources[i].substr(0, dcpp - 1);
+			}
+			tmp << tAPI.get_outputDir();
+			tmp << "/";
+			tmp << srcName << "_vrtlmod.cpp";
+			system((std::string("cp \"") + sources[i] + "\" \"" + tmp.str() + "\"").c_str());
+			sources[i] = tmp.str();
 		}
-		tmp << tAPI.get_outputDir();
-		tmp << "/";
-		tmp << srcName << "_vrtlmod.cpp";
-		system((std::string("cp \"") + sources[i] + "\" \"" + tmp.str() + "\"").c_str());
-		sources[i] = tmp.str();
 	}
 
 	// create a new Clang Tool instance
