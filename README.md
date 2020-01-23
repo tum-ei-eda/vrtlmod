@@ -38,15 +38,17 @@ For documentation (doxygen):
 make docu
 ```
 
-### ... with Cmake
+### ... with Cmake and TUMEDA_devenv
 1. Clone repository into <a href="https://gitlab.lrz.de/de-tum-ei-eda-esl/TUMEDA_devenv" title="TUMEDA development environment">TUMEDA_devenv</a>/src
 2. Prepare environment according to TUMEDA_devenv.
+3. Run for executable only:
 ```
 cd <>/TUMEDA_devenv
 mkdir build && cd build
 cmake ..
 make
 ```
+or including doxygen docu run ```cmake -DBUILD_DOC=ON ..``` 
 
 ## Usage
 1. **Prepare environment:**

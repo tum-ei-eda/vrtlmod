@@ -82,22 +82,31 @@ IF(LLVM_FOUND)
 
 ENDIF()
 
-option(BUILD_DOC "Build documentation" ON)
+option(BUILD_DOC "Build documentation" OFF)
 find_package(Doxygen)
 
-if (DOXYGEN_FOUND)
-    set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/doc/doxyfile)
-    set(DOXYGEN_IN ${CMAKE_CURRENT_BINARY_DIR}/doxyfile)
+if(BUILD_DOC)
+    if (DOXYGEN_FOUND)
+        set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/doc/doxyfile.cmake.in)
+        set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/doc/doxyfile)
 
-    configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
-    message("Doxygen build started")
+        configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
+        message("Doxygen build started")
 
-    add_custom_target( doc_doxygen ALL
-            COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
-            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-            COMMENT "Generating ${PROJECT_NAME} API documentation with Doxygen"
-            VERBATIM )
-            
-else (DOXYGEN_FOUND)
-  message("Doxygen need to be installed to generate the doxygen documentation")
-endif (DOXYGEN_FOUND)
+        add_custom_target( doc_doxygen ALL
+                COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
+                WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+                COMMENT "Generating ${PROJECT_NAME} API documentation with Doxygen"
+                VERBATIM )
+                
+        add_custom_target( doc_pdf ALL
+                DEPENDS doc_doxygen
+                COMMAND make && cp ${CMAKE_CURRENT_BINARY_DIR}/doc/latex/refman.pdf ${CMAKE_SOURCE_DIR}/bin/${PROJECT_NAME}.pdf
+                WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc/latex
+                COMMENT "Generating ${PROJECT_NAME} API pdf"
+                VERBATIM ) 
+                
+    else (DOXYGEN_FOUND)
+        message("Doxygen need to be installed to generate the doxygen documentation")
+    endif (DOXYGEN_FOUND)
+endif(BUILD_DOC)
