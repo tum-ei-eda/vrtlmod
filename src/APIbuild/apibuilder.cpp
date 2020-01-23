@@ -100,9 +100,10 @@ std::string APIbuilder::get_targetdictionaryEntryTypeDefString(Target &t) {
 	ss << "class " << get_targetdictionarytypedef(t) << ": public TDentry {" << std::endl;
 	ss << "\t" << "public:" << std::endl;
 	ss << "\t\t" << "unsigned bits;" << std::endl;
-	ss << "\t\t" << t.mElData.vrtlCxxType << "* data;" << std::endl;
+
 
 	if ((t.mElData.vrtlCxxType == "CData") or (t.mElData.vrtlCxxType == "SData") or (t.mElData.vrtlCxxType == "IData") or (t.mElData.vrtlCxxType == "QData")) {
+		ss << "\t\t" << t.mElData.vrtlCxxType << "* data;" << std::endl;
 		ss << "\t\t" << t.mElData.vrtlCxxType << " mask;" << std::endl;
 
 		ss << "\t\t" << "void reset_mask(void){mask = 0;}" << std::endl;
@@ -117,17 +118,16 @@ std::string APIbuilder::get_targetdictionaryEntryTypeDefString(Target &t) {
 			words++;
 		}
 		if (words <= 0) {
-			std::cout << "Critical error: WData with less than 32 bits";
+			ftcv::log(ftcv::ERROR, "Critical error: WData with less than 32 bits");
 		}
-		ss << "\t\t" << t.mElData.vrtlCxxType << " mask[" << words << "];" << std::endl;
-
+		ss << "\t\t" << "WData* data;" << "\t// " << t.mElData.vrtlCxxType << std::endl;
 		ss << "\t\t" << "void reset_mask(void){" << std::endl;
 		for (int i = 0; i < words; i++) {
 			ss << "\t\t\t" << "mask[" << i << "] = 0;" << std::endl;
 		}
 		ss << "\t\t" << "void set_maskBit(unsigned bit){VL_ASSIGNBIT_WO(1, bit, mask, 1);}" << std::endl;
 	}
-	ss << "\t\t" << get_targetdictionarytypedef(t) << "(const char* name, " << t.mElData.vrtlCxxType << "* data) :" << std::endl;
+	ss << "\t\t" << get_targetdictionarytypedef(t) << "(const char* name, " << "WData* data) :" << std::endl;
 	ss << "\t\t\t" << "TDentry(name, " << t.index << "), data(data), mask(), bits(" << t.mElData.nmbBits << ") {}" << std::endl;
 	ss << "};" << std::endl;
 
@@ -258,6 +258,9 @@ int APIbuilder::build_targetdictionary_CPP(const char *outputdir) {
 	file << mTopName << " gTop;" << std::endl;
 
 	file << std::endl;
+	file << "////////////////////////////////////////////////////////////////////////////////" << std::endl;
+	file << "/// @brief Global target dictionary" << std::endl;
+	file << "/// @details Initializer list is generated according to definition in " << API_TD_HEADER_NAME << std::endl;
 	file << "sTD_t gTD ( " << std::endl;
 	bool first = true;
 	for (auto const &it : mTargets) {
@@ -267,7 +270,7 @@ int APIbuilder::build_targetdictionary_CPP(const char *outputdir) {
 			file << "," << std::endl;
 		}
 		file << "\t" << get_targetdictionarytypedef(*it) << "(\"" << it->mElData.name << "\", ";
-		if (it->mElData.vrtlCxxType == "WData") {
+		if (it->mElData.vrtlCxxType.find("WData") != std::string::npos) {
 			file << "(gTop.__VlSymsp->TOPp->" << it->get_hierarchy() << "))";
 		} else {
 			file << "&(gTop.__VlSymsp->TOPp->" << it->get_hierarchy() << "))";

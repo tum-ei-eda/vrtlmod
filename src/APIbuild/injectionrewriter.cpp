@@ -184,27 +184,30 @@ InjectionRewriter::InjectionRewriter(ftcv::Consumer &cons)
 }
 
 void InjectionRewriter::analyzeRewrite(void){
-	std::cout << "Analysis of source: " << std::string(getRewriter().getSourceMgr().getFilename(mSequentFuncs.front()->Begin)) << std::endl;
-	std::vector<Target*> setpoints = APIbuilder::_i().get_targets();
-	std::vector<Target*> injected;
-	auto soll = setpoints.size();
-	for (auto &itf : mSequentFuncs) {
-		for(auto & it: itf->mInjectedTargets){
-			injected.push_back(it);
-			for (unsigned i = 0; i< setpoints.size(); i++){
-				if (it == setpoints.at(i)){
-					setpoints.erase(setpoints.begin()+i);
+	if(mSequentFuncs.size()>0){
+		std::string filename = std::string(getRewriter().getSourceMgr().getFilename(mSequentFuncs.front()->Begin));
+		std::cout << "Analysis of source: " << filename << std::endl;
+		std::vector<Target*> setpoints = APIbuilder::_i().get_targets();
+		std::vector<Target*> injected;
+		auto soll = setpoints.size();
+		for (auto &itf : mSequentFuncs) {
+			for(auto & it: itf->mInjectedTargets){
+				injected.push_back(it);
+				for (unsigned i = 0; i< setpoints.size(); i++){
+					if (it == setpoints.at(i)){
+						setpoints.erase(setpoints.begin()+i);
+					}
 				}
 			}
 		}
-	}
-	std::stringstream x;
-	float perc = float(injected.size())/float(soll)*100.0;
-	x << "Uninjected Targets: " << injected.size() << " of " << soll << " done. (" << perc << " %)" << std::endl;
-	x << "Remaining Targets: ";
-	ftcv::log(ftcv::INFO, x.str());
-	for(auto & it: setpoints){
-		std::cout << it << std::endl;
+		std::stringstream x;
+		float perc = float(injected.size())/float(soll)*100.0;
+		x << "Uninjected Targets: " << injected.size() << " of " << soll << " done. (" << perc << " %)" << std::endl;
+		x << "Remaining Targets: ";
+		ftcv::log(ftcv::INFO, x.str());
+		for(auto & it: setpoints){
+			std::cout << it << std::endl;
+		}
 	}
 }
 

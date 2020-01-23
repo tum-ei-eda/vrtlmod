@@ -99,5 +99,4 @@ public:
 	virtual ~APIbuilder(void){};
 };
 
-
 #endif /* INCLUDE_APIBUILD_APIBUILDER_HPP_ */

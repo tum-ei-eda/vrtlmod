@@ -13,7 +13,6 @@
 #include <iostream>
 
 class APIbuilder;
-
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief namespace for all API building functionalities
 namespace apibuild {

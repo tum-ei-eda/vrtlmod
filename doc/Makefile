@@ -1,4 +1,4 @@
-CFG=doxyfile
+CFG=doxyfile.gmake.in
 
 all: pdf
 
@@ -9,7 +9,7 @@ tex: dox
 	$(MAKE) -C latex
 
 dox:
-	doxygen $(doxyfile)
+	doxygen $(CFG)
 	
 clean:
 	rm -R -f html latex

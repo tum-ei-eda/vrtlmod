@@ -71,6 +71,8 @@ int main(int argc, const char **argv) {
 
 	err = ToolRw.run(newFrontendActionFactory<MyFrontendAction>().get());
 
+	tAPI.build_API();
+
 	return (err);
 }
 
