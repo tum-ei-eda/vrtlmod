@@ -27,6 +27,7 @@ IF(LLVM_FOUND)
         src/APIbuild/xmlhelper.cpp
         src/APIbuild/target.cpp
         src/APIbuild/injectionrewriter.cpp
+        src/APIbuild/extendedmatchers.cpp
     )
     
     TARGET_LINK_LIBRARIES(${THISLIB} PUBLIC
