@@ -41,7 +41,6 @@ make docu
 ### ... with Cmake
 1. Clone repository into <a href="https://gitlab.lrz.de/de-tum-ei-eda-esl/TUMEDA_devenv" title="TUMEDA development environment">TUMEDA_devenv</a>/src
 2. Prepare environment according to TUMEDA_devenv.
-3.
 ```
 cd <>/TUMEDA_devenv
 mkdir build && cd build
@@ -52,13 +51,15 @@ make
 ## Usage
 1. **Prepare environment:**
 ```
+export LLVM_DIR=<path-to-llvm-installation>
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$LLVM_DIR/lib
 export VERILATOR_ROOT=<path-to-verilator-installation>
 ```
 
 2. **Required inputs:**
 
-	- <a href="https://gitlab.lrz.de/ge29noy/regpicker" title="regpicker git">RegPicker</a>'s XML output: <XML-file>
-	- <a href="https://www.veripool.org/wiki/verilator" title="Verilator homepage">Verilator</a> output: <VRTL-Cpp-files>
+	- <a href="https://gitlab.lrz.de/ge29noy/regpicker" title="regpicker git">RegPicker</a>'s XML output: `<XML-file>`
+	- <a href="https://www.veripool.org/wiki/verilator" title="Verilator homepage">Verilator</a> output: `<VRTL-Cpp-files>`
 	
 3. **Execution:**
 
