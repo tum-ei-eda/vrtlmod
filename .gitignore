@@ -1,0 +1,12 @@
+.settings/*
+.settings/
+.project
+.cproject
+doc/vrtlmod.pdf
+doc/html/*
+doc/html/
+doc/latex/*
+doc/latex/
+build/*
+build/
+vrtlmod
