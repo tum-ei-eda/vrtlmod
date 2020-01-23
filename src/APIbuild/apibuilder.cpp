@@ -76,7 +76,6 @@ int APIbuilder::isExprTarget(const char *pExpr) {
 		for (auto const &it : mTargets) {
 			ret++;
 			std::string tExpr = it->get_hierarchyDedotted();
-	//		if (std::string(pExpr).find() != std::string::npos) {
 			if(target == tExpr){
 				return ret;
 			}

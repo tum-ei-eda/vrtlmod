@@ -11,68 +11,22 @@
 #include <fstream>
 #include <iostream>
 
-#include "clang/AST/AST.h"
-#include "clang/AST/ASTDumper.h"
-#include "clang/AST/ASTConsumer.h"
-#include "clang/ASTMatchers/ASTMatchers.h"
-#include "clang/ASTMatchers/ASTMatchFinder.h"
-#include "clang/Frontend/CompilerInstance.h"
-#include "clang/Frontend/FrontendActions.h"
-#include "clang/Rewrite/Frontend/FrontendActions.h"
-#include "clang/Rewrite/Frontend/Rewriters.h"
-#include "clang/Tooling/CommonOptionsParser.h"
-#include "clang/Tooling/Tooling.h"
-#include "clang/Rewrite/Core/Rewriter.h"
-#include "clang/Lex/Lexer.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/raw_os_ostream.h"
-#include "llvm/Support/CommandLine.h"
-#include "ftcv/Consumer.h"
-#include "ftcv/rewriterHandler/RewriteMacrosAction.h"
+#include "vrtlmod.hpp"
 
-using namespace clang;
-using namespace clang::ast_matchers;
-using namespace clang::driver;
-using namespace clang::tooling;
-
-#include "APIbuild/apibuilder.hpp"
-#include "APIbuild/injectionrewriter.hpp"
-
-static llvm::cl::OptionCategory MatcherSampleCategory("Matcher Sample");
-
-// For each source file provided to the tool, a new FrontendAction is created.
-// It allows to execute actions on the AST tree
-// Used as long as changes occur.
-class MyFrontendAction: public ASTFrontendAction {
-public:
-	MyFrontendAction() {
-	}
-	void EndSourceFileAction() {
-		rewriter_.overwriteChangedFiles();
-	}
-
-	//Add own Consumer and code rewriter to it
-	std::unique_ptr<ASTConsumer> CreateASTConsumer(clang::CompilerInstance &CI, llvm::StringRef InFile) {
-		curfile = InFile.str();
-		rewriter_.setSourceMgr(CI.getSourceManager(), CI.getLangOpts());
-		ftcv::Consumer *cons = new ftcv::Consumer(rewriter_, curfile);
-
-		cons->ownHandler(new apibuild::InjectionRewriter(*cons));
-
-		return std::unique_ptr<ASTConsumer>(cons);
-	}
-
-private:
-	Rewriter rewriter_;
-	std::string curfile;
-};
-
-llvm::cl::OptionCategory UserCat("User Options");
-llvm::cl::opt<std::string> RegisterXmlFilename("regxml", llvm::cl::Required, llvm::cl::desc("Specify input register xml"),
+////////////////////////////////////////////////////////////////////////////////
+/// \brief Frontend user option category
+static llvm::cl::OptionCategory UserCat("User Options");
+////////////////////////////////////////////////////////////////////////////////
+/// \brief Frontend user option "regxml". Gets input Xml
+static llvm::cl::opt<std::string> RegisterXmlFilename("regxml", llvm::cl::Required, llvm::cl::desc("Specify input register xml"),
 		llvm::cl::value_desc("file name"), llvm::cl::cat(UserCat));
-llvm::cl::opt<std::string> OUTdir("out", llvm::cl::Optional, llvm::cl::desc("Specify output directory"), llvm::cl::value_desc("path"),
+////////////////////////////////////////////////////////////////////////////////
+/// \brief Frontend user option "out". Gets output directory path
+static llvm::cl::opt<std::string> OUTdir("out", llvm::cl::Optional, llvm::cl::desc("Specify output directory"), llvm::cl::value_desc("path"),
 		llvm::cl::cat(UserCat));
 
+////////////////////////////////////////////////////////////////////////////////
+/// \brief vrtlmod main()
 int main(int argc, const char **argv) {
 	// Consume arguments
 	APIbuilder &tAPI = APIbuilder::_i();
@@ -118,6 +72,5 @@ int main(int argc, const char **argv) {
 	err = ToolRw.run(newFrontendActionFactory<MyFrontendAction>().get());
 
 	return (err);
-
 }
 

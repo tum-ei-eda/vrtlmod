@@ -97,6 +97,9 @@ std::string ExtDeclFunc::_self(void) const {
 
 ExtCompoundStmt* ExtDeclFunc::return_finest(ExtAsgnmnt* a){
 	std::vector<ExtCompoundStmt*> inRanges;
+	if(!(a->in_range(this))){
+		return (nullptr);
+	}
 	for (auto & it: mCompounds){
 		if(a->in_range(it)){
 			inRanges.push_back(it);
