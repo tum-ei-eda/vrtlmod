@@ -37,17 +37,20 @@ typedef struct sXmlEl {
 	/// \brief Element's VRTL type
 	std::string type;
 	///////////////////////////////////////////////////////////////////////
+	/// \brief Number of words
+	unsigned int words;
+	///////////////////////////////////////////////////////////////////////
 	/// \brief Element's VRTL c++ type (CData, IData, WData[..], ...)
 	std::string vrtlCxxType;
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Copy Constructor
-	sXmlEl(const sXmlEl &x) : name(x.name), hierarchy(x.hierarchy), signalClass(x.signalClass), nmbBits(x.nmbBits), type(x.type), vrtlCxxType(
+	sXmlEl(const sXmlEl &x) : name(x.name), hierarchy(x.hierarchy), signalClass(x.signalClass), nmbBits(x.nmbBits), type(x.type), words(x.words), vrtlCxxType(
 			x.vrtlCxxType) {
 	}
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Constructor
 	sXmlEl(const char *name = "", const char *hierarchy = "", const char *signalClass_s = "", unsigned int nmbBits = 0, const char *type =
-			"", const char *vrtlCxxType = "") : name(name), hierarchy(hierarchy), signalClass(UNDEF), nmbBits(nmbBits), type(type), vrtlCxxType(
+			"", const char *vrtlCxxType = "") : name(name), hierarchy(hierarchy), signalClass(UNDEF), nmbBits(nmbBits), type(type), words(1), vrtlCxxType(
 			vrtlCxxType) {
 		if (signalClass_s != NULL) {
 			std::string x = signalClass_s;
@@ -61,8 +64,44 @@ typedef struct sXmlEl {
 				signalClass = UNDEF;
 			}
 		}
+		if(sXmlEl::vrtlCxxType.find("[")!= std::string::npos){
+			auto brOpen = sXmlEl::vrtlCxxType.find('[');
+			auto brClose = sXmlEl::vrtlCxxType.find(']');
+			words = std::stoi(sXmlEl::vrtlCxxType.substr(brOpen+1, brClose-brOpen-1));
+
+			if(sXmlEl::nmbBits <= 32){
+				sXmlEl::nmbBits = words*sXmlEl::nmbBits;
+			}
+		}
 	}
 } sXmlEl_t;
+
+namespace strhelp{
+bool replace(std::string& str, const std::string& from, const std::string& to);
+
+void replaceAll(std::string& str, const std::string& from, const std::string& to);
+}
+
+class ExprT{
+public:
+	std::string expr;
+	std::string prefix;
+	std::string object;
+	std::string name;
+	ExprT(const char* Expr): expr(Expr), prefix(), object(), name(){
+		auto pos = expr.find("->");
+		if(pos != std::string::npos)
+			prefix = expr.substr(0, pos);
+
+		auto objdot = expr.rfind(".");
+		if(objdot != std::string::npos){
+			object = expr.substr(pos+2, objdot-pos-2);
+			strhelp::replaceAll(object, std::string("__"), std::string("."));
+			name = expr.substr(objdot+1);
+		}else
+			name = expr.substr(pos+2);
+	}
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @class Target
@@ -72,6 +111,9 @@ typedef struct sXmlEl {
 class Target {
 	friend APIbuilder;
 protected:
+	///////////////////////////////////////////////////////////////////////
+	/// \brief Number of times the target received a SEQ_INJ
+	unsigned mSeqInjCnt;
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Unique index of target
 	unsigned int index;
@@ -87,19 +129,10 @@ public:
 	std::string mTD_decl;
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Returns the targets hierarchy
-	std::string get_hierarchy(void) {
-		std::string ret = mElData.hierarchy.substr(mElData.hierarchy.find(".") + 1);
-		return (ret);
-	}
+	std::string get_hierarchy(void);
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Returns the targets undotted hierarchy ("__DOT__"s instead of "."s)
-	std::string get_hierarchyDedotted(void) {
-		std::string ret = get_hierarchy();
-		if (ret.find(".") != std::string::npos) {
-			ret = ret.replace(ret.begin(), ret.end(), ".", "__DOT__");
-		}
-		return (ret);
-	}
+	std::string get_hierarchyDedotted(void);
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Returns the targets index
 	unsigned int get_index(void) const {

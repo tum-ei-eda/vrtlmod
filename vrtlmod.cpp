@@ -26,16 +26,25 @@ static llvm::cl::opt<std::string> OUTdir("out", llvm::cl::Required, llvm::cl::de
 		llvm::cl::cat(UserCat));
 ////////////////////////////////////////////////////////////////////////////////
 /// \brief Frontend user option "override".
-static llvm::cl::opt<bool> Override("override", llvm::cl::Optional, llvm::cl::desc("Override source files"),
+static llvm::cl::opt<bool> Overwrite("overwrite", llvm::cl::Optional, llvm::cl::desc("Override source files"),
 		llvm::cl::cat(UserCat));
+////////////////////////////////////////////////////////////////////////////////
+/// \brief Frontend user option "silent".
+static llvm::cl::opt<bool> Silent("silent", llvm::cl::Optional, llvm::cl::desc("Execute without Warnings and Info"),
+		llvm::cl::cat(UserCat));
+
+bool silent;
 
 ////////////////////////////////////////////////////////////////////////////////
 /// \brief vrtlmod main()
 int main(int argc, const char **argv) {
 	// Consume arguments
+
 	APIbuilder &tAPI = APIbuilder::_i();
 
 	CommonOptionsParser op(argc, argv, UserCat);
+
+	silent = Silent;
 
 	if (tAPI.init(RegisterXmlFilename.c_str(), OUTdir.c_str()) < 0)
 		return (-1);
@@ -43,7 +52,7 @@ int main(int argc, const char **argv) {
 	std::vector<std::string> sources = op.getSourcePathList();
 
 	// prepare *_vrtlmod.cpp files: create, de-macro, clean comments.
-	if(Override == false){
+	if(Overwrite == false){
 		for (size_t i = 0; i < sources.size(); i++) {
 			std::stringstream tmp;
 			std::string srcName;

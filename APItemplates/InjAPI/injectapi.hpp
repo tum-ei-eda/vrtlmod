@@ -57,7 +57,7 @@ public:
 
 	static TD& i(void){
 		static TD _instance;
-		return (i);
+		return (_instance);
 	}
 
 	TD(void){}

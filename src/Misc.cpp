@@ -6,28 +6,35 @@
 
 #include <cstdlib>
 #include <iostream>
+#include "vrtlmod.hpp"
+
+extern bool silent;
 
 namespace ftcv {
 
 const char* toString(LEVEL level) {
 	switch (level) {
+	case OBLIGAT:
+		return "\033[0;36m";
 	case INFO:
-		return "Info";
+		return "\033[1;37mInfo";
 	case WARNING:
-		return "Warning";
+		return "\033[1;33mWarning";
 	case ERROR:
-		return "Error";
+		return "\033[0;31mError";
 	default:
 		return "Unknown";
 	}
 }
 
 void log(LEVEL level, const std::string &msg) {
-
-	std::cout << toString(level) << ": " << msg << std::endl;
-
+	if(silent == true){
+		if (level == ERROR or level == OBLIGAT)
+			std::cout << toString(level) << ": " << "\033[0m" << msg << std::endl;
+	}else{
+		std::cout << toString(level) << ": " << "\033[0m" << msg << std::endl;
+	}
 }
-
 void abort() {
 	std::abort();
 }

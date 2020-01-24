@@ -36,6 +36,7 @@ void InjectionRewriter::writeIncludeModification(void) {
 }
 
 void InjectionRewriter::writeSequentInject(ExtDeclFunc *sequent_function) {
+	ftcv::log(ftcv::INFO, (std::string("Writing Injection Points for ") + sequent_function->_self()));
 	for (auto &compound : sequent_function->mCompounds) {
 		std::vector<ExtAsgnmnt*> tInjectionPoints = compound->get_dominantAssignments();
 		for (auto &a : tInjectionPoints) {
@@ -59,11 +60,11 @@ void InjectionRewriter::writeSequentInject(const BinaryOperator *op, const Expr 
 	}
 	if (idx >= 0) {
 		Target &t = APIbuilder::_i().getExprTarget(idx);
-		std::cout << "Target found: " << t << std::endl;
+		ftcv::log(ftcv::INFO, std::string("Target found \n\t")+t._self());
 		std::string newc = getRewriter().getRewrittenText(op->getSourceRange());
 		newc += "; ";
 		if ((base != nullptr) and (index != nullptr)) {
-			unsigned x = std::stoi(getRewriter().getRewrittenText(index->getSourceRange()));
+			unsigned x = std::stoi(getRewriter().getRewrittenText(index->getSourceRange()),0,16);
 			newc += APIbuilder::_i().get_sequentInjectionStmtString(t, x);
 		} else {
 			newc += APIbuilder::_i().get_sequentInjectionStmtString(t);
@@ -100,7 +101,7 @@ int InjectionRewriter::registerAssignment(ExtAsgnmnt *a) {
 			ftcv::log(ftcv::INFO, x.str());
 			int ret = tAssignmentLocation->push(a);
 			if (ret <= 0) {
-				ftcv::log(ftcv::INFO, "Caught double registration of Assignment");
+				ftcv::log(ftcv::WARNING, "Caught double registration of Assignment");
 				return (0);
 			}
 		} else {
@@ -114,7 +115,7 @@ int InjectionRewriter::registerAssignment(ExtAsgnmnt *a) {
 void InjectionRewriter::run(const clang::ast_matchers::MatchFinder::MatchResult &Result) {
 	if (Result.Nodes.getNodeAs<Decl>("function")) {
 		if (activeSequentFunc != nullptr and in_sequent) {
-			std::cout << "Matcher LEAVING sequent body of " << activeSequentFunc << std::endl;
+			ftcv::log(ftcv::INFO, std::string("Matcher LEAVING sequent body of \n\t")+ activeSequentFunc->_self());
 
 			writeSequentInject(activeSequentFunc);
 
@@ -122,31 +123,23 @@ void InjectionRewriter::run(const clang::ast_matchers::MatchFinder::MatchResult 
 
 			writeIncludeModification();
 
-//			delete (activeSequentFunc);
 			in_sequent = false;
 		}
 	}
 
 	if (const Decl *f = Result.Nodes.getNodeAs<Decl>("sequent_function")) {
-		std::cout << "Matcher ENTER sequent body of: " << std::endl;
 		in_sequent = true;
 		activeSequentFunc = new ExtDeclFunc(f, *this);
 		mSequentFuncs.push_back(activeSequentFunc);
-		std::stringstream x;
-		x << "New Sequent Function: " << activeSequentFunc;
-		ftcv::log(ftcv::INFO, x.str());
+		ftcv::log(ftcv::INFO, std::string("Matcher ENTER sequent body of: \n\t")+ activeSequentFunc->_self());
 	}
 
 	if (const Stmt *c = Result.Nodes.getNodeAs<Stmt>("compound")) {
 		if (in_sequent) {
 			activeCompoundStmt = new ExtCompoundStmt(c, *this);
 			activeSequentFunc->addCompound(activeCompoundStmt);
-			std::stringstream x;
-			x << "New Compound: " << ExtCompoundStmt(c, *this);
-			ftcv::log(ftcv::INFO, x.str());
-		} else {
+			ftcv::log(ftcv::INFO, std::string("New Compound: ")+activeCompoundStmt->_self());
 		}
-
 	}
 
 	if (!in_sequent) {
@@ -186,7 +179,6 @@ InjectionRewriter::InjectionRewriter(ftcv::Consumer &cons)
 void InjectionRewriter::analyzeRewrite(void){
 	if(mSequentFuncs.size()>0){
 		std::string filename = std::string(getRewriter().getSourceMgr().getFilename(mSequentFuncs.front()->Begin));
-		std::cout << "Analysis of source: " << filename << std::endl;
 		std::vector<Target*> setpoints = APIbuilder::_i().get_targets();
 		std::vector<Target*> injected;
 		auto soll = setpoints.size();
@@ -202,12 +194,13 @@ void InjectionRewriter::analyzeRewrite(void){
 		}
 		std::stringstream x;
 		float perc = float(injected.size())/float(soll)*100.0;
+		x << "Analysis of source" << filename << std::endl;
 		x << "Uninjected Targets: " << injected.size() << " of " << soll << " done. (" << perc << " %)" << std::endl;
-		x << "Remaining Targets: ";
-		ftcv::log(ftcv::INFO, x.str());
+		x << "Remaining Targets: " << std::endl;
 		for(auto & it: setpoints){
-			std::cout << it << std::endl;
+			x << "\t- " << it << std::endl;
 		}
+		ftcv::log(ftcv::OBLIGAT, x.str());
 	}
 }
 

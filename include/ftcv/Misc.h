@@ -14,6 +14,7 @@ namespace ftcv
 {
 
  enum LEVEL {
+	OBLIGAT,
  	INFO,
 	WARNING,
 	ERROR

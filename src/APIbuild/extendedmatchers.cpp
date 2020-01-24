@@ -44,8 +44,7 @@ std::string ExtAsgnmnt::_self(void) const {
 }
 
 ExtAsgnmnt::ExtAsgnmnt(const clang::BinaryOperator *op, ftcv::Handler &handler, type_t type)
-		: Ext(op->getID(handler.getASTContext()), handler, op->getBeginLoc(), op->getEndLoc()), op(op), lhs(op->getLHS()), rhs(op->getRHS()), operatorstr(), isReset(false), mType(type) {
-	operatorstr = _handler.getRewriter().getRewrittenText(op->getOperatorLoc());
+		: Ext(op->getID(handler.getASTContext()), handler, op->getBeginLoc(), op->getEndLoc()), op(op), lhs(op->getLHS()), lhsStr(handler.getRewriter().getRewrittenText(op->getLHS()->getSourceRange())), rhs(op->getRHS()), operatorstr(handler.getRewriter().getRewrittenText(op->getOperatorLoc())), isReset(false), mType(type) {
 	std::string rhss = _handler.getRewriter().getRewrittenText(rhs->getSourceRange());
 	if (rhss == "0U") {
 		isReset = true;
@@ -68,15 +67,33 @@ std::string ExtCompoundStmt::_self(void) const {
 	return (ret.str());
 }
 
+//void swap(ExtAsgnmnt* a,ExtAsgnmnt*b){
+//	ExtAsgnmnt* temp = a;
+//	a = b;
+//	b = temp;
+//}
+//
+//int partition (std::vector<ExtAsgnmnt*>& vec, unsigned low, unsigned high){
+//	ExtAsgnmnt* pivot = vec[high];
+//	unsigned i = low -1;
+//	for (unsigned j = low; j<= high -1; j++){
+//		if (vec[j]-> )
+//	}
+//}
 
 std::vector<ExtAsgnmnt*> ExtCompoundStmt::get_dominantAssignments(void){
+
 	std::vector<ExtAsgnmnt*> x;
-	for (auto const & outer: mAsgmnts){
+	for (auto i = mAsgmnts.size(); i>0; i--){
+//	for (auto const & outer: mAsgmnts){
+		ExtAsgnmnt* outer = mAsgmnts[i-1];
 		bool found = false;
-		std::string outerLHS = _handler.getRewriter().getRewrittenText(outer->lhs->getSourceRange());
+
+//		std::string outerLHS = _handler.getRewriter().getRewrittenText(outer->lhs->getSourceRange());
 		for (auto & inner: x) {
-			std::string innerLHS = _handler.getRewriter().getRewrittenText(inner->lhs->getSourceRange());
-			if ((outerLHS == innerLHS) and (inner->Begin < outer->Begin)){
+//			std::string innerLHS = _handler.getRewriter().getRewrittenText(inner->lhs->getSourceRange());
+//			if ((outer->lhsStr == inner->lhsStr) and (inner->Begin < outer->Begin)){
+			if ((outer->lhsStr == inner->lhsStr) and (outer->Begin < inner->Begin)){
 				inner = outer;
 				found = true;
 				break;

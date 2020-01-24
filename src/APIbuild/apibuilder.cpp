@@ -29,19 +29,21 @@ std::string APIbuilder::getInludeStrings(void) {
 	ret << "/* Includes for Target Injection API */" << std::endl;
 	ret << "#include \"" << "TD/" << API_TD_HEADER_NAME << "\"" << std::endl;
 	ret << "#include \"InjAPI/injectapi.hpp\"" << std::endl;
+	ret << "extern sTD_t gTD; \t// global target dictionary" << std::endl;
+
 	return (ret.str());
 }
 
 std::string APIbuilder::get_intermittenInjectionStmtString(Target &t) {
 	std::stringstream ret;
 	if (t.mElData.vrtlCxxType.find("WData") == std::string::npos) {
-		ret << "INT_TARGET_INJECT(gTD.TDe_" << t.get_hierarchyDedotted();
+		ret << "INT_TARGET_INJECT(gTD." << get_targetdictionaryTargetClassDeclName(t);
 	} else { // insert word accessed write
 		int words = -1;
 		for (int i = t.mElData.nmbBits; i >= 0; i -= 32) {
 			words++;
 		}
-		ret << "INT_TARGET_INJECT_W(gTD.TDe_" << t.get_hierarchyDedotted() << ", " << words; //word;
+		ret << "INT_TARGET_INJECT_W(gTD." << get_targetdictionaryTargetClassDeclName(t) << ", " << words; //word;
 	}
 	ret << ")";
 
@@ -52,33 +54,32 @@ std::string APIbuilder::get_sequentInjectionStmtString(Target &t, int word //exp
 		) {
 	std::stringstream ret;
 	if (word < 0) { // insert simple variable access
-		ret << "SEQ_TARGET_INJECT(gTD.TDe_" << t.get_hierarchyDedotted();
+		ret << "SEQ_TARGET_INJECT(gTD." << get_targetdictionaryTargetClassDeclName(t);
 
 	} else { // insert word accessed write
-		ret << "SEQ_TARGET_INJECT_W(gTD.TDe_" << t.get_hierarchyDedotted() << ", " << word;
+		ret << "SEQ_TARGET_INJECT_W(gTD." << get_targetdictionaryTargetClassDeclName(t) << ", " << word;
 	}
 	ret << ")";
-
+	t.mSeqInjCnt++;
 	return (ret.str());
 }
 
 int APIbuilder::isExprTarget(const char *pExpr) {
 	int ret = -1;
-	std::string obj = pExpr;
-	auto pos = obj.find("->");
-	if (pos == std::string::npos){
-		ftcv::log(ftcv::WARNING, std::string("Possible target has no symbol table prefix: ").append(pExpr));
-		return (-1);
-	}else{
-		std::string target = obj.substr(pos +2);
-		obj = obj.substr(0, pos);
-
-		for (auto const &it : mTargets) {
-			ret++;
-			std::string tExpr = it->get_hierarchyDedotted();
-			if(target == tExpr){
-				return ret;
-			}
+	ExprT x = ExprT(pExpr);
+	std::string expre;
+	if(x.prefix == "vlSymsp"){
+		expre = //this->mTopName +
+				x.object + std::string(".") + x.name;
+	}else if(x.prefix == "vlTOPp"){
+		expre = //this->mTopName +
+				std::string("TOP.") + x.name;
+	}
+	for (auto const &it : mTargets) {
+		ret++;
+		std::string target = it->mElData.hierarchy; // = it->get_hierarchy(); //TOP.top.<name>
+		if(target == expre){
+			return ret;
 		}
 	}
 	return (-1);
@@ -88,7 +89,13 @@ Target& APIbuilder::getExprTarget(int idx) {
 	return (*mTargets.at(idx));
 }
 
-std::string APIbuilder::get_targetdictionarytypedef(Target &t) {
+std::string APIbuilder::get_targetdictionaryTargetClassDeclName(Target &t) {
+	std::string ret = "e_";
+	ret += t.get_hierarchyDedotted();
+	return (ret);
+}
+
+std::string APIbuilder::get_targetdictionaryTargetClassDefName(Target &t) {
 	std::string ret = "TDentry_";
 	ret += t.get_hierarchyDedotted();
 	return (ret);
@@ -97,37 +104,30 @@ std::string APIbuilder::get_targetdictionarytypedef(Target &t) {
 std::string APIbuilder::get_targetdictionaryEntryTypeDefString(Target &t) {
 	std::stringstream ss;
 	ss << "/* (TDentry-Id " << t.get_index() << "):" << t << " */" << std::endl;
-	ss << "class " << get_targetdictionarytypedef(t) << ": public TDentry {" << std::endl;
+	ss << "class " << get_targetdictionaryTargetClassDefName(t) << ": public TDentry {" << std::endl;
 	ss << "\t" << "public:" << std::endl;
 	ss << "\t\t" << "unsigned bits;" << std::endl;
 
-
-	if ((t.mElData.vrtlCxxType == "CData") or (t.mElData.vrtlCxxType == "SData") or (t.mElData.vrtlCxxType == "IData") or (t.mElData.vrtlCxxType == "QData")) {
-		ss << "\t\t" << t.mElData.vrtlCxxType << "* data;" << std::endl;
+	ss << "\t\t" << t.mElData.vrtlCxxType.substr(0, t.mElData.vrtlCxxType.find("[")) << "* data;" << "\t// " << t.mElData.vrtlCxxType << std::endl;
+	if(t.mElData.words <= 1){
 		ss << "\t\t" << t.mElData.vrtlCxxType << " mask;" << std::endl;
-
 		ss << "\t\t" << "void reset_mask(void){mask = 0;}" << std::endl;
 		if (t.mElData.vrtlCxxType == "QData") {
 			ss << "\t\t" << "void set_maskBit(unsigned bit){VL_ASSIGNBIT_QO(1, bit, mask, 0);}" << std::endl;
 		} else {
 			ss << "\t\t" << "void set_maskBit(unsigned bit){VL_ASSIGNBIT_IO(1, bit, mask, 0);}" << std::endl;
 		}
-	} else if (t.mElData.vrtlCxxType.find("WData") != std::string::npos) {
-		int words = -1;
-		for (int i = t.mElData.nmbBits; i >= 0; i -= 32) {
-			words++;
-		}
-		if (words <= 0) {
-			ftcv::log(ftcv::ERROR, "Critical error: WData with less than 32 bits");
-		}
-		ss << "\t\t" << "WData* data;" << "\t// " << t.mElData.vrtlCxxType << std::endl;
+	}else{
+		ss << "\t\t" << t.mElData.vrtlCxxType.substr(0, t.mElData.vrtlCxxType.find("[")) << " mask[" << t.mElData.words << "];" << std::endl;
 		ss << "\t\t" << "void reset_mask(void){" << std::endl;
-		for (int i = 0; i < words; i++) {
+		for (unsigned  i = 0; i < t.mElData.words; i++) {
 			ss << "\t\t\t" << "mask[" << i << "] = 0;" << std::endl;
 		}
+		ss << "\t\t}" << std::endl;
 		ss << "\t\t" << "void set_maskBit(unsigned bit){VL_ASSIGNBIT_WO(1, bit, mask, 1);}" << std::endl;
 	}
-	ss << "\t\t" << get_targetdictionarytypedef(t) << "(const char* name, " << "WData* data) :" << std::endl;
+
+	ss << "\t\t" << get_targetdictionaryTargetClassDefName(t) << "(const char* name, " << t.mElData.vrtlCxxType.substr(0, t.mElData.vrtlCxxType.find("[")) << "* data) :" << std::endl;
 	ss << "\t\t\t" << "TDentry(name, " << t.index << "), data(data), mask(), bits(" << t.mElData.nmbBits << ") {}" << std::endl;
 	ss << "};" << std::endl;
 
@@ -155,6 +155,12 @@ int APIbuilder::build_targetdictionary(void) {
 		}
 	} else {
 		return (-1);
+	}
+
+	for(const auto & it: mTargets){
+		if ((it->mSeqInjCnt / it->mElData.words) > 2){
+			ftcv::log(ftcv::WARNING, std::string("More than 2 sequential injections for: ")+it->_self());
+		}
 	}
 	return (1);
 }
@@ -198,22 +204,28 @@ int APIbuilder::build_targetdictionary_HPP(const char *outputdir) {
 	file << std::endl;
 	file << "typedef struct sTD {" << std::endl;
 	for (auto const &it : mTargets) {
-		file << "\t" << get_targetdictionarytypedef(*it) << " TDe_" << it->get_hierarchyDedotted() << ";" << std::endl;
+		file << "\t" << get_targetdictionaryTargetClassDefName(*it) << "& " << get_targetdictionaryTargetClassDeclName(*it) << ";" << std::endl;
 	}
 
 	file << "\tsTD(";
+	bool first = true;
 	for (auto const &it : mTargets) {
-		file << get_targetdictionarytypedef(*it) << " a" << it->index << ", ";
+		if (first) {
+			first = false;
+		} else {
+			file << ", " << std::endl;
+		}
+		file << "\t" << get_targetdictionaryTargetClassDefName(*it) << "& a" << it->index;
 	}
 	file << ") : " << std::endl;
-	bool first = true;
+	first = true;
 	for (auto const &it : mTargets) {
 		if (first) {
 			first = false;
 		} else {
 			file << "," << std::endl;
 		}
-		file << "\t\tTDe_" << it->get_hierarchyDedotted() << "(a" << it->index << ")";
+		file << "\t\t " << get_targetdictionaryTargetClassDeclName(*it) << "(a" << it->index << ")";
 	}
 	file << "{}" << std::endl;
 	file << "} sTD_t;" << std::endl;
@@ -250,12 +262,12 @@ int APIbuilder::build_targetdictionary_CPP(const char *outputdir) {
 
 	file << std::endl;
 	file << "#include \"verilated.h\"" << "// v4.023" << std::endl;
-	file << "#include \"" << "../" << API_TD_HEADER_NAME << "\"" << std::endl;
-	file << "#include \"" << "../" << mTopName << ".h\"" << std::endl;
-	file << "#include \"" << "../" << mTopName << "__Syms.h\"" << std::endl;
+	file << "#include \"" << API_TD_HEADER_NAME << "\"" << std::endl;
+	file << "#include \"" << "../" << mTopTypeName << ".h\"" << std::endl;
+	file << "#include \"" << "../" << mTopTypeName << "__Syms.h\"" << std::endl;
 
 	file << std::endl;
-	file << mTopName << " gTop;" << std::endl;
+	file << mTopTypeName << " gTop;" << std::endl;
 
 	file << std::endl;
 	file << "////////////////////////////////////////////////////////////////////////////////" << std::endl;
@@ -269,12 +281,23 @@ int APIbuilder::build_targetdictionary_CPP(const char *outputdir) {
 		} else {
 			file << "," << std::endl;
 		}
-		file << "\t" << get_targetdictionarytypedef(*it) << "(\"" << it->mElData.name << "\", ";
-		if (it->mElData.vrtlCxxType.find("WData") != std::string::npos) {
-			file << "(gTop.__VlSymsp->TOPp->" << it->get_hierarchy() << "))";
-		} else {
-			file << "&(gTop.__VlSymsp->TOPp->" << it->get_hierarchy() << "))";
+		file << "\t* new " << get_targetdictionaryTargetClassDefName(*it) << "(\"" << it->mElData.name << "\", ";
+		std::string hier = it->get_hierarchy();
+		auto fdot = hier.find(".");
+		if(fdot != std::string::npos){
+			if (it->mElData.vrtlCxxType.find("WData") != std::string::npos) {
+				file << "(gTop.__VlSymsp->TOPp->" << hier.substr(0,fdot) << "->" << hier.substr(fdot +1) << "))";
+			} else {
+				file << "&(gTop.__VlSymsp->TOPp->" << hier.substr(0, hier.find(".")) << "->" << hier.substr(hier.find(".") +1) << "))";
+			}
+		}else{
+			if (it->mElData.vrtlCxxType.find("WData") != std::string::npos) {
+				file << "(gTop.__VlSymsp->TOPp->" << it->get_hierarchy() << "))";
+			} else {
+				file << "&(gTop.__VlSymsp->TOPp->" << it->get_hierarchy() << "))";
+			}
 		}
+
 	}
 	file << std::endl << ");" << std::endl;
 	file.close();
