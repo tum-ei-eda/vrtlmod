@@ -17,9 +17,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 class APIbuilder : public XmlHelper {
 #define APIBUILDER_VERSION "0.9"
+#define API_DIRPREFIX "VRTLmodAPI"
 #define API_TD_DIRPREFIX "TD"
 #define API_TD_HEADER_NAME "targetdictionary.hpp"
-#define API_TD_SOURCE_NAME "targetdictionary.cpp"
+#define API_TD_API_HEADER_NAME "vrtlmod_api.hpp"
+#define API_TD_SOURCE_NAME "vrtlmod_api.cpp"
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Specified path to output directory
 	const char* outdir;
@@ -52,6 +54,9 @@ public:
 	/// \brief Returns String containing the include macros for API
 	std::string getInludeStrings(void);
 	///////////////////////////////////////////////////////////////////////
+	/// \brief Returns String containing the (external) declaration of target dictionary (once full decl)
+	std::string getTDExternalDecl(void);
+	///////////////////////////////////////////////////////////////////////
 	/// \brief Returns String containing the intermitten injection statement
 	/// \param t Reference to Target
 	std::string get_intermittenInjectionStmtString(Target& t);
@@ -82,7 +87,9 @@ public:
 protected:
 	int build_targetdictionary(void);
 	int build_targetdictionary_HPP(const char* outputdir);
-	int build_targetdictionary_CPP(const char* outputdir);
+	int build_API_HPP(const char* outputdir);
+	int build_API_CPP(const char* outputdir);
+	std::string get_fileheader(const char* filename);
 	APIbuilder(void); //: mTargets(){};
 	APIbuilder ( const APIbuilder& );
 	APIbuilder & operator = (const APIbuilder &);

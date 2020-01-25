@@ -100,7 +100,6 @@ all: $(EXE)
 $(BUILD_DIR):
 	@mkdir -p $(BUILD_DIR)
 	
-
 $(BUILD_DIR)/%.o: src/%.cpp 
 	@mkdir -p $(dir $@)
 	$(CXX) $(DBGPARAM) $(OPTLEVEL) `$(LLVMPATH_BIN)/llvm-config --cxxflags` -DCLANG_HEADERS=$(CLANG_HEADERS) -DCLANG_FALLBACK_PATH=$(realpath $(LLVMPATH_LIB))/ -DCLANG_HEADER_REALTIVE_PATH=clang/$(LLVMVERSION)/include -c -Wall -fPIC -Iinclude -I/usr/include/libxml2 -MMD -I$(../include) -I$(LLVMPATH_INCLUDE) -DDEBUG=$(DEBUG) $(FORCED_CFLAGS) -o $@ $<

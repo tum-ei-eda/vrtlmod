@@ -30,7 +30,8 @@ void InjectionRewriter::writeIncludeModification(void) {
 	if (includepos != std::string::npos) {
 		std::string x = APIbuilder::_i().getInludeStrings();
 		if (newc.find(x) == std::string::npos) {
-			getRewriter().InsertTextBefore(flocSOF, APIbuilder::_i().getInludeStrings());
+			getRewriter().InsertTextBefore(flocSOF, APIbuilder::_i().getTDExternalDecl());
+			getRewriter().InsertTextBefore(flocSOF, x);
 		}
 	}
 }

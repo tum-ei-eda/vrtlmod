@@ -1,21 +1,16 @@
-////////////////////////////////////////////////////////////////////////////////
-/// @file injectapi.hpp
-/// @brief Target Inject API main header.
-/// @date Created on Mon Jan 17 08:33:21 2020
-/// @author Johannes Geier (johannes.geier@tum.de)
-////////////////////////////////////////////////////////////////////////////////
+//<INSERT_HEADER_COMMMENT>
 
-#ifndef INCLUDE_APIBUILD_INJAPI_INJECTAPI_HPP_
-#define INCLUDE_APIBUILD_INJAPI_INJECTAPI_HPP_
+#ifndef TARGETDICTIONARY_H
+#define TARGETDICTIONARY_H
 
 #include <vector>
+#include "verilated.h"
+//<INSERT_TOP_INCLUDE>
 
 typedef enum INJ_TYPE{BIASED_S, BIASED_R, BITFLIP} INJ_TYPE_t;
 
 #define FI_LIKELY(x)   __builtin_expect(!!(x), 1)
 #define FI_UNLIKELY(x) __builtin_expect(!!(x), 0)
-
-
 
 #define SEQ_TARGET_INJECT(TDentry) { \
 	if(FI_UNLIKELY((TDentry).enable)) { \
@@ -43,26 +38,7 @@ typedef enum INJ_TYPE{BIASED_S, BIASED_R, BITFLIP} INJ_TYPE_t;
 		SEQ_TARGET_INJECT_W(TDentry, i) }\
 }
 
-class TDentry;
-
-class TD{
-public:
-
-	std::vector<TDentry*> mEntryList;
-
-	int push(TDentry* newEntry){
-		i().mEntryList.push_back(newEntry);
-		return(1);
-	}
-
-	static TD& i(void){
-		static TD _instance;
-		return (_instance);
-	}
-
-	TD(void){}
-	virtual ~TD(void){}
-};
+class TD_API;
 
 class TDentry{
 public:
@@ -75,10 +51,26 @@ public:
 	virtual void set_maskBit(unsigned bit){};
 	virtual void reset_mask(void){};
 
-	TDentry(const char* name, unsigned index) : name(name), index(index), cntr(), enable(false), inj_type(INJ_TYPE::BITFLIP) {
-		TD::i().push(this);
-	}
+	TDentry(const char* name, unsigned index);
 	virtual ~TDentry(void){}
 };
 
-#endif /* INCLUDE_APIBUILD_INJAPI_INJECTAPI_HPP_ */
+//<INSERT_TD_CLASSES>
+
+class TD_API{
+public:
+	sTD_t* mTD;
+	std::vector<TDentry*> mEntryList;
+	sTD_t& get_struct(void){return(*mTD);}
+	int push(TDentry *newEntry) {
+		for (auto const & it: mEntryList){
+			if(it == newEntry) return (0);
+		}
+		mEntryList.push_back(newEntry);
+		return (1);
+	}
+	void init(<INSERT_VTOPTYPE>& pVRTL);
+	TD_API(void): mTD(), mEntryList(){}
+};
+
+#endif //TARGETDICTIONARY_H

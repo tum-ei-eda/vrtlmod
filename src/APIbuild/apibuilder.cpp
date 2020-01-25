@@ -15,8 +15,8 @@
 #include <chrono>
 #include <ctime>
 
-APIbuilder::APIbuilder(void) : outdir() {
-
+APIbuilder::APIbuilder(void)
+		: outdir() {
 }
 
 int APIbuilder::init(const char *pTargetXmlFile, const char *pOutdir) {
@@ -24,13 +24,21 @@ int APIbuilder::init(const char *pTargetXmlFile, const char *pOutdir) {
 	return (XmlHelper::init(pTargetXmlFile));
 }
 
+std::string APIbuilder::getTDExternalDecl(void) {
+	static bool once = false;
+	if (!once) {
+		once = true;
+		return ("sTD_t& gTD = VRTLmodAPI::i().get_struct(); \t// global target dictionary\n");
+	} else {
+		return ("extern sTD_t& gTD;\n");
+	}
+}
+
 std::string APIbuilder::getInludeStrings(void) {
 	std::stringstream ret;
 	ret << "/* Includes for Target Injection API */" << std::endl;
-	ret << "#include \"" << "TD/" << API_TD_HEADER_NAME << "\"" << std::endl;
-	ret << "#include \"InjAPI/injectapi.hpp\"" << std::endl;
-	ret << "extern sTD_t gTD; \t// global target dictionary" << std::endl;
-
+	ret << "#include \"" << "VRTLmodAPI/TD/" << API_TD_HEADER_NAME << "\"" << std::endl;
+	ret << "#include \"VRTLmodAPI/vrtlmod_api.hpp\"" << std::endl;
 	return (ret.str());
 }
 
@@ -68,17 +76,17 @@ int APIbuilder::isExprTarget(const char *pExpr) {
 	int ret = -1;
 	ExprT x = ExprT(pExpr);
 	std::string expre;
-	if(x.prefix == "vlSymsp"){
+	if (x.prefix == "vlSymsp") {
 		expre = //this->mTopName +
 				x.object + std::string(".") + x.name;
-	}else if(x.prefix == "vlTOPp"){
+	} else if (x.prefix == "vlTOPp") {
 		expre = //this->mTopName +
 				std::string("TOP.") + x.name;
 	}
 	for (auto const &it : mTargets) {
 		ret++;
 		std::string target = it->mElData.hierarchy; // = it->get_hierarchy(); //TOP.top.<name>
-		if(target == expre){
+		if (target == expre) {
 			return ret;
 		}
 	}
@@ -108,8 +116,9 @@ std::string APIbuilder::get_targetdictionaryEntryTypeDefString(Target &t) {
 	ss << "\t" << "public:" << std::endl;
 	ss << "\t\t" << "unsigned bits;" << std::endl;
 
-	ss << "\t\t" << t.mElData.vrtlCxxType.substr(0, t.mElData.vrtlCxxType.find("[")) << "* data;" << "\t// " << t.mElData.vrtlCxxType << std::endl;
-	if(t.mElData.words <= 1){
+	ss << "\t\t" << t.mElData.vrtlCxxType.substr(0, t.mElData.vrtlCxxType.find("[")) << "* data;" << "\t// " << t.mElData.vrtlCxxType
+			<< std::endl;
+	if (t.mElData.words <= 1) {
 		ss << "\t\t" << t.mElData.vrtlCxxType << " mask;" << std::endl;
 		ss << "\t\t" << "void reset_mask(void){mask = 0;}" << std::endl;
 		if (t.mElData.vrtlCxxType == "QData") {
@@ -117,17 +126,19 @@ std::string APIbuilder::get_targetdictionaryEntryTypeDefString(Target &t) {
 		} else {
 			ss << "\t\t" << "void set_maskBit(unsigned bit){VL_ASSIGNBIT_IO(1, bit, mask, 0);}" << std::endl;
 		}
-	}else{
-		ss << "\t\t" << t.mElData.vrtlCxxType.substr(0, t.mElData.vrtlCxxType.find("[")) << " mask[" << t.mElData.words << "];" << std::endl;
+	} else {
+		ss << "\t\t" << t.mElData.vrtlCxxType.substr(0, t.mElData.vrtlCxxType.find("[")) << " mask[" << t.mElData.words << "];"
+				<< std::endl;
 		ss << "\t\t" << "void reset_mask(void){" << std::endl;
-		for (unsigned  i = 0; i < t.mElData.words; i++) {
+		for (unsigned i = 0; i < t.mElData.words; i++) {
 			ss << "\t\t\t" << "mask[" << i << "] = 0;" << std::endl;
 		}
 		ss << "\t\t}" << std::endl;
 		ss << "\t\t" << "void set_maskBit(unsigned bit){VL_ASSIGNBIT_WO(1, bit, mask, 1);}" << std::endl;
 	}
 
-	ss << "\t\t" << get_targetdictionaryTargetClassDefName(t) << "(const char* name, " << t.mElData.vrtlCxxType.substr(0, t.mElData.vrtlCxxType.find("[")) << "* data) :" << std::endl;
+	ss << "\t\t" << get_targetdictionaryTargetClassDefName(t) << "(const char* name, "
+			<< t.mElData.vrtlCxxType.substr(0, t.mElData.vrtlCxxType.find("[")) << "* data) :" << std::endl;
 	ss << "\t\t\t" << "TDentry(name, " << t.index << "), data(data), mask(), bits(" << t.mElData.nmbBits << ") {}" << std::endl;
 	ss << "};" << std::endl;
 
@@ -138,113 +149,152 @@ std::string APIbuilder::get_targetdictionaryEntryTypeDefString(Target &t) {
 
 int APIbuilder::build_API(void) {
 	std::stringstream tmp;
-	tmp << "mkdir -p " << get_outputDir() << " && ";
-	tmp << "mkdir -p " << get_outputDir() << "/" << API_TD_DIRPREFIX << " && ";
-	tmp << "cp -r APItemplates/* " << get_outputDir();
+	tmp << "cp -r APItemplates/* " << get_outputDir() << "&&" << "mkdir -p " << get_outputDir() << "/" << API_DIRPREFIX << "/"
+			<< API_TD_DIRPREFIX;
 	system(tmp.str().c_str());
 	return (build_targetdictionary());
 }
 
 int APIbuilder::build_targetdictionary(void) {
-	std::string tgtdir = outdir;
-	tgtdir += "/";
-	tgtdir += API_TD_DIRPREFIX;
-	if (build_targetdictionary_HPP(tgtdir.c_str()) > 0) {
-		if (build_targetdictionary_CPP(tgtdir.c_str()) <= 0) {
+	std::stringstream tgtdir;
+	tgtdir << outdir << "/" << API_DIRPREFIX;
+	if (build_targetdictionary_HPP((tgtdir.str() + "/TD").c_str()) > 0) {
+		if (build_API_CPP((tgtdir.str()).c_str()) <= 0) {
+			return (-2);
+		}
+		if (build_API_HPP((tgtdir.str()).c_str()) <= 0) {
 			return (-2);
 		}
 	} else {
 		return (-1);
 	}
 
-	for(const auto & it: mTargets){
-		if ((it->mSeqInjCnt / it->mElData.words) > 2){
-			ftcv::log(ftcv::WARNING, std::string("More than 2 sequential injections for: ")+it->_self());
+	for (const auto &it : mTargets) {
+		if ((it->mSeqInjCnt / it->mElData.words) > 2) {
+			ftcv::log(ftcv::WARNING, std::string("More than 2 sequential injections for: ") + it->_self());
 		}
 	}
 	return (1);
 }
 
 int APIbuilder::build_targetdictionary_HPP(const char *outputdir) {
-
-	std::time_t timestamp = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-
 	std::string filepath = outputdir;
 	filepath += "/";
 	filepath += API_TD_HEADER_NAME;
+
+	std::ifstream ifile(filepath);
+	std::stringstream filetemplate;
+
+	if (ifile.is_open()) {
+		std::string tmp;
+		while (std::getline(ifile, tmp)) {
+			if (tmp.find("//<INSERT_HEADER_COMMMENT>") != std::string::npos) {
+				filetemplate << get_fileheader(API_TD_HEADER_NAME);
+			} else if (tmp.find("//<INSERT_TD_CLASSES>") != std::string::npos) {
+				for (auto const &it : mTargets) {
+					filetemplate << std::endl << get_targetdictionaryEntryTypeDefString(*it);
+				}
+				filetemplate << std::endl << "typedef struct sTD {" << std::endl;
+				for (auto const &it : mTargets) {
+					filetemplate << "\t" << get_targetdictionaryTargetClassDefName(*it) << "& "
+							<< get_targetdictionaryTargetClassDeclName(*it) << ";" << std::endl;
+				}
+				filetemplate << "\tsTD(" << std::endl;
+				bool first = true;
+				for (auto const &it : mTargets) {
+					if (first) {
+						first = false;
+					} else {
+						filetemplate << ", " << std::endl;
+					}
+					filetemplate << "\t\t" << get_targetdictionaryTargetClassDefName(*it) << "& a" << it->index;
+				}
+				filetemplate << ") : " << std::endl;
+				first = true;
+				for (auto const &it : mTargets) {
+					if (first) {
+						first = false;
+					} else {
+						filetemplate << "," << std::endl;
+					}
+					filetemplate << "\t\t\t " << get_targetdictionaryTargetClassDeclName(*it) << "(a" << it->index << ")";
+				}
+				filetemplate << "{}" << std::endl;
+				filetemplate << "} sTD_t;" << std::endl;
+
+			} else {
+				strhelp::replace(tmp, "//<INSERT_TOP_INCLUDE>", std::string("#include \"") + mTopTypeName + ".h\"");
+				strhelp::replace(tmp, "<INSERT_VTOPTYPE>", mTopTypeName);
+				filetemplate << tmp << std::endl;
+			}
+		}
+		ifile.close();
+	}
+
 	std::ofstream file;
 	file.open(filepath);
 	if (file.fail()) {
 		return (-1);
 	}
-
-	file << "////////////////////////////////////////////////////////////////////////////////" << std::endl;
-	file << "/// @file " << API_TD_HEADER_NAME << std::endl;
-	file << "/// @brief Injection Target Dictionary for injection-modified VRTL header" << std::endl;
-	file << "/// @details Automatically generated from: " << mFilepath << std::endl;
-	file << "/// @date Created on " << std::ctime(&timestamp);
-	file << "/// @author APIbuilder version " << APIBUILDER_VERSION << std::endl;
-	file << "////////////////////////////////////////////////////////////////////////////////" << std::endl;
-
-	file << std::endl;
-	file << "#ifndef INJECTION_TD_H" << std::endl;
-	file << "#define INJECTION_TD_H" << std::endl;
-
-	file << std::endl;
-	file << "#include \"verilated.h\"" << "//v4.023" << std::endl;
-	file << "#include \"" << "../InjAPI/injectapi.hpp\"" << std::endl;
-
-	file << std::endl;
-
-	for (auto const &it : mTargets) {
-		file << std::endl;
-		file << get_targetdictionaryEntryTypeDefString(*it);
-	}
-
-	file << std::endl;
-	file << "typedef struct sTD {" << std::endl;
-	for (auto const &it : mTargets) {
-		file << "\t" << get_targetdictionaryTargetClassDefName(*it) << "& " << get_targetdictionaryTargetClassDeclName(*it) << ";" << std::endl;
-	}
-
-	file << "\tsTD(";
-	bool first = true;
-	for (auto const &it : mTargets) {
-		if (first) {
-			first = false;
-		} else {
-			file << ", " << std::endl;
-		}
-		file << "\t" << get_targetdictionaryTargetClassDefName(*it) << "& a" << it->index;
-	}
-	file << ") : " << std::endl;
-	first = true;
-	for (auto const &it : mTargets) {
-		if (first) {
-			first = false;
-		} else {
-			file << "," << std::endl;
-		}
-		file << "\t\t " << get_targetdictionaryTargetClassDeclName(*it) << "(a" << it->index << ")";
-	}
-	file << "{}" << std::endl;
-	file << "} sTD_t;" << std::endl;
-
-	file << std::endl;
-	file << "#endif //INJECTION_TD_H" << std::endl;
+	file << filetemplate.str();
 
 	file.close();
 
 	return (1);
 }
 
-int APIbuilder::build_targetdictionary_CPP(const char *outputdir) {
+int APIbuilder::build_API_HPP(const char *outputdir) {
+
+	std::string filepath = outputdir;
+	filepath += "/";
+	filepath += API_TD_API_HEADER_NAME;
+
+	std::ifstream ifile(filepath);
+	std::stringstream filetemplate;
+
+	if (ifile.is_open()) {
+		std::string tmp;
+		while (std::getline(ifile, tmp)) {
+			if (tmp.find("//<INSERT_HEADER_COMMMENT>") != std::string::npos) {
+				filetemplate << get_fileheader(API_TD_API_HEADER_NAME);
+			} else {
+				strhelp::replace(tmp, "//<INSERT_TOP_INCLUDE>", std::string("#include \"") + mTopTypeName + ".h\"");
+				strhelp::replace(tmp, "<INSERT_VTOPTYPE>", mTopTypeName);
+				filetemplate << tmp << std::endl;
+			}
+		}
+		ifile.close();
+	}
+
+	std::ofstream file;
+	file.open(filepath);
+	if (file.fail()) {
+		return (-1);
+	}
+	file << filetemplate.str();
+
+	file.close();
+
+	return (1);
+}
+
+int APIbuilder::build_API_CPP(const char *outputdir) {
 	std::time_t timestamp = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
-//	std::stringstream ss_file;
 	std::string filepath = outputdir;
 	filepath += "/";
 	filepath += API_TD_SOURCE_NAME;
+
+	std::ifstream ifile(filepath);
+
+	std::stringstream filetemplate;
+	if (ifile.is_open()) {
+		std::string tmp;
+		while (std::getline(ifile, tmp)) {
+			filetemplate << tmp << std::endl;
+		}
+		ifile.close();
+	}
 
 	std::ofstream file;
 	file.open(filepath);
@@ -252,28 +302,27 @@ int APIbuilder::build_targetdictionary_CPP(const char *outputdir) {
 		return (-1);
 	}
 	// write file head
-	file << "////////////////////////////////////////////////////////////////////////////////" << std::endl;
-	file << "/// @file " << API_TD_SOURCE_NAME << std::endl;
-	file << "/// @brief Injection Target Dictionary for injection-modified VRTL sources" << std::endl;
-	file << "/// @details Automatically generated from: " << mFilepath << std::endl;
-	file << "/// @date Created on " << std::ctime(&timestamp);
-	file << "/// @author APIbuilder version " << APIBUILDER_VERSION << std::endl;
-	file << "////////////////////////////////////////////////////////////////////////////////" << std::endl;
+	file << get_fileheader(API_TD_SOURCE_NAME);
 
 	file << std::endl;
-	file << "#include \"verilated.h\"" << "// v4.023" << std::endl;
-	file << "#include \"" << API_TD_HEADER_NAME << "\"" << std::endl;
+	file << "// Vrtl-specific includes:" << std::endl;
 	file << "#include \"" << "../" << mTopTypeName << ".h\"" << std::endl;
 	file << "#include \"" << "../" << mTopTypeName << "__Syms.h\"" << std::endl;
+	file << "// General API includes:" << std::endl;
+	file << filetemplate.str();
+	file << std::endl;
 
 	file << std::endl;
-	file << mTopTypeName << " gTop;" << std::endl;
-
+	file << "VRTLmodAPI::VRTLmodAPI(void) :" << std::endl << "\tmVRTL(* new " << mTopTypeName << ")," << std::endl
+			<< "TD_API()" << std::endl << "{TD_API::init(mVRTL);}";
+//			<< "\tmTargetDictionary(* new TD_API(mVRTL)) {" << std::endl << "}" << std::endl;
 	file << std::endl;
-	file << "////////////////////////////////////////////////////////////////////////////////" << std::endl;
-	file << "/// @brief Global target dictionary" << std::endl;
-	file << "/// @details Initializer list is generated according to definition in " << API_TD_HEADER_NAME << std::endl;
-	file << "sTD_t gTD ( " << std::endl;
+
+//	file << "TD_API::TD_API(" << mTopTypeName << "& pVRTL) : " << std::endl << "\tmTD(" << std::endl;
+	file << "void TD_API::init("<< mTopTypeName << "& pVRTL){" << std::endl;
+	file << "mTD = new sTD(" << std::endl;
+	std::string top = "pVRTL";
+
 	bool first = true;
 	for (auto const &it : mTargets) {
 		if (first) {
@@ -281,26 +330,49 @@ int APIbuilder::build_targetdictionary_CPP(const char *outputdir) {
 		} else {
 			file << "," << std::endl;
 		}
-		file << "\t* new " << get_targetdictionaryTargetClassDefName(*it) << "(\"" << it->mElData.name << "\", ";
+		file << "\t\t* new " << get_targetdictionaryTargetClassDefName(*it) << "(\"" << it->mElData.hierarchy << "\", ";
 		std::string hier = it->get_hierarchy();
 		auto fdot = hier.find(".");
-		if(fdot != std::string::npos){
-			if (it->mElData.vrtlCxxType.find("WData") != std::string::npos) {
-				file << "(gTop.__VlSymsp->TOPp->" << hier.substr(0,fdot) << "->" << hier.substr(fdot +1) << "))";
+		if (fdot != std::string::npos) {
+			if (it->mElData.words > 1) { //if (it->mElData.vrtlCxxType.find("WData") != std::string::npos) {
+				file << top << ".__VlSymsp->TOPp->" << hier.substr(0, fdot) << "->" << hier.substr(fdot + 1);
 			} else {
-				file << "&(gTop.__VlSymsp->TOPp->" << hier.substr(0, hier.find(".")) << "->" << hier.substr(hier.find(".") +1) << "))";
+				file << "&(" << top << ".__VlSymsp->TOPp->" << hier.substr(0, hier.find(".")) << "->" << hier.substr(hier.find(".") + 1)
+						<< ")";
 			}
-		}else{
-			if (it->mElData.vrtlCxxType.find("WData") != std::string::npos) {
-				file << "(gTop.__VlSymsp->TOPp->" << it->get_hierarchy() << "))";
+		} else {
+			if (it->mElData.words > 1) { //if (it->mElData.vrtlCxxType.find("WData") != std::string::npos) {
+				file << top << ".__VlSymsp->TOPp->" << hier;
 			} else {
-				file << "&(gTop.__VlSymsp->TOPp->" << it->get_hierarchy() << "))";
+				file << "&(" << top << ".__VlSymsp->TOPp->" << hier << ")";
 			}
 		}
-
+		file << ")";
 	}
-	file << std::endl << ");" << std::endl;
+//	file << std::endl << "\t)" << std::endl << " {}" << std::endl;
+	file << std::endl << "\t);" << std::endl;
+	file << std::endl;
+//	file << "void TD_API::init(void){" << std::endl;
+	for (auto const &it : mTargets) {
+		file << "\tmEntryList.push_back(&(mTD->" << get_targetdictionaryTargetClassDeclName(*it) << "));" << std::endl;
+	}
+	file << "}" << std::endl;
+
 	file.close();
 
 	return (1);
 }
+
+std::string APIbuilder::get_fileheader(const char *filename) {
+	std::stringstream x;
+	std::time_t timestamp = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	x << "////////////////////////////////////////////////////////////////////////////////" << std::endl;
+	x << "/// @file " << API_TD_API_HEADER_NAME << std::endl;
+	x << "/// @brief Modified VRTL-API main header" << std::endl;
+	x << "/// @details Automatically generated from: " << mFilepath << std::endl;
+	x << "/// @date Created on " << std::ctime(&timestamp);
+	x << "/// @author APIbuilder version " << APIBUILDER_VERSION << std::endl;
+	x << "////////////////////////////////////////////////////////////////////////////////" << std::endl;
+	return (x.str());
+}
+
