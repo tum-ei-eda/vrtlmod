@@ -44,63 +44,45 @@ typedef struct sXmlEl {
 	std::string vrtlCxxType;
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Copy Constructor
-	sXmlEl(const sXmlEl &x) : name(x.name), hierarchy(x.hierarchy), signalClass(x.signalClass), nmbBits(x.nmbBits), type(x.type), words(x.words), vrtlCxxType(
-			x.vrtlCxxType) {
+	sXmlEl(const sXmlEl &x) :
+			name(x.name), hierarchy(x.hierarchy), signalClass(x.signalClass), nmbBits(x.nmbBits), type(x.type), words(x.words), vrtlCxxType(x.vrtlCxxType) {
 	}
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Constructor
-	sXmlEl(const char *name = "", const char *hierarchy = "", const char *signalClass_s = "", unsigned int nmbBits = 0, const char *type =
-			"", const char *vrtlCxxType = "") : name(name), hierarchy(hierarchy), signalClass(UNDEF), nmbBits(nmbBits), type(type), words(1), vrtlCxxType(
-			vrtlCxxType) {
-		if (signalClass_s != NULL) {
-			std::string x = signalClass_s;
-			if (x == "register") {
-				signalClass = REG;
-			} else if (x == "wire") {
-				signalClass = WIRE;
-			} else if (x == "constant") {
-				signalClass = CONST;
-			} else {
-				signalClass = UNDEF;
+	sXmlEl(const char *name = "", const char *hierarchy = "", const char *signalClass_s = "", unsigned int nmbBits = 0, const char *type = "",
+			const char *vrtlCxxType = "") :
+				name(name), hierarchy(hierarchy), signalClass(UNDEF), nmbBits(nmbBits), type(type), words(1), vrtlCxxType(vrtlCxxType) {
+			if (signalClass_s != NULL) {
+				std::string x = signalClass_s;
+				if (x == "register") {
+					signalClass = REG;
+				} else if (x == "wire") {
+					signalClass = WIRE;
+				} else if (x == "constant") {
+					signalClass = CONST;
+				} else {
+					signalClass = UNDEF;
+				}
 			}
-		}
-		if(sXmlEl::vrtlCxxType.find("[")!= std::string::npos){
-			auto brOpen = sXmlEl::vrtlCxxType.find('[');
-			auto brClose = sXmlEl::vrtlCxxType.find(']');
-			words = std::stoi(sXmlEl::vrtlCxxType.substr(brOpen+1, brClose-brOpen-1));
+			if (sXmlEl::vrtlCxxType.find("[") != std::string::npos) {
+				auto brOpen = sXmlEl::vrtlCxxType.find('[');
+				auto brClose = sXmlEl::vrtlCxxType.find(']');
+				words = std::stoi(sXmlEl::vrtlCxxType.substr(brOpen + 1, brClose - brOpen - 1));
 
-			if(sXmlEl::nmbBits <= 32){
-				sXmlEl::nmbBits = words*sXmlEl::nmbBits;
+				if (sXmlEl::nmbBits <= 32) {
+					sXmlEl::nmbBits = words * sXmlEl::nmbBits;
+				}
 			}
 		}
-	}
 } sXmlEl_t;
 
-namespace strhelp{
-bool replace(std::string& str, const std::string& from, const std::string& to);
-
-void replaceAll(std::string& str, const std::string& from, const std::string& to);
-}
-
-class ExprT{
+class ExprT {
 public:
 	std::string expr;
 	std::string prefix;
 	std::string object;
 	std::string name;
-	ExprT(const char* Expr): expr(Expr), prefix(), object(), name(){
-		auto pos = expr.find("->");
-		if(pos != std::string::npos)
-			prefix = expr.substr(0, pos);
-
-		auto objdot = expr.rfind(".");
-		if(objdot != std::string::npos){
-			object = expr.substr(pos+2, objdot-pos-2);
-			strhelp::replaceAll(object, std::string("__"), std::string("."));
-			name = expr.substr(objdot+1);
-		}else
-			name = expr.substr(pos+2);
-	}
+	ExprT(const char *Expr);
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -159,7 +141,7 @@ public:
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Overloaded operator for stream access of class (pointer)
 	friend std::ostream& operator<<(std::ostream &os, const Target *obj) {
-		os << *obj;//->_self();
+		os << *obj;	//->_self();
 		return os;
 	}
 };

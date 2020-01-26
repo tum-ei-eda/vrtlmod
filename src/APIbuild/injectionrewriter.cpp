@@ -61,11 +61,11 @@ void InjectionRewriter::writeSequentInject(const BinaryOperator *op, const Expr 
 	}
 	if (idx >= 0) {
 		Target &t = APIbuilder::_i().getExprTarget(idx);
-		ftcv::log(ftcv::INFO, std::string("Target found \n\t")+t._self());
+		ftcv::log(ftcv::INFO, std::string("Target found \n\t") + t._self());
 		std::string newc = getRewriter().getRewrittenText(op->getSourceRange());
 		newc += "; ";
 		if ((base != nullptr) and (index != nullptr)) {
-			unsigned x = std::stoi(getRewriter().getRewrittenText(index->getSourceRange()),0,16);
+			unsigned x = std::stoi(getRewriter().getRewrittenText(index->getSourceRange()), 0, 16);
 			newc += APIbuilder::_i().get_sequentInjectionStmtString(t, x);
 		} else {
 			newc += APIbuilder::_i().get_sequentInjectionStmtString(t);
@@ -97,8 +97,8 @@ int InjectionRewriter::registerAssignment(ExtAsgnmnt *a) {
 		ExtCompoundStmt *tAssignmentLocation = activeSequentFunc->return_finest(a);
 		if (tAssignmentLocation) {
 			std::stringstream x;
-			x << "New Assignment (Id: " << a->get_ID() << ") " << "in compound (Id: " << tAssignmentLocation->get_ID() << ") "
-					<< "of sequent Function (Id: " << activeSequentFunc->get_ID() << ")";
+			x << "New Assignment (Id: " << a->get_ID() << ") " << "in compound (Id: " << tAssignmentLocation->get_ID() << ") " << "of sequent Function (Id: "
+					<< activeSequentFunc->get_ID() << ")";
 			ftcv::log(ftcv::INFO, x.str());
 			int ret = tAssignmentLocation->push(a);
 			if (ret <= 0) {
@@ -116,7 +116,7 @@ int InjectionRewriter::registerAssignment(ExtAsgnmnt *a) {
 void InjectionRewriter::run(const clang::ast_matchers::MatchFinder::MatchResult &Result) {
 	if (Result.Nodes.getNodeAs<Decl>("function")) {
 		if (activeSequentFunc != nullptr and in_sequent) {
-			ftcv::log(ftcv::INFO, std::string("Matcher LEAVING sequent body of \n\t")+ activeSequentFunc->_self());
+			ftcv::log(ftcv::INFO, std::string("Matcher LEAVING sequent body of \n\t") + activeSequentFunc->_self());
 
 			writeSequentInject(activeSequentFunc);
 
@@ -132,14 +132,14 @@ void InjectionRewriter::run(const clang::ast_matchers::MatchFinder::MatchResult 
 		in_sequent = true;
 		activeSequentFunc = new ExtDeclFunc(f, *this);
 		mSequentFuncs.push_back(activeSequentFunc);
-		ftcv::log(ftcv::INFO, std::string("Matcher ENTER sequent body of: \n\t")+ activeSequentFunc->_self());
+		ftcv::log(ftcv::INFO, std::string("Matcher ENTER sequent body of: \n\t") + activeSequentFunc->_self());
 	}
 
 	if (const Stmt *c = Result.Nodes.getNodeAs<Stmt>("compound")) {
 		if (in_sequent) {
 			activeCompoundStmt = new ExtCompoundStmt(c, *this);
 			activeSequentFunc->addCompound(activeCompoundStmt);
-			ftcv::log(ftcv::INFO, std::string("New Compound: ")+activeCompoundStmt->_self());
+			ftcv::log(ftcv::INFO, std::string("New Compound: ") + activeCompoundStmt->_self());
 		}
 	}
 
@@ -165,40 +165,38 @@ void InjectionRewriter::addMatcher(clang::ast_matchers::MatchFinder &finder) {
 	finder.addMatcher(functionDecl().bind("function"), this);
 	finder.addMatcher(functionDecl(hasBody(compoundStmt()), matchesName("_sequent_*")).bind("sequent_function"), this);
 
-	finder.addMatcher(
-			binaryOperator(isAssignmentOperator(), hasLHS(arraySubscriptExpr().bind("arraySubscriptExprLHS"))).bind("array_assignment"),
-			this);
+	finder.addMatcher(binaryOperator(isAssignmentOperator(), hasLHS(arraySubscriptExpr().bind("arraySubscriptExprLHS"))).bind("array_assignment"), this);
 	finder.addMatcher(binaryOperator(isAssignmentOperator()).bind("assignment"), this);
 
 	finder.addMatcher(compoundStmt().bind("compound"), this);
 }
 
-InjectionRewriter::InjectionRewriter(ftcv::Consumer &cons)
-		: ftcv::Handler(cons), in_sequent(false), activeSequentFunc(), activeCompoundStmt() {
+InjectionRewriter::InjectionRewriter(ftcv::Consumer &cons) :
+		ftcv::Handler(cons), in_sequent(false), activeSequentFunc(), activeCompoundStmt() {
 }
 
-void InjectionRewriter::analyzeRewrite(void){
-	if(mSequentFuncs.size()>0){
+void InjectionRewriter::analyzeRewrite(void) {
+	if (mSequentFuncs.size() > 0) {
 		std::string filename = std::string(getRewriter().getSourceMgr().getFilename(mSequentFuncs.front()->Begin));
 		std::vector<Target*> setpoints = APIbuilder::_i().get_targets();
 		std::vector<Target*> injected;
 		auto soll = setpoints.size();
 		for (auto &itf : mSequentFuncs) {
-			for(auto & it: itf->mInjectedTargets){
+			for (auto &it : itf->mInjectedTargets) {
 				injected.push_back(it);
-				for (unsigned i = 0; i< setpoints.size(); i++){
-					if (it == setpoints.at(i)){
-						setpoints.erase(setpoints.begin()+i);
+				for (unsigned i = 0; i < setpoints.size(); i++) {
+					if (it == setpoints.at(i)) {
+						setpoints.erase(setpoints.begin() + i);
 					}
 				}
 			}
 		}
 		std::stringstream x;
-		float perc = float(injected.size())/float(soll)*100.0;
+		float perc = float(injected.size()) / float(soll) * 100.0;
 		x << "Analysis of source" << filename << std::endl;
 		x << "Uninjected Targets: " << injected.size() << " of " << soll << " done. (" << perc << " %)" << std::endl;
 		x << "Remaining Targets: " << std::endl;
-		for(auto & it: setpoints){
+		for (auto &it : setpoints) {
 			x << "\t- " << it << std::endl;
 		}
 		ftcv::log(ftcv::OBLIGAT, x.str());

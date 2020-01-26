@@ -63,23 +63,9 @@ int ExtCompoundStmt::push(ExtAsgnmnt *a) {
 
 std::string ExtCompoundStmt::_self(void) const {
 	std::stringstream ret;
-	ret << "(Id: "<< c->getID(_handler.getASTContext()) << ")";//_handler.getRewriter().getRewrittenText(c->getSourceRange());
+	ret << "(Id: "<< c->getID(_handler.getASTContext()) << ")";
 	return (ret.str());
 }
-
-//void swap(ExtAsgnmnt* a,ExtAsgnmnt*b){
-//	ExtAsgnmnt* temp = a;
-//	a = b;
-//	b = temp;
-//}
-//
-//int partition (std::vector<ExtAsgnmnt*>& vec, unsigned low, unsigned high){
-//	ExtAsgnmnt* pivot = vec[high];
-//	unsigned i = low -1;
-//	for (unsigned j = low; j<= high -1; j++){
-//		if (vec[j]-> )
-//	}
-//}
 
 std::vector<ExtAsgnmnt*> ExtCompoundStmt::get_dominantAssignments(void){
 
@@ -122,9 +108,7 @@ ExtCompoundStmt* ExtDeclFunc::return_finest(ExtAsgnmnt* a){
 			inRanges.push_back(it);
 		}
 	}
-	// Sort inRanges (smallest in front is also the actual location of out assignment
 	for(unsigned i = 0; i< inRanges.size()-1; i++){
-//		ExtCompoundStmt* min_pos = inRanges.at(i);
 		auto min_pos = i;
 		for(auto j = i +1; j < inRanges.size(); j++){
 			if(inRanges[j]->size() < inRanges[min_pos]->size()){

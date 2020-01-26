@@ -102,10 +102,10 @@ $(BUILD_DIR):
 	
 $(BUILD_DIR)/%.o: src/%.cpp 
 	@mkdir -p $(dir $@)
-	$(CXX) $(DBGPARAM) $(OPTLEVEL) `$(LLVMPATH_BIN)/llvm-config --cxxflags` -DCLANG_HEADERS=$(CLANG_HEADERS) -DCLANG_FALLBACK_PATH=$(realpath $(LLVMPATH_LIB))/ -DCLANG_HEADER_REALTIVE_PATH=clang/$(LLVMVERSION)/include -c -Wall -fPIC -Iinclude -I/usr/include/libxml2 -MMD -I$(../include) -I$(LLVMPATH_INCLUDE) -DDEBUG=$(DEBUG) $(FORCED_CFLAGS) -o $@ $<
+	$(CXX) -DDEBUG=$(DEBUG) $(FORCED_CFLAGS) `$(LLVMPATH_BIN)/llvm-config --cxxflags` -DCLANG_HEADERS=$(CLANG_HEADERS) -DCLANG_FALLBACK_PATH=$(realpath $(LLVMPATH_LIB))/ -DCLANG_HEADER_REALTIVE_PATH=clang/$(LLVMVERSION)/include -c -Wall -fPIC -Iinclude -I/usr/include/libxml2 -MMD -I$(../include) -I$(LLVMPATH_INCLUDE) -o $@ $<
 
 $(BUILD_DIR)/$(EXE).o: $(EXE).cpp
-	$(CXX) $(DBGPARAM) $(OPTLEVEL) `$(LLVMPATH_BIN)/llvm-config --cxxflags` -DCLANG_HEADERS=$(CLANG_HEADERS) -DCLANG_FALLBACK_PATH=$(realpath $(LLVMPATH_LIB))/ -DCLANG_HEADER_REALTIVE_PATH=clang/$(LLVMVERSION)/include -c -Wall -fPIC -Iinclude -I/usr/include/libxml2 -MMD -I$(../include) -I$(LLVMPATH_INCLUDE) -DDEBUG=$(DEBUG) $(FORCED_CFLAGS) -o $@ $< 
+	$(CXX) -DDEBUG=$(DEBUG) $(FORCED_CFLAGS) `$(LLVMPATH_BIN)/llvm-config --cxxflags` -DCLANG_HEADERS=$(CLANG_HEADERS) -DCLANG_FALLBACK_PATH=$(realpath $(LLVMPATH_LIB))/ -DCLANG_HEADER_REALTIVE_PATH=clang/$(LLVMVERSION)/include -c -Wall -fPIC -Iinclude -I/usr/include/libxml2 -MMD -I$(../include) -I$(LLVMPATH_INCLUDE) -o $@ $< 
 
 -include $(BUILD_DIR)/*.d
 -include $(BUILD_DIR)/*/*.d
@@ -115,7 +115,7 @@ $(BUILD_DIR)/$(EXE).o: $(EXE).cpp
 -include $(BUILD_DIR)/*/*/*/*/*/*.d
 
 $(EXE): $(OBJFILES)
-	$(LD) $(DBGPARAM) $(OPTLEVEL) -DCLANG_HEADERS=$(CLANG_HEADERS) -DDEBUG=$(DEBUG) $(FORCED_CFLAGS) \
+	$(LD) -DDEBUG=$(DEBUG) $(FORCED_CFLAGS) -DCLANG_HEADERS=$(CLANG_HEADERS) -DDEBUG=$(DEBUG) \
 		$(OBJFILES) -o $(EXE) -Iinclude `xml2-config --cflags` `$(LLVMPATH_BIN)/llvm-config --cxxflags --ldflags` $(LLVM_LIBS) $(CLANG_LIBS) `xml2-config --libs`
 
 docu:

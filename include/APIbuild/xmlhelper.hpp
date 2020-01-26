@@ -9,8 +9,7 @@
 
 #include "libxml/xmlreader.h"
 #include "vector"
-
-#include "../APIbuild/target.hpp"
+#include "APIbuild/target.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @class XmlHelper
@@ -44,10 +43,14 @@ protected:
 public:
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Get extracted targets
-	std::vector<Target*>& get_targets(void) {return (mTargets);}
+	std::vector<Target*>& get_targets(void) {
+		return (mTargets);
+	}
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Get xml input file path
-	const char* get_xmlUri(void){return (mFilepath.c_str());}
+	const char* get_xmlUri(void) {
+		return (mFilepath.c_str());
+	}
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Process current Xml reader object node
 	int process_node(void);

@@ -7,9 +7,9 @@
 #ifndef VREWTL_DOMINANTINJECT_H
 #define VREWTL_DOMINANTINJECT_H
 
-#include "../APIbuild/target.hpp"
-#include "../ftcv/Consumer.h"
-#include "../APIbuild/extendedmatchers.hpp"
+#include "APIbuild/target.hpp"
+#include "ftcv/Consumer.h"
+#include "APIbuild/extendedmatchers.hpp"
 #include <vector>
 
 class InjectionRewriter;
@@ -34,7 +34,7 @@ public:
 	std::vector<ExtDeclFunc*> mSequentFuncs;
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Pointer to currently active compound statement
-	ExtCompoundStmt* activeCompoundStmt;
+	ExtCompoundStmt *activeCompoundStmt;
 
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Write include macros for API to active VRTL file
@@ -43,7 +43,7 @@ public:
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Write sequential injection statements by function
 	/// \param sequent_function Pointer to extended function reference
-	void writeSequentInject(ExtDeclFunc* sequent_function);
+	void writeSequentInject(ExtDeclFunc *sequent_function);
 
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Prints analysis of rewrite work done
@@ -67,7 +67,7 @@ protected:
 	void writeSequentInject(const clang::BinaryOperator *op, const clang::Expr *base = nullptr, const clang::Expr *index = nullptr);
 	void writeIntermittenInject(void);
 
-	int registerAssignment(ExtAsgnmnt* a);
+	int registerAssignment(ExtAsgnmnt *a);
 private:
 	std::set<clang::SourceLocation> visited;
 };

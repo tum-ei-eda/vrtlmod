@@ -17,7 +17,7 @@ void XmlHelper::get_var(void) {
 	const char *signalClass = (const char*) xmlTextReaderGetAttribute(mReader, (const xmlChar*) "signalClass");
 	const char *type = (const char*) xmlTextReaderGetAttribute(mReader, (const xmlChar*) "type");
 	const char *vhier = (const char*) xmlTextReaderGetAttribute(mReader, (const xmlChar*) "vHier");
-	const char *cxxtype = (const char*) xmlTextReaderGetAttribute(mReader, (const xmlChar*) "CxxType");
+	const char *cxxtype = (const char*) xmlTextReaderGetAttribute(mReader, (const xmlChar*) "CppType");
 
 	sXmlEl x(name, vhier, signalClass, std::stoi(bits), type, cxxtype);
 	Target *v = new Target(targetcounter, x);
@@ -25,11 +25,11 @@ void XmlHelper::get_var(void) {
 	if (v->mElData.signalClass == sXmlEl::REG) {
 		targetcounter++;
 		mTargets.push_back(v);
-		ftcv::log(ftcv::INFO, std::string("XmlHelper: New Target found: "));
+		ftcv::log(ftcv::INFO, "XmlHelper: New Target found: ");
+		ftcv::log(ftcv::INFO, v->_self());
 	} else {
 		delete (v);
 	}
-	std::cout << "\t" << *v << std::endl;
 }
 
 int XmlHelper::process_node(void) {
@@ -52,9 +52,11 @@ int XmlHelper::process_node(void) {
 	}
 	return (1);
 }
-XmlHelper::XmlHelper(void) : mReader(), mTargets(), mFilepath(), mTopName(), mTopTypeName() {
+XmlHelper::XmlHelper(void) :
+		mReader(), mTargets(), mFilepath(), mTopName(), mTopTypeName() {
 }
-XmlHelper::XmlHelper(const char *pXmlFile) : mReader(), mTargets(), mFilepath(pXmlFile), mTopName() {
+XmlHelper::XmlHelper(const char *pXmlFile) :
+		mReader(), mTargets(), mFilepath(pXmlFile), mTopName() {
 	if (pXmlFile) {
 		ftcv::log(ftcv::INFO, std::string("Register Xml-file found ") + pXmlFile);
 		std::cout << "\t ... Start parsing" << std::endl;
@@ -78,14 +80,14 @@ int XmlHelper::init(const char *pXmlFile, int pOption, const char *encoding) {
 	if (mReader != NULL) {
 		ret = xmlTextReaderRead(mReader);
 		while (ret == 1) {
-			process_node(); //do something with node
+			process_node();
 			ret = xmlTextReaderRead(mReader);
 		}
 		if (ret != 0) {
-			ftcv::log(ftcv::ERROR, std::string("Error (XmlHelper): Failed to parse ")+pXmlFile);
+			ftcv::log(ftcv::ERROR, std::string("Error (XmlHelper): Failed to parse ") + pXmlFile);
 		}
 	} else {
-		ftcv::log(ftcv::ERROR, std::string("Error (XmlHelper): Failed to open file ")+pXmlFile);
+		ftcv::log(ftcv::ERROR, std::string("Error (XmlHelper): Failed to open file ") + pXmlFile);
 	}
 	return ret;
 }

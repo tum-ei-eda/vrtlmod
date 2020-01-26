@@ -7,8 +7,8 @@
 #include <cstdlib>
 #include <iostream>
 #include "vrtlmod.hpp"
+#include <sstream>
 
-extern bool silent;
 
 namespace ftcv {
 
@@ -27,12 +27,29 @@ const char* toString(LEVEL level) {
 	}
 }
 
-void log(LEVEL level, const std::string &msg) {
+void log(LEVEL level, const std::string &msg, bool silent_toogle) {
+	static bool silent = false;
+	std::stringstream x;
+	if(silent_toogle){
+		silent = !silent;
+	}
+	x << toString(level);
+	switch (level){
+	case ERROR:
+		x << msg << " \033[0m" << std::endl;
+		break;
+	case WARNING:
+		x << msg << " \033[0m" << std::endl;
+		break;
+	default:
+		x << " \033[0m" << msg << std::endl;
+		break;
+	}
 	if(silent == true){
 		if (level == ERROR or level == OBLIGAT)
-			std::cout << toString(level) << ": " << "\033[0m" << msg << std::endl;
+			std::cout << x.str();
 	}else{
-		std::cout << toString(level) << ": " << "\033[0m" << msg << std::endl;
+		std::cout << x.str();
 	}
 }
 void abort() {

@@ -23,7 +23,7 @@ namespace ftcv
 
 const char * toString(LEVEL level);
 
-void log(LEVEL level,const std::string & msg);
+void log(LEVEL level,const std::string & msg, bool silent_toggle = false);
 
 template <typename T>
 std::string toLogString(const T & obj){

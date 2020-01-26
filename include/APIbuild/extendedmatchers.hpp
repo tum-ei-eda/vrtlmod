@@ -7,8 +7,8 @@
 #ifndef SRC_APIBUILD_EXTENDEDMATCHERS_HPP_
 #define SRC_APIBUILD_EXTENDEDMATCHERS_HPP_
 
-#include "../ftcv/Consumer.h"
-#include "../APIbuild/target.hpp"
+#include "ftcv/Consumer.h"
+#include "APIbuild/target.hpp"
 #include <vector>
 #include <iostream>
 
@@ -66,7 +66,7 @@ public:
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Overloaded operator for stream access of class (pointer)
 	friend std::ostream& operator<<(std::ostream &os, const Ext *obj) {
-		os << *obj;//->_self();
+		os << *obj;	//->_self();
 		return os;
 	}
 	///////////////////////////////////////////////////////////////////////
@@ -75,8 +75,8 @@ public:
 	/// \param handler
 	/// \param Begin (from inheriting class)
 	/// \param End (from inheriting class)
-	Ext(unsigned ID, ftcv::Handler &handler, clang::SourceLocation Begin, clang::SourceLocation End)
-			: _handler(handler), mID(ID), Begin(Begin), End(End) {
+	Ext(unsigned ID, ftcv::Handler &handler, clang::SourceLocation Begin, clang::SourceLocation End) :
+			_handler(handler), mID(ID), Begin(Begin), End(End) {
 	}
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Destructor
@@ -92,10 +92,10 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 class ExtAsgnmnt: public Ext {
 public:
-	typedef enum TYPE{
+	typedef enum TYPE {
 		TRIVIAL, //basically simple data types as base
 		ARRAY
-	}type_t;
+	} type_t;
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Pointer to main expression
 	const clang::BinaryOperator *op;
@@ -119,9 +119,11 @@ private:
 public:
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Returns actual type of specified non abstract inheriting class
-	virtual type_t get_type(void) {return (mType);}
-	virtual const clang::Expr * get_base(void) = 0;
-	virtual const clang::Expr * get_idx(void) = 0;
+	virtual type_t get_type(void) {
+		return (mType);
+	}
+	virtual const clang::Expr* get_base(void) = 0;
+	virtual const clang::Expr* get_idx(void) = 0;
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Returns self representation string
 	virtual std::string _self(void) const;
@@ -147,14 +149,15 @@ public:
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Do not use, since trivial assignment has no base
 	/// \details Here for specification of pure abstract base class
-	const clang::Expr * get_base(void){
+	const clang::Expr* get_base(void) {
 		ftcv::log(ftcv::ERROR, "Trivial Assignment has no base");
 		return (nullptr);
-	};
+	}
+	;
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Do not use, since trivial assignment has no index
 	/// \details Here for specification of pure abstract base class
-	const clang::Expr * get_idx(void){
+	const clang::Expr* get_idx(void) {
 		ftcv::log(ftcv::ERROR, "Trivial Assignment has no index");
 		return (nullptr);
 	}
@@ -162,8 +165,8 @@ public:
 	/// \brief Constructor
 	/// \param op Pointer to main defining expression
 	/// \param handler
-	ExtTrivAsgnmnt(const clang::BinaryOperator *op, ftcv::Handler &handler)
-			: ExtAsgnmnt(op, handler, TYPE::TRIVIAL) {
+	ExtTrivAsgnmnt(const clang::BinaryOperator *op, ftcv::Handler &handler) :
+			ExtAsgnmnt(op, handler, TYPE::TRIVIAL) {
 	}
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Destructor
@@ -189,17 +192,21 @@ public:
 	const clang::Expr *idx;
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Returns array's base
-	virtual const clang::Expr * get_base(void){return (base);}
+	virtual const clang::Expr* get_base(void) {
+		return (base);
+	}
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Returns array's index
-	virtual const clang::Expr * get_idx(void){return (idx);}
+	virtual const clang::Expr* get_idx(void) {
+		return (idx);
+	}
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Constructor
 	/// \param ase secondary array expression
 	/// \param op Pointer to main defining expression
 	/// \param handler
-	ExtArrayAsgnmnt(const clang::ArraySubscriptExpr *ase, const clang::BinaryOperator *op, ftcv::Handler &handler)
-			: ExtAsgnmnt(op, handler, TYPE::ARRAY), ase(ase), base(ase->getBase()), idx(ase->getIdx()) {
+	ExtArrayAsgnmnt(const clang::ArraySubscriptExpr *ase, const clang::BinaryOperator *op, ftcv::Handler &handler) :
+			ExtAsgnmnt(op, handler, TYPE::ARRAY), ase(ase), base(ase->getBase()), idx(ase->getIdx()) {
 
 	}
 	///////////////////////////////////////////////////////////////////////
@@ -239,8 +246,8 @@ public:
 	/// \brief Constructor
 	/// \param c Pointer to main defining expression
 	/// \param handler
-	ExtCompoundStmt(const clang::Stmt *c, ftcv::Handler &handler)
-			: Ext(c->getID(handler.getASTContext()), handler, c->getBeginLoc(), c->getEndLoc()), c(c) {
+	ExtCompoundStmt(const clang::Stmt *c, ftcv::Handler &handler) :
+			Ext(c->getID(handler.getASTContext()), handler, c->getBeginLoc(), c->getEndLoc()), c(c) {
 		Begin = c->getBeginLoc();
 		End = c->getEndLoc();
 	}
@@ -294,8 +301,8 @@ public:
 	/// \brief Constructor
 	/// \param f Pointer to main defining expression
 	/// \param handler
-	ExtDeclFunc(const clang::Decl *f, ftcv::Handler &handler)
-			: Ext(f->getID(), handler, f->getBeginLoc(), f->getEndLoc()), mCompounds(), f(f) {
+	ExtDeclFunc(const clang::Decl *f, ftcv::Handler &handler) :
+			Ext(f->getID(), handler, f->getBeginLoc(), f->getEndLoc()), mCompounds(), f(f) {
 	}
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Destructor

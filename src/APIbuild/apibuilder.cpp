@@ -6,6 +6,8 @@
 
 #include <APIbuild/apibuilder.hpp>
 #include <APIbuild/target.hpp>
+#include <APIbuild/utils.hpp>
+
 #include <string>
 #include <sstream>
 
@@ -15,8 +17,8 @@
 #include <chrono>
 #include <ctime>
 
-APIbuilder::APIbuilder(void)
-		: outdir() {
+APIbuilder::APIbuilder(void) :
+		outdir() {
 }
 
 int APIbuilder::init(const char *pTargetXmlFile, const char *pOutdir) {
@@ -77,15 +79,13 @@ int APIbuilder::isExprTarget(const char *pExpr) {
 	ExprT x = ExprT(pExpr);
 	std::string expre;
 	if (x.prefix == "vlSymsp") {
-		expre = //this->mTopName +
-				x.object + std::string(".") + x.name;
+		expre = x.object + std::string(".") + x.name;
 	} else if (x.prefix == "vlTOPp") {
-		expre = //this->mTopName +
-				std::string("TOP.") + x.name;
+		expre = std::string("TOP.") + x.name;
 	}
 	for (auto const &it : mTargets) {
 		ret++;
-		std::string target = it->mElData.hierarchy; // = it->get_hierarchy(); //TOP.top.<name>
+		std::string target = it->mElData.hierarchy;
 		if (target == expre) {
 			return ret;
 		}
@@ -116,8 +116,7 @@ std::string APIbuilder::get_targetdictionaryEntryTypeDefString(Target &t) {
 	ss << "\t" << "public:" << std::endl;
 	ss << "\t\t" << "unsigned bits;" << std::endl;
 
-	ss << "\t\t" << t.mElData.vrtlCxxType.substr(0, t.mElData.vrtlCxxType.find("[")) << "* data;" << "\t// " << t.mElData.vrtlCxxType
-			<< std::endl;
+	ss << "\t\t" << t.mElData.vrtlCxxType.substr(0, t.mElData.vrtlCxxType.find("[")) << "* data;" << "\t// " << t.mElData.vrtlCxxType << std::endl;
 	if (t.mElData.words <= 1) {
 		ss << "\t\t" << t.mElData.vrtlCxxType << " mask;" << std::endl;
 		ss << "\t\t" << "void reset_mask(void){mask = 0;}" << std::endl;
@@ -127,8 +126,7 @@ std::string APIbuilder::get_targetdictionaryEntryTypeDefString(Target &t) {
 			ss << "\t\t" << "void set_maskBit(unsigned bit){VL_ASSIGNBIT_IO(1, bit, mask, 0);}" << std::endl;
 		}
 	} else {
-		ss << "\t\t" << t.mElData.vrtlCxxType.substr(0, t.mElData.vrtlCxxType.find("[")) << " mask[" << t.mElData.words << "];"
-				<< std::endl;
+		ss << "\t\t" << t.mElData.vrtlCxxType.substr(0, t.mElData.vrtlCxxType.find("[")) << " mask[" << t.mElData.words << "];" << std::endl;
 		ss << "\t\t" << "void reset_mask(void){" << std::endl;
 		for (unsigned i = 0; i < t.mElData.words; i++) {
 			ss << "\t\t\t" << "mask[" << i << "] = 0;" << std::endl;
@@ -137,8 +135,8 @@ std::string APIbuilder::get_targetdictionaryEntryTypeDefString(Target &t) {
 		ss << "\t\t" << "void set_maskBit(unsigned bit){VL_ASSIGNBIT_WO(1, bit, mask, 1);}" << std::endl;
 	}
 
-	ss << "\t\t" << get_targetdictionaryTargetClassDefName(t) << "(const char* name, "
-			<< t.mElData.vrtlCxxType.substr(0, t.mElData.vrtlCxxType.find("[")) << "* data) :" << std::endl;
+	ss << "\t\t" << get_targetdictionaryTargetClassDefName(t) << "(const char* name, " << t.mElData.vrtlCxxType.substr(0, t.mElData.vrtlCxxType.find("["))
+			<< "* data) :" << std::endl;
 	ss << "\t\t\t" << "TDentry(name, " << t.index << "), data(data), mask(), bits(" << t.mElData.nmbBits << ") {}" << std::endl;
 	ss << "};" << std::endl;
 
@@ -149,9 +147,15 @@ std::string APIbuilder::get_targetdictionaryEntryTypeDefString(Target &t) {
 
 int APIbuilder::build_API(void) {
 	std::stringstream tmp;
-	tmp << "cp -r APItemplates/* " << get_outputDir() << "&&" << "mkdir -p " << get_outputDir() << "/" << API_DIRPREFIX << "/"
+
+	if(utils::system::exec("ls APItemplates").find("ls: cannot access") == std::string::npos){
+		tmp << "cp -r ${VRTLMOD_SRCDIR}/APItemplates/* " << get_outputDir() << "&&" << "mkdir -p " << get_outputDir() << "/" << API_DIRPREFIX << "/"
 			<< API_TD_DIRPREFIX;
-	system(tmp.str().c_str());
+	}else{
+		tmp << "cp -r APItemplates/* " << get_outputDir() << "&&" << "mkdir -p " << get_outputDir() << "/" << API_DIRPREFIX << "/"
+			<< API_TD_DIRPREFIX;
+	}
+	utils::system::exec(tmp.str().c_str());
 	return (build_targetdictionary());
 }
 
@@ -179,11 +183,12 @@ int APIbuilder::build_targetdictionary(void) {
 
 int APIbuilder::build_targetdictionary_HPP(const char *outputdir) {
 	std::string filepath = outputdir;
-	filepath += "/";
-	filepath += API_TD_HEADER_NAME;
-
 	std::ifstream ifile(filepath);
 	std::stringstream filetemplate;
+	std::ofstream file;
+
+	filepath += "/";
+	filepath += API_TD_HEADER_NAME;
 
 	if (ifile.is_open()) {
 		std::string tmp;
@@ -196,8 +201,8 @@ int APIbuilder::build_targetdictionary_HPP(const char *outputdir) {
 				}
 				filetemplate << std::endl << "typedef struct sTD {" << std::endl;
 				for (auto const &it : mTargets) {
-					filetemplate << "\t" << get_targetdictionaryTargetClassDefName(*it) << "& "
-							<< get_targetdictionaryTargetClassDeclName(*it) << ";" << std::endl;
+					filetemplate << "\t" << get_targetdictionaryTargetClassDefName(*it) << "& " << get_targetdictionaryTargetClassDeclName(*it) << ";"
+							<< std::endl;
 				}
 				filetemplate << "\tsTD(" << std::endl;
 				bool first = true;
@@ -223,15 +228,14 @@ int APIbuilder::build_targetdictionary_HPP(const char *outputdir) {
 				filetemplate << "} sTD_t;" << std::endl;
 
 			} else {
-				strhelp::replace(tmp, "//<INSERT_TOP_INCLUDE>", std::string("#include \"") + mTopTypeName + ".h\"");
-				strhelp::replace(tmp, "<INSERT_VTOPTYPE>", mTopTypeName);
+				utils::strhelp::replace(tmp, "//<INSERT_TOP_INCLUDE>", std::string("#include \"") + mTopTypeName + ".h\"");
+				utils::strhelp::replace(tmp, "<INSERT_VTOPTYPE>", mTopTypeName);
 				filetemplate << tmp << std::endl;
 			}
 		}
 		ifile.close();
 	}
 
-	std::ofstream file;
 	file.open(filepath);
 	if (file.fail()) {
 		return (-1);
@@ -244,13 +248,13 @@ int APIbuilder::build_targetdictionary_HPP(const char *outputdir) {
 }
 
 int APIbuilder::build_API_HPP(const char *outputdir) {
-
+	std::ofstream file;
 	std::string filepath = outputdir;
-	filepath += "/";
-	filepath += API_TD_API_HEADER_NAME;
-
 	std::ifstream ifile(filepath);
 	std::stringstream filetemplate;
+
+	filepath += "/";
+	filepath += API_TD_API_HEADER_NAME;
 
 	if (ifile.is_open()) {
 		std::string tmp;
@@ -258,36 +262,33 @@ int APIbuilder::build_API_HPP(const char *outputdir) {
 			if (tmp.find("//<INSERT_HEADER_COMMMENT>") != std::string::npos) {
 				filetemplate << get_fileheader(API_TD_API_HEADER_NAME);
 			} else {
-				strhelp::replace(tmp, "//<INSERT_TOP_INCLUDE>", std::string("#include \"") + mTopTypeName + ".h\"");
-				strhelp::replace(tmp, "<INSERT_VTOPTYPE>", mTopTypeName);
+				utils::strhelp::replace(tmp, "//<INSERT_TOP_INCLUDE>", std::string("#include \"") + mTopTypeName + ".h\"");
+				utils::strhelp::replace(tmp, "<INSERT_VTOPTYPE>", mTopTypeName);
 				filetemplate << tmp << std::endl;
 			}
 		}
 		ifile.close();
 	}
 
-	std::ofstream file;
 	file.open(filepath);
 	if (file.fail()) {
 		return (-1);
 	}
 	file << filetemplate.str();
-
 	file.close();
 
 	return (1);
 }
 
 int APIbuilder::build_API_CPP(const char *outputdir) {
-	std::time_t timestamp = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-
 	std::string filepath = outputdir;
+	std::ifstream ifile(filepath);
+	std::stringstream filetemplate;
+	std::ofstream file;
+
 	filepath += "/";
 	filepath += API_TD_SOURCE_NAME;
 
-	std::ifstream ifile(filepath);
-
-	std::stringstream filetemplate;
 	if (ifile.is_open()) {
 		std::string tmp;
 		while (std::getline(ifile, tmp)) {
@@ -296,12 +297,10 @@ int APIbuilder::build_API_CPP(const char *outputdir) {
 		ifile.close();
 	}
 
-	std::ofstream file;
 	file.open(filepath);
 	if (file.fail()) {
 		return (-1);
 	}
-	// write file head
 	file << get_fileheader(API_TD_SOURCE_NAME);
 
 	file << std::endl;
@@ -313,13 +312,11 @@ int APIbuilder::build_API_CPP(const char *outputdir) {
 	file << std::endl;
 
 	file << std::endl;
-	file << "VRTLmodAPI::VRTLmodAPI(void) :" << std::endl << "\tmVRTL(* new " << mTopTypeName << ")," << std::endl
-			<< "TD_API()" << std::endl << "{TD_API::init(mVRTL);}";
-//			<< "\tmTargetDictionary(* new TD_API(mVRTL)) {" << std::endl << "}" << std::endl;
+	file << "VRTLmodAPI::VRTLmodAPI(void) :" << std::endl << "\tmVRTL(* new " << mTopTypeName << ")," << std::endl << "TD_API()" << std::endl
+			<< "{TD_API::init(mVRTL);}";
 	file << std::endl;
 
-//	file << "TD_API::TD_API(" << mTopTypeName << "& pVRTL) : " << std::endl << "\tmTD(" << std::endl;
-	file << "void TD_API::init("<< mTopTypeName << "& pVRTL){" << std::endl;
+	file << "void TD_API::init(" << mTopTypeName << "& pVRTL){" << std::endl;
 	file << "mTD = new sTD(" << std::endl;
 	std::string top = "pVRTL";
 
@@ -334,14 +331,13 @@ int APIbuilder::build_API_CPP(const char *outputdir) {
 		std::string hier = it->get_hierarchy();
 		auto fdot = hier.find(".");
 		if (fdot != std::string::npos) {
-			if (it->mElData.words > 1) { //if (it->mElData.vrtlCxxType.find("WData") != std::string::npos) {
+			if (it->mElData.words > 1) {
 				file << top << ".__VlSymsp->TOPp->" << hier.substr(0, fdot) << "->" << hier.substr(fdot + 1);
 			} else {
-				file << "&(" << top << ".__VlSymsp->TOPp->" << hier.substr(0, hier.find(".")) << "->" << hier.substr(hier.find(".") + 1)
-						<< ")";
+				file << "&(" << top << ".__VlSymsp->TOPp->" << hier.substr(0, hier.find(".")) << "->" << hier.substr(hier.find(".") + 1) << ")";
 			}
 		} else {
-			if (it->mElData.words > 1) { //if (it->mElData.vrtlCxxType.find("WData") != std::string::npos) {
+			if (it->mElData.words > 1) {
 				file << top << ".__VlSymsp->TOPp->" << hier;
 			} else {
 				file << "&(" << top << ".__VlSymsp->TOPp->" << hier << ")";
@@ -349,10 +345,8 @@ int APIbuilder::build_API_CPP(const char *outputdir) {
 		}
 		file << ")";
 	}
-//	file << std::endl << "\t)" << std::endl << " {}" << std::endl;
 	file << std::endl << "\t);" << std::endl;
 	file << std::endl;
-//	file << "void TD_API::init(void){" << std::endl;
 	for (auto const &it : mTargets) {
 		file << "\tmEntryList.push_back(&(mTD->" << get_targetdictionaryTargetClassDeclName(*it) << "));" << std::endl;
 	}
@@ -375,4 +369,3 @@ std::string APIbuilder::get_fileheader(const char *filename) {
 	x << "////////////////////////////////////////////////////////////////////////////////" << std::endl;
 	return (x.str());
 }
-
