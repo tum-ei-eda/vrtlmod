@@ -9,35 +9,6 @@
 
 typedef enum INJ_TYPE{BIASED_S, BIASED_R, BITFLIP} INJ_TYPE_t;
 
-#define FI_LIKELY(x)   __builtin_expect(!!(x), 1)
-#define FI_UNLIKELY(x) __builtin_expect(!!(x), 0)
-
-#define SEQ_TARGET_INJECT(TDentry) { \
-	if(FI_UNLIKELY((TDentry).enable)) { \
-		if(FI_LIKELY(((TDentry).inj_type == INJ_TYPE::BITFLIP))){ \
-			*((TDentry).data) = *((TDentry).data) ^ (TDentry).mask; \
-		} \
-		(TDentry).cntr++; \
-	} \
-}
-
-#define SEQ_TARGET_INJECT_W(TDentry, word) { \
-	if(FI_UNLIKELY((TDentry).enable and (TDentry).mask[(word)])) { \
-		if(FI_LIKELY(((TDentry).inj_type == INJ_TYPE::BITFLIP))){ \
-			((TDentry).data[(word)]) = ((TDentry).data[(word)]) ^ (TDentry).mask[(word)]; \
-		} \
-		(TDentry).cntr++; \
-	} \
-}
-
-#define INT_TARGET_INJECT(TDentry) {\
-	SEQ_TARGET_INJECT(TDentry) \
-}
-#define INT_TARGET_INJECT_W(TDentry, words) {\
-	for(unsigned i = 0; i < words; ++i) { \
-		SEQ_TARGET_INJECT_W(TDentry, i) }\
-}
-
 class TD_API;
 
 class TDentry{

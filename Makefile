@@ -102,10 +102,10 @@ $(BUILD_DIR):
 	
 $(BUILD_DIR)/%.o: src/%.cpp 
 	@mkdir -p $(dir $@)
-	$(CXX) -DDEBUG=$(DEBUG) $(FORCED_CFLAGS) `$(LLVMPATH_BIN)/llvm-config --cxxflags` -DCLANG_HEADERS=$(CLANG_HEADERS) -DCLANG_FALLBACK_PATH=$(realpath $(LLVMPATH_LIB))/ -DCLANG_HEADER_REALTIVE_PATH=clang/$(LLVMVERSION)/include -c -Wall -fPIC -Iinclude -I/usr/include/libxml2 -MMD -I$(../include) -I$(LLVMPATH_INCLUDE) -o $@ $<
+	$(CXX) -DDEBUG=$(DEBUG) $(FORCED_CFLAGS) `$(LLVMPATH_BIN)/llvm-config --cxxflags` -DCLANG_HEADERS=$(CLANG_HEADERS) -DCLANG_FALLBACK_PATH=$(realpath $(LLVMPATH_LIB))/ -DCLANG_HEADER_REALTIVE_PATH=clang/$(LLVMVERSION)/include -c -Wall -fPIC -Iinclude `xml2-config --cflags` -MMD -I$(../include) -I$(LLVMPATH_INCLUDE) -o $@ $<
 
 $(BUILD_DIR)/$(EXE).o: $(EXE).cpp
-	$(CXX) -DDEBUG=$(DEBUG) $(FORCED_CFLAGS) `$(LLVMPATH_BIN)/llvm-config --cxxflags` -DCLANG_HEADERS=$(CLANG_HEADERS) -DCLANG_FALLBACK_PATH=$(realpath $(LLVMPATH_LIB))/ -DCLANG_HEADER_REALTIVE_PATH=clang/$(LLVMVERSION)/include -c -Wall -fPIC -Iinclude -I/usr/include/libxml2 -MMD -I$(../include) -I$(LLVMPATH_INCLUDE) -o $@ $< 
+	$(CXX) -DDEBUG=$(DEBUG) $(FORCED_CFLAGS) `$(LLVMPATH_BIN)/llvm-config --cxxflags` -DCLANG_HEADERS=$(CLANG_HEADERS) -DCLANG_FALLBACK_PATH=$(realpath $(LLVMPATH_LIB))/ -DCLANG_HEADER_REALTIVE_PATH=clang/$(LLVMVERSION)/include -c -Wall -fPIC -Iinclude `xml2-config --cflags` -MMD -I$(../include) -I$(LLVMPATH_INCLUDE) -o $@ $< 
 
 -include $(BUILD_DIR)/*.d
 -include $(BUILD_DIR)/*/*.d
@@ -121,7 +121,14 @@ $(EXE): $(OBJFILES)
 docu:
 	$(MAKE) -C doc
 
+test: $(EXE)
+	./$(EXE) --regxml=test/regpicker.xml --out=test/vrtl test/vrtl/Vfiapp.cpp -- clang++ -std=c++0x \
+		-I$(VERILATOR_ROOT)/include -I$(LLVM_DIR)/lib/clang/9.0.0/include
+	$(MAKE) -C test -f Makefile.subdir.test	
+	./test/test
+
 clean:
+	$(MAKE) -C test -f Makefile.subdir.test	clean
 	$(MAKE) -C doc -f Makefile clean
 	rm -R -f $(BUILD_DIR)
 	rm -f $(EXE)

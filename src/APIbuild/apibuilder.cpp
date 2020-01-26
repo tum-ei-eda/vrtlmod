@@ -148,7 +148,8 @@ std::string APIbuilder::get_targetdictionaryEntryTypeDefString(Target &t) {
 int APIbuilder::build_API(void) {
 	std::stringstream tmp;
 
-	if(utils::system::exec("ls APItemplates").find("ls: cannot access") == std::string::npos){
+	std::string ret = utils::system::exec("ls APItemplates");
+	if(ret.find("ls: cannot access") != std::string::npos){
 		tmp << "cp -r ${VRTLMOD_SRCDIR}/APItemplates/* " << get_outputDir() << "&&" << "mkdir -p " << get_outputDir() << "/" << API_DIRPREFIX << "/"
 			<< API_TD_DIRPREFIX;
 	}else{
@@ -183,12 +184,11 @@ int APIbuilder::build_targetdictionary(void) {
 
 int APIbuilder::build_targetdictionary_HPP(const char *outputdir) {
 	std::string filepath = outputdir;
+	filepath += "/";
+	filepath += API_TD_HEADER_NAME;
 	std::ifstream ifile(filepath);
 	std::stringstream filetemplate;
 	std::ofstream file;
-
-	filepath += "/";
-	filepath += API_TD_HEADER_NAME;
 
 	if (ifile.is_open()) {
 		std::string tmp;
@@ -250,11 +250,11 @@ int APIbuilder::build_targetdictionary_HPP(const char *outputdir) {
 int APIbuilder::build_API_HPP(const char *outputdir) {
 	std::ofstream file;
 	std::string filepath = outputdir;
+	filepath += "/";
+	filepath += API_TD_API_HEADER_NAME;
 	std::ifstream ifile(filepath);
 	std::stringstream filetemplate;
 
-	filepath += "/";
-	filepath += API_TD_API_HEADER_NAME;
 
 	if (ifile.is_open()) {
 		std::string tmp;
@@ -282,12 +282,11 @@ int APIbuilder::build_API_HPP(const char *outputdir) {
 
 int APIbuilder::build_API_CPP(const char *outputdir) {
 	std::string filepath = outputdir;
+	filepath += "/";
+	filepath += API_TD_SOURCE_NAME;
 	std::ifstream ifile(filepath);
 	std::stringstream filetemplate;
 	std::ofstream file;
-
-	filepath += "/";
-	filepath += API_TD_SOURCE_NAME;
 
 	if (ifile.is_open()) {
 		std::string tmp;

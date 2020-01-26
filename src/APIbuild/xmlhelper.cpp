@@ -22,7 +22,7 @@ void XmlHelper::get_var(void) {
 	sXmlEl x(name, vhier, signalClass, std::stoi(bits), type, cxxtype);
 	Target *v = new Target(targetcounter, x);
 
-	if (v->mElData.signalClass == sXmlEl::REG) {
+	if ((v->mElData.signalClass == sXmlEl::REG) and (v->mElData.type.find("_IN") == std::string::npos)) {
 		targetcounter++;
 		mTargets.push_back(v);
 		ftcv::log(ftcv::INFO, "XmlHelper: New Target found: ");
