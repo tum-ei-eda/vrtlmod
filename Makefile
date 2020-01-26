@@ -121,11 +121,14 @@ $(EXE): $(OBJFILES)
 docu:
 	$(MAKE) -C doc
 
-test: $(EXE)
-	./$(EXE) --regxml=test/regpicker.xml --out=test/vrtl test/vrtl/Vfiapp.cpp -- clang++ -std=c++0x \
+TESTDIR=test
+test: $(TESTDIR)/test
+	$(TESTDIR)/test
+
+$(TESTDIR)/test: $(EXE)
+	./$(EXE) --regxml=$(TESTDIR)/regpicker.xml --out=$(TESTDIR)/vrtl $(TESTDIR)/vrtl/Vfiapp.cpp -- clang++ -std=c++0x \
 		-I$(VERILATOR_ROOT)/include -I$(LLVM_DIR)/lib/clang/9.0.0/include
-	$(MAKE) -C test -f Makefile.subdir.test	
-	./test/test
+	$(MAKE) -C $(TESTDIR) -f Makefile.subdir.test	
 
 clean:
 	$(MAKE) -C test -f Makefile.subdir.test	clean

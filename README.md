@@ -33,6 +33,10 @@ For executable:
 ```
 make
 ```
+For test on a simple VRTL model (shell output should list all "passed"):
+```
+make test
+```
 For documentation (doxygen):
 ```
 make docu

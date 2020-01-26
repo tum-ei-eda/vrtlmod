@@ -5,7 +5,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "vrtl/VRTLmodAPI/vrtlmod_api.hpp"
-#include "vrtl/Vfiapp.h"
 #include "verilated.h"
 
 #include "iostream"
@@ -47,11 +46,16 @@ int main(void){
 	// VRTL warum-up
 	gVtop.eval();
 	VRTLmodAPI::i().mVRTL.reset = 0;
-
+	std::cout << std::endl << "Running test for simple fault injection application (fiapp)" << "..." << std::endl;
 	//test injections
-	bool testreturn = false;
+	bool testreturn = true;
 	for(auto &it: gFrame.mEntryList){
-		testreturn = testinject(*it);
+		testreturn &= testinject(*it);
+	}
+	if(testreturn){
+		std::cout << std::endl << "..." << "All passed. \033[0;32mTest successful.\033[0m" << std::endl;
+	}else {
+		std::cout << std::endl << "..." << "\033[0;31mTest failed.\033[0m" << std::endl;
 	}
 
 }
