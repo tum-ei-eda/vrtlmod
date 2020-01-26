@@ -1,0 +1,6 @@
+.log
+test
+vrtl/*_vrtlmod.cpp
+vrtl/*.d
+vrtl/*.a
+vrtl/*.o

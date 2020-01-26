@@ -1,0 +1,29 @@
+LD=c++
+CXX=g++
+
+VRTL_DIR=vrtl
+TOP=fiapp
+VOBJS:= $(VRTL_DIR)/verilated.o 
+
+all: test
+
+$(VOBJS): $(VRTL_DIR)/V$(TOP)__ALL.a
+	for f in $@; \
+	do \
+		sf=$$(basename $$f); \
+		$(MAKE) -C $(VRTL_DIR) -f V$(TOP).mk $$sf; \
+	done	
+
+$(VRTL_DIR)/V$(TOP)__ALL.a:
+	$(MAKE) -C $(VRTL_DIR) -f V$(TOP).mk
+
+test: $(VRTL_DIR)/V$(TOP)__ALL.a $(VOBJS)
+	g++ -I$(VRTL_DIR) -I$(VRTL_DIR)/VRTLmodAPI -I$(VRTL_DIR)/VRTLmodAPI/TD -I$(VERILATOR_ROOT)/include -I$(VERILATOR_ROOT)/include/vltstd \
+		$(VRTL_DIR)/VRTLmodAPI/vrtlmod_api.cpp test.cpp -o test $(VOBJS) \
+		$(VRTL_DIR)/V$(TOP)__ALL.a
+
+clean:
+	rm -r -f $(VRTL_DIR)/*.a $(VRTL_DIR)/*.o $(VRTL_DIR)/*.d
+	rm -f test .log
+	
+
