@@ -148,14 +148,13 @@ std::string APIbuilder::get_targetdictionaryEntryTypeDefString(Target &t) {
 int APIbuilder::build_API(void) {
 	std::stringstream tmp;
 
-	std::string ret = utils::system::exec("ls APItemplates");
-	if(ret.find("ls: cannot access") != std::string::npos){
-		tmp << "cp -r ${VRTLMOD_SRCDIR}/APItemplates/* " << get_outputDir() << "&&" << "mkdir -p " << get_outputDir() << "/" << API_DIRPREFIX << "/"
-			<< API_TD_DIRPREFIX;
-	}else{
-		tmp << "cp -r APItemplates/* " << get_outputDir() << "&&" << "mkdir -p " << get_outputDir() << "/" << API_DIRPREFIX << "/"
-			<< API_TD_DIRPREFIX;
-	}
+	std::string ret = utils::system::exec("echo ${VRTLMOD_SRCDIR}");
+	std::string vrtlmoddir = ret;
+
+	utils::strhelp::replaceAll(vrtlmoddir, "\n", "");
+
+	tmp << "cp -r " << vrtlmoddir << "/APItemplates/* " << get_outputDir() << " && " << "mkdir -p " << get_outputDir() << "/" << API_DIRPREFIX << "/"
+		<< API_TD_DIRPREFIX;
 	utils::system::exec(tmp.str().c_str());
 	return (build_targetdictionary());
 }

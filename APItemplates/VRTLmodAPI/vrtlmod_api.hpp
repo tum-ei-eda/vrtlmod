@@ -23,7 +23,7 @@ class <INSERT_VTOPTYPE>;
 }
 
 #define SEQ_TARGET_INJECT_W(TDentry, word) { \
-	if(FI_UNLIKELY((TDentry).enable) { \
+	if(FI_UNLIKELY((TDentry).enable)) { \
 		if(((TDentry).cntr <= 0) and (TDentry).mask[(word)]) { \
 			if(FI_LIKELY(((TDentry).inj_type == INJ_TYPE::BITFLIP))){ \
 				((TDentry).data[(word)]) = ((TDentry).data[(word)]) ^ (TDentry).mask[(word)]; \

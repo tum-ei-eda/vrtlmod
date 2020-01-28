@@ -5,6 +5,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <APIbuild/utils.hpp>
+#include <ftcv/Misc.h>
 #include <array>
 #include <memory>
 
@@ -24,6 +25,7 @@ void utils::strhelp::replaceAll(std::string &str, const std::string &from, const
 std::string utils::system::exec(std::string cmd) {
 	std::array<char, 128> buffer;
 	std::string result;
+	ftcv::log(ftcv::INFO, std::string("Executing shell command: \n\t" ).append(cmd));
 	std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
 	if (!pipe) {
 		return ("");
@@ -31,5 +33,6 @@ std::string utils::system::exec(std::string cmd) {
 	while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
 		result += buffer.data();
 	}
+	ftcv::log(ftcv::INFO, std::string(">: " ).append(result));
 	return result;
 }
