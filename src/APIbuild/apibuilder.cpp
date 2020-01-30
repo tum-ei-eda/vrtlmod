@@ -114,7 +114,7 @@ std::string APIbuilder::get_targetdictionaryEntryTypeDefString(Target &t) {
 	ss << "/* (TDentry-Id " << t.get_index() << "):" << t << " */" << std::endl;
 	ss << "class " << get_targetdictionaryTargetClassDefName(t) << ": public TDentry {" << std::endl;
 	ss << "\t" << "public:" << std::endl;
-	ss << "\t\t" << "unsigned bits;" << std::endl;
+//	ss << "\t\t" << "unsigned bits;" << std::endl;
 
 	ss << "\t\t" << t.mElData.vrtlCxxType.substr(0, t.mElData.vrtlCxxType.find("[")) << "* data;" << "\t// " << t.mElData.vrtlCxxType << std::endl;
 	if (t.mElData.words <= 1) {
@@ -137,7 +137,7 @@ std::string APIbuilder::get_targetdictionaryEntryTypeDefString(Target &t) {
 
 	ss << "\t\t" << get_targetdictionaryTargetClassDefName(t) << "(const char* name, " << t.mElData.vrtlCxxType.substr(0, t.mElData.vrtlCxxType.find("["))
 			<< "* data) :" << std::endl;
-	ss << "\t\t\t" << "TDentry(name, " << t.index << "), data(data), mask(), bits(" << t.mElData.nmbBits << ") {}" << std::endl;
+	ss << "\t\t\t" << "TDentry(name, " << t.index << ", "<< t.mElData.nmbBits << "), data(data), mask() {}" << std::endl;
 	ss << "};" << std::endl;
 
 	t.mTD_typedef = ss.str();

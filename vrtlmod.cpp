@@ -76,7 +76,7 @@ int main(int argc, const char **argv) {
 
 	tAPI.build_API();
 
-	return (err);
+	return (0);
 }
 
 //-------------------------
@@ -115,7 +115,7 @@ bool vrtlmod::env::check_environment(void) {
 }
 
 std::string vrtlmod::env::get_environmenthelp(void) {
-	return("Either exectute vrtlmod from its source directory or set \"VRTLMOD_SRCDIR\" to vrtlmod's source directory.\nE.g.: \"export VRTLMOD_SRCDIR=<path-to-vrtlmod-srcs>\""
+	return("Either execute vrtlmod from its source directory or set \"VRTLMOD_SRCDIR\" to vrtlmod's source directory.\nE.g.: \"export VRTLMOD_SRCDIR=<path-to-vrtlmod-srcs>\""
 			);
 }
 

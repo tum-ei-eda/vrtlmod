@@ -2,7 +2,7 @@
 /// @file vrtlmod_api.hpp
 /// @brief Modified VRTL-API main header
 /// @details Automatically generated from: test/regpicker.xml
-/// @date Created on Sun Jan 26 21:14:02 2020
+/// @date Created on Wed Jan 29 14:04:14 2020
 /// @author APIbuilder version 0.9
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -29,7 +29,7 @@ class Vfiapp;
 }
 
 #define SEQ_TARGET_INJECT_W(TDentry, word) { \
-	if(FI_UNLIKELY((TDentry).enable) { \
+	if(FI_UNLIKELY((TDentry).enable)) { \
 		if(((TDentry).cntr <= 0) and (TDentry).mask[(word)]) { \
 			if(FI_LIKELY(((TDentry).inj_type == INJ_TYPE::BITFLIP))){ \
 				((TDentry).data[(word)]) = ((TDentry).data[(word)]) ^ (TDentry).mask[(word)]; \
