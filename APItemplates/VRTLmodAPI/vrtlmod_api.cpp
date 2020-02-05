@@ -63,7 +63,7 @@ int TD_API::prep_inject(const unsigned targetindex, const unsigned bit, INJ_TYPE
 		}
 		mEntryList[index]->inj_type = type;
 		mEntryList[index]->set_maskBit(bit);
-		mEntryList[index]->cntr = 1;
+		mEntryList[index]->cntr = 0;
 	}
 	return (BIT_CODES::SUCC_TARGET_ARMED);
 }

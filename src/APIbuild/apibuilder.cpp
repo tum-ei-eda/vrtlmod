@@ -134,6 +134,17 @@ std::string APIbuilder::get_targetdictionaryEntryTypeDefString(Target &t) {
 		ss << "\t\t}" << std::endl;
 		ss << "\t\t" << "void set_maskBit(unsigned bit){VL_ASSIGNBIT_WO(1, bit, mask, 1);}" << std::endl;
 	}
+	ss <<
+			"void read_data(uint8_t* pData) { \n\
+				unsigned byte = 0; \n\
+				uint8_t* xData = reinterpret_cast<uint8_t*>(data); \n\
+				for(unsigned bit = 0; bit < bits; bit++){ \n\
+					if((bit % 8)==0){ \n\
+						pData[byte] = xData[byte]; \n\
+						byte++; \n\
+					} \n\
+				} \n\
+			}" << std::endl;
 
 	ss << "\t\t" << get_targetdictionaryTargetClassDefName(t) << "(const char* name, " << t.mElData.vrtlCxxType.substr(0, t.mElData.vrtlCxxType.find("["))
 			<< "* data) :" << std::endl;

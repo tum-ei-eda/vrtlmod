@@ -26,6 +26,8 @@ public:
 	virtual void set_maskBit(unsigned bit){};
 	virtual void reset_mask(void){};
 
+	virtual void read_data(uint8_t* pData){};
+
 	TDentry(const char* name, const unsigned index, const unsigned bits);
 	virtual ~TDentry(void){}
 };
@@ -60,11 +62,12 @@ public:
 	int reset_inject(const unsigned targetindex);
 	void init(<INSERT_VTOPTYPE>& pVRTL);
 
+	int get_EntryArrayIndex(const char* targetname) const;
+	int get_EntryArrayIndex(const unsigned targetindex) const;
 
 	TD_API(void): mTD(), mEntryList(){}
 private:
-	int get_EntryArrayIndex(const char* targetname) const;
-	int get_EntryArrayIndex(const unsigned targetindex) const;
+
 
 };
 
