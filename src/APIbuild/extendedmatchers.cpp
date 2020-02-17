@@ -70,16 +70,16 @@ std::string ExtCompoundStmt::_self(void) const {
 std::vector<ExtAsgnmnt*> ExtCompoundStmt::get_dominantAssignments(void){
 
 	std::vector<ExtAsgnmnt*> x;
-	for (auto i = mAsgmnts.size(); i>0; i--){
-//	for (auto const & outer: mAsgmnts){
-		ExtAsgnmnt* outer = mAsgmnts[i-1];
+//	for (auto i = mAsgmnts.size(); i>0; i--){
+	for (auto const & outer: mAsgmnts){
+//		ExtAsgnmnt* outer = mAsgmnts[i-1];
 		bool found = false;
 
 //		std::string outerLHS = _handler.getRewriter().getRewrittenText(outer->lhs->getSourceRange());
 		for (auto & inner: x) {
 //			std::string innerLHS = _handler.getRewriter().getRewrittenText(inner->lhs->getSourceRange());
-//			if ((outer->lhsStr == inner->lhsStr) and (inner->Begin < outer->Begin)){
-			if ((outer->lhsStr == inner->lhsStr) and (outer->Begin < inner->Begin)){
+			if ((outer->lhsStr == inner->lhsStr) and (inner->Begin < outer->Begin)){
+//			if ((outer->lhsStr == inner->lhsStr) and (outer->Begin < inner->Begin)){
 				inner = outer;
 				found = true;
 				break;

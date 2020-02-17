@@ -2,7 +2,7 @@
 /// @file vrtlmod_api.hpp
 /// @brief Modified VRTL-API main header
 /// @details Automatically generated from: test/regpicker.xml
-/// @date Created on Mon Feb  3 11:32:41 2020
+/// @date Created on Fri Feb 14 17:21:20 2020
 /// @author APIbuilder version 0.9
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -32,6 +32,8 @@ public:
 	virtual void set_maskBit(unsigned bit){};
 	virtual void reset_mask(void){};
 
+	virtual void read_data(uint8_t* pData){};
+
 	TDentry(const char* name, const unsigned index, const unsigned bits);
 	virtual ~TDentry(void){}
 };
@@ -44,6 +46,16 @@ class TDentry_o1: public TDentry {
 		CData mask;
 		void reset_mask(void){mask = 0;}
 		void set_maskBit(unsigned bit){VL_ASSIGNBIT_IO(1, bit, mask, 0);}
+void read_data(uint8_t* pData) { 
+				unsigned byte = 0; 
+				uint8_t* xData = reinterpret_cast<uint8_t*>(data); 
+				for(unsigned bit = 0; bit < bits; bit++){ 
+					if((bit % 8)==0){ 
+						pData[byte] = xData[byte]; 
+						byte++; 
+					} 
+				} 
+			}
 		TDentry_o1(const char* name, CData* data) :
 			TDentry(name, 0, 1), data(data), mask() {}
 };
@@ -55,6 +67,16 @@ class TDentry_o2: public TDentry {
 		CData mask;
 		void reset_mask(void){mask = 0;}
 		void set_maskBit(unsigned bit){VL_ASSIGNBIT_IO(1, bit, mask, 0);}
+void read_data(uint8_t* pData) { 
+				unsigned byte = 0; 
+				uint8_t* xData = reinterpret_cast<uint8_t*>(data); 
+				for(unsigned bit = 0; bit < bits; bit++){ 
+					if((bit % 8)==0){ 
+						pData[byte] = xData[byte]; 
+						byte++; 
+					} 
+				} 
+			}
 		TDentry_o2(const char* name, CData* data) :
 			TDentry(name, 1, 1), data(data), mask() {}
 };
@@ -66,6 +88,16 @@ class TDentry_o3: public TDentry {
 		CData mask;
 		void reset_mask(void){mask = 0;}
 		void set_maskBit(unsigned bit){VL_ASSIGNBIT_IO(1, bit, mask, 0);}
+void read_data(uint8_t* pData) { 
+				unsigned byte = 0; 
+				uint8_t* xData = reinterpret_cast<uint8_t*>(data); 
+				for(unsigned bit = 0; bit < bits; bit++){ 
+					if((bit % 8)==0){ 
+						pData[byte] = xData[byte]; 
+						byte++; 
+					} 
+				} 
+			}
 		TDentry_o3(const char* name, CData* data) :
 			TDentry(name, 2, 1), data(data), mask() {}
 };
@@ -77,6 +109,16 @@ class TDentry_fiapp__DOT__q1: public TDentry {
 		CData mask;
 		void reset_mask(void){mask = 0;}
 		void set_maskBit(unsigned bit){VL_ASSIGNBIT_IO(1, bit, mask, 0);}
+void read_data(uint8_t* pData) { 
+				unsigned byte = 0; 
+				uint8_t* xData = reinterpret_cast<uint8_t*>(data); 
+				for(unsigned bit = 0; bit < bits; bit++){ 
+					if((bit % 8)==0){ 
+						pData[byte] = xData[byte]; 
+						byte++; 
+					} 
+				} 
+			}
 		TDentry_fiapp__DOT__q1(const char* name, CData* data) :
 			TDentry(name, 3, 1), data(data), mask() {}
 };
@@ -88,6 +130,16 @@ class TDentry_fiapp__DOT__q2: public TDentry {
 		CData mask;
 		void reset_mask(void){mask = 0;}
 		void set_maskBit(unsigned bit){VL_ASSIGNBIT_IO(1, bit, mask, 0);}
+void read_data(uint8_t* pData) { 
+				unsigned byte = 0; 
+				uint8_t* xData = reinterpret_cast<uint8_t*>(data); 
+				for(unsigned bit = 0; bit < bits; bit++){ 
+					if((bit % 8)==0){ 
+						pData[byte] = xData[byte]; 
+						byte++; 
+					} 
+				} 
+			}
 		TDentry_fiapp__DOT__q2(const char* name, CData* data) :
 			TDentry(name, 4, 1), data(data), mask() {}
 };
@@ -99,6 +151,16 @@ class TDentry_fiapp__DOT__q3: public TDentry {
 		CData mask;
 		void reset_mask(void){mask = 0;}
 		void set_maskBit(unsigned bit){VL_ASSIGNBIT_IO(1, bit, mask, 0);}
+void read_data(uint8_t* pData) { 
+				unsigned byte = 0; 
+				uint8_t* xData = reinterpret_cast<uint8_t*>(data); 
+				for(unsigned bit = 0; bit < bits; bit++){ 
+					if((bit % 8)==0){ 
+						pData[byte] = xData[byte]; 
+						byte++; 
+					} 
+				} 
+			}
 		TDentry_fiapp__DOT__q3(const char* name, CData* data) :
 			TDentry(name, 5, 1), data(data), mask() {}
 };
