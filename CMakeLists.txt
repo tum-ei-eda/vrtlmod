@@ -1,24 +1,38 @@
 PROJECT(vrtlmod)
 
-IF(NOT ENV{LLVM_DIR})
-    SET(ENV{LLVM_DIR} "/usr/local/research/projects/SystemDesign/tools/llvm/9.0.0")
+CMAKE_MINIMUM_REQUIRED(VERSION 3.15)
+
+#IF(NOT ENV{LLVM_DIR})
+#    SET(ENV{LLVM_DIR} "/usr/local/research/projects/SystemDesign/tools/llvm/9.0.0")
+#ENDIF()
+
+#SET(LLVM_DIR ENV{LLVM_DIR})
+#SET(Clang_DIR ENV{CLANG_DIR})
+
+#SET(THISDIR ${CMAKE_SOURCE_DIR}/src/vrtlmod)
+
+IF(NOT Clang_DIR)
+SET(Clang_DIR ${LLVM_DIR}/../clang)
 ENDIF()
 
-SET(THISDIR ${CMAKE_SOURCE_DIR}/src/vrtlmod)
+SET(THISLIB "${PROJECT_NAME}_tool")
 
-SET(THISLIB "L${PROJECT_NAME}")
+FIND_PACKAGE(Clang REQUIRED CONFIG)
+FIND_PACKAGE(LLVM 9 REQUIRED CONFIG)
 
-FIND_PACKAGE(LLVM 9 CONFIG)
+MESSAGE("Using LLVM_DIR: ${LLVM_DIR}")
+MESSAGE("LLVM Version: ${LLVM_VERSION} at ${LLVM_INSTALL_PREFIX}")
+MESSAGE("LLVM INCLUDE DIRS: ${LLVM_INCLUDE_DIRS}")
+MESSAGE("Using Clang_DIR: ${Clang_DIR}")
 
-IF(LLVM_FOUND)
-    MESSAGE("Using LLVM_DIR: ${LLVM_DIR}")
-    MESSAGE("LLVM Version: ${LLVM_VERSION}")
-
-    LINK_DIRECTORIES(${LLVM_LIBRARY_DIRS})
-    ADD_DEFINITIONS(${LLVM_DEFINITIONS})
-    llvm_map_components_to_libnames(LLVM_LIBS option object profiledata support core mc bitreader MCParser BinaryFormat ExecutionEngine Target MCJIT X86CodeGen X86AsmParser Interpreter Support)
+IF(LLVM_FOUND AND Clang_FOUND)
    
-    ADD_LIBRARY(${THISLIB} STATIC
+    llvm_map_components_to_libnames(LLVM_LIBS
+      option object profiledata support core mc bitreader MCParser BinaryFormat ExecutionEngine Target MCJIT X86CodeGen X86AsmParser Interpreter Support
+    )
+    
+    ADD_EXECUTABLE(${PROJECT_NAME}
+        vrtlmod.cpp
         src/Consumer.cpp
         src/FileContext.cpp
         src/Misc.cpp
@@ -28,10 +42,10 @@ IF(LLVM_FOUND)
         src/APIbuild/target.cpp
         src/APIbuild/injectionrewriter.cpp
         src/APIbuild/extendedmatchers.cpp
-		src/APIbuild/utils.cpp
+        src/APIbuild/utils.cpp
     )
     
-    TARGET_LINK_LIBRARIES(${THISLIB} PUBLIC
+    TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC
         ${LLVM_LIBS}
         xml2
         clangFrontend
@@ -68,19 +82,12 @@ IF(LLVM_FOUND)
         clangToolingRefactoring
         clangToolingSyntax
     )
-    TARGET_INCLUDE_DIRECTORIES(${THISLIB} PUBLIC 
+    TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC 
         include
         /usr/include/libxml2
         ${LLVM_INCLUDE_DIRS}
-        )
-
-    ADD_EXECUTABLE(${PROJECT_NAME}
-        vrtlmod.cpp
+        ${CLANG_INCLUDE_DIRS}
     )
-    TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC
-        ${THISLIB}
-    )
-
 ENDIF()
 
 option(BUILD_DOC "Build documentation" OFF)
