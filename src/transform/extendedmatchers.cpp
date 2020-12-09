@@ -1,15 +1,17 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// @file extendedmatchers.cpp
 /// @date Created on Mon Jan 21 15:23:13 2020
+/// @modified on Wed Dec 09 13:32:12 2020 (johannes.geier@tum.de)
 /// @author Johannes Geier (johannes.geier@tum.de)
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "APIbuild/extendedmatchers.hpp"
+#include "vrtlmod/transform/extendedmatchers.hpp"
+
 #include <string>
 #include <sstream>
 #include <iostream>
 
-namespace apibuild {
+namespace transform {
 
 bool Ext::in_range(Ext* e){
 	if ((Begin.getRawEncoding() >= e->Begin.getRawEncoding()) and (End.getRawEncoding() <= e->End.getRawEncoding())){
@@ -18,14 +20,13 @@ bool Ext::in_range(Ext* e){
 	return false;
 }
 
-
 std::string ExtDeclFunc::get_function_name(void) const {
 	std::string x = _handler.getRewriter().getRewrittenText(f->getSourceRange());
 	x = x.substr(0, x.find("{") - 1);
 	return (x);
 }
 
-void ExtDeclFunc::addInjTarget(Target &t) {
+void ExtDeclFunc::addInjTarget(vapi::Target &t) {
 	bool isInList = false;
 	for (auto const &it : mInjectedTargets) {
 		if (it == &t) {
@@ -43,7 +44,7 @@ std::string ExtAsgnmnt::_self(void) const {
 	return (ret.str());
 }
 
-ExtAsgnmnt::ExtAsgnmnt(const clang::BinaryOperator *op, ftcv::Handler &handler, type_t type)
+ExtAsgnmnt::ExtAsgnmnt(const clang::BinaryOperator *op, transform::Handler &handler, type_t type)
 		: Ext(op->getID(handler.getASTContext()), handler, op->getBeginLoc(), op->getEndLoc()), op(op), lhs(op->getLHS()), lhsStr(handler.getRewriter().getRewrittenText(op->getLHS()->getSourceRange())), rhs(op->getRHS()), operatorstr(handler.getRewriter().getRewrittenText(op->getOperatorLoc())), isReset(false), mType(type) {
 	std::string rhss = _handler.getRewriter().getRewrittenText(rhs->getSourceRange());
 	if (rhss == "0U") {
@@ -122,4 +123,4 @@ ExtCompoundStmt* ExtDeclFunc::return_finest(ExtAsgnmnt* a){
 	return (inRanges.front());
 }
 
-} // namespace apibuild
+} // namespace transform

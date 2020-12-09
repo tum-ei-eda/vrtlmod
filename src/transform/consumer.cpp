@@ -1,15 +1,18 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// @file Consumer.cpp
+/// @date Created on ?
+/// @modified on Wed Dec 09 13:32:12 2020 (johannes.geier@tum.de)
+/// @author ?
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "ftcv/Consumer.h"
+#include "vrtlmod/transform/consumer.hpp"
 
 using namespace clang;
 using namespace clang::ast_matchers;
 using namespace clang::driver;
 using namespace clang::tooling;
 
-namespace ftcv {
+namespace transform {
 
 Handler::Handler(Consumer &consumer) : consumer_(consumer) {
 
@@ -24,7 +27,7 @@ Rewriter& Handler::getRewriter() {
 clang::ASTContext& Handler::getASTContext() {
 	clang::ASTContext *ret = consumer_.fc_.context_;
 	if (ret == 0)
-		ftcv::abort();
+		util::logging::abort();
 	return *ret;
 }
 
@@ -72,26 +75,4 @@ void Consumer::HandleTranslationUnit(ASTContext &Context) {
 	fc_.context_ = 0;
 }
 
-template<> std::string toLogString<Consumer>(const Consumer &cons) {
-	return std::string("{ftcv::Consumer file=") + cons.fc_.file_ + "}";
-}
-template<> std::string toLogString<std::tuple<const clang::SourceRange&, clang::SourceManager&> >(
-		const std::tuple<const clang::SourceRange&, clang::SourceManager&> &cons) {
-	return std::string("{clang::SourceRange {")
-			+ toLogString(std::tie<const clang::SourceLocation&, clang::SourceManager&>(std::get<0>(cons).getBegin(), std::get<1>(cons)))
-			+ ","
-			+ toLogString(std::tie<const clang::SourceLocation&, clang::SourceManager&>(std::get<0>(cons).getEnd(), std::get<1>(cons)))
-			+ "}";
-}
-template<> std::string toLogString<std::tuple<const clang::SourceLocation&, clang::SourceManager&> >(
-		const std::tuple<const clang::SourceLocation&, clang::SourceManager&> &cons) {
-	std::stringstream ss;
-	{
-		llvm::raw_os_ostream rout(ss);
-		std::get<0>(cons).print(rout, std::get<1>(cons));
-		rout.flush();
-	}
-	return ss.str();
-}
-
-} // namespace ftcv
+} // namespace transform

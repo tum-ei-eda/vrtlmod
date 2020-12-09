@@ -1,10 +1,15 @@
 ////////////////////////////////////////////////////////////////////////////////
-/// @file ReWriteMacrosAction.cpp
+/// @file rewritemacrosaction.cpp
+/// @date Created on ?
+/// @modified on Wed Dec 09 13:32:12 2020 (johannes.geier@tum.de)
+/// @author ?
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "ftcv/rewriterHandler/RewriteMacrosAction.h"
+#include "vrtlmod/transform/rewrite/rewritemacrosaction.hpp"
 
-namespace ftcv {
+namespace transform {
+
+namespace rewrite {
 
 RewriteMacrosAction::RewriteMacrosAction() {
 
@@ -38,7 +43,7 @@ bool RewriteMacrosAction::cleanFile(const std::string &file) {
 
 	std::string data = ss.str();
 	ss.str("");
-	size_t pos = data.find("/*FTCVDL");
+	size_t pos = data.find("/*FTCVDL"); // TODO: what are these again?
 	while (pos != std::string::npos) {
 		size_t end = data.find("FTCVDL*/", pos);
 		if (end != std::string::npos) {
@@ -63,4 +68,6 @@ bool RewriteMacrosAction::cleanFile(const std::string &file) {
 
 }
 
-} // namespace ftcv
+} // namespace transform::rewrite
+
+} // namespace transform

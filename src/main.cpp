@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-/// @file vrtlmod.cpp
+/// @file main.cpp
 /// @brief main file for llvm-based VRTL-modifer tool
-/// @details based on ftcv frontend
+/// @details based on ftcv frontend by ?
 /// @date Created on Mon Jan 15 12:29:21 2020
 /// @author Johannes Geier (johannes.geier@tum.de)
 ////////////////////////////////////////////////////////////////////////////////
@@ -11,8 +11,8 @@
 #include <fstream>
 #include <iostream>
 
-#include "vrtlmod.hpp"
-#include <APIbuild/utils.hpp>
+#include "vrtlmod/vrtlmod.hpp"
+#include "vrtlmod/util/system.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////
 /// \brief Frontend user option category
@@ -39,16 +39,15 @@ static llvm::cl::extrahelp MoreHelp(vrtlmod::env::get_environmenthelp().c_str())
 /// \brief vrtlmod main()
 int main(int argc, const char **argv) {
 	// Consume arguments
-	using namespace vrtlmod;
 
 	CommonOptionsParser op(argc, argv, UserCat);
 
 	if(bool(Silent)){
-		ftcv::log(ftcv::OBLIGAT, "Executing silently - Warnings and Infos disabled", true);
+		util::logging::log(util::logging::OBLIGAT, "Executing silently - Warnings and Infos disabled", true);
 	}
-	APIbuilder &tAPI = APIbuilder::_i();
-	if (!env::check_environment()) {
-		ftcv::log(ftcv::ERROR, "Environment not specified!");
+	vapi::VapiGenerator& tAPI = vapi::VapiGenerator::_i();
+	if (!vrtlmod::env::check_environment()) {
+		util::logging::log(util::logging::ERROR, "Environment not specified!");
 		return (-1);
 	}
 
@@ -58,16 +57,16 @@ int main(int argc, const char **argv) {
 	std::vector<std::string> sources = op.getSourcePathList();
 
 	// prepare *_vrtlmod.cpp files: create, de-macro, clean comments.
-	prepare_sources(sources);
+	vrtlmod::prepare_sources(sources);
 
 	// create a new Clang Tool instance
 	ClangTool ToolM(op.getCompilations(), sources);
 
 	// run Clang // insert macros (needed for macro code rewrite)
-	int err = ToolM.run(newFrontendActionFactory<ftcv::RewriteMacrosAction>().get());
+	int err = ToolM.run(newFrontendActionFactory<transform::rewrite::RewriteMacrosAction>().get());
 
 	for (size_t i = 0; i < sources.size(); i++) {
-		ftcv::RewriteMacrosAction::cleanFile(sources[i]);
+		transform::rewrite::RewriteMacrosAction::cleanFile(sources[i]);
 	}
 
 	ClangTool ToolRw(op.getCompilations(), sources);
@@ -92,7 +91,7 @@ void vrtlmod::prepare_sources(std::vector<std::string> &sources) {
 			} else {
 				srcName = sources[i].substr(0, dcpp - 1);
 			}
-			tmp << APIbuilder::_i().get_outputDir();
+			tmp << vapi::VapiGenerator::_i().get_outputDir();
 			tmp << "/";
 			tmp << srcName << "_vrtlmod.cpp";
 			system((std::string("cp \"") + sources[i] + "\" \"" + tmp.str() + "\"").c_str());
@@ -103,11 +102,11 @@ void vrtlmod::prepare_sources(std::vector<std::string> &sources) {
 
 bool vrtlmod::env::check_environment(void) {
 	std::string console;
-	console = utils::system::exec("[ -z \"$VRTLMOD_SRCDIR\" ] && echo \"Empty\"");
+	console = util::system::exec("[ -z \"$VRTLMOD_SRCDIR\" ] && echo \"Empty\"");
 	if (console == "Empty") {
-		console = utils::system::exec("ls APIbuild");
+		console = util::system::exec("ls template");
 		if (console.find("No such file or directory") != std::string::npos) {
-			ftcv::log(ftcv::OBLIGAT, get_environmenthelp());
+			util::logging::log(util::logging::OBLIGAT, get_environmenthelp());
 			return (false);
 		}
 	}
@@ -118,4 +117,3 @@ std::string vrtlmod::env::get_environmenthelp(void) {
 	return("Either execute vrtlmod from its source directory or set \"VRTLMOD_SRCDIR\" to vrtlmod's source directory.\nE.g.: \"export VRTLMOD_SRCDIR=<path-to-vrtlmod-srcs>\""
 			);
 }
-

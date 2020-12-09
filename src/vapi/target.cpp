@@ -1,14 +1,16 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// @file target.cpp
 /// @date Created on Mon Jan 10 18:21:20 2020
+/// @modified on Wed Dec 09 13:32:12 2020 (johannes.geier@tum.de)
 /// @author Johannes Geier (johannes.geier@tum.de)
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <APIbuild/target.hpp>
-#include <APIbuild/utils.hpp>
+#include "vrtlmod/vapi/target.hpp"
+#include "vrtlmod/util/system.hpp"
+
 #include <sstream>
 
-using namespace utils;
+namespace vapi {
 
 std::string Target::get_hierarchy(void) {
 	std::string ret = mElData.hierarchy.substr(mElData.hierarchy.find(".") + 1);
@@ -18,7 +20,7 @@ std::string Target::get_hierarchy(void) {
 std::string Target::get_hierarchyDedotted(void) {
 	std::string ret = get_hierarchy();
 	if (ret.find(".") != std::string::npos) {
-		strhelp::replaceAll(ret, std::string("."), std::string("__DOT__"));
+		util::strhelp::replaceAll(ret, std::string("."), std::string("__DOT__"));
 	}
 	return (ret);
 }
@@ -55,8 +57,10 @@ ExprT::ExprT(const char *Expr) :
 	auto objdot = expr.rfind(".");
 	if (objdot != std::string::npos) {
 		object = expr.substr(pos + 2, objdot - pos - 2);
-		strhelp::replaceAll(object, std::string("__"), std::string("."));
+		util::strhelp::replaceAll(object, std::string("__"), std::string("."));
 		name = expr.substr(objdot + 1);
 	} else
 		name = expr.substr(pos + 2);
 }
+
+} // namespace vapi

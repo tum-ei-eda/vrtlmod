@@ -1,32 +1,33 @@
 ////////////////////////////////////////////////////////////////////////////////
-/// @file apibuilder.cpp
+/// @file generator.cpp
 /// @date Created on Mon Jan 07 14:12:11 2020
+/// @modified on Wed Dec 09 13:32:12 2020 (johannes.geier@tum.de)
 /// @author Johannes Geier (johannes.geier@tum.de)
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <APIbuild/apibuilder.hpp>
-#include <APIbuild/target.hpp>
-#include <APIbuild/utils.hpp>
+#include "vrtlmod/vapi/generator.hpp"
+#include "vrtlmod/vapi/target.hpp"
+#include "vrtlmod/util/system.hpp"
+#include "vrtlmod/util/logging.hpp"
 
 #include <string>
 #include <sstream>
-
 #include <fstream>
-#include "ftcv/Misc.h"
-
 #include <chrono>
 #include <ctime>
 
-APIbuilder::APIbuilder(void) :
+namespace vapi {
+
+VapiGenerator::VapiGenerator(void) :
 		outdir() {
 }
 
-int APIbuilder::init(const char *pTargetXmlFile, const char *pOutdir) {
+int VapiGenerator::init(const char *pTargetXmlFile, const char *pOutdir) {
 	outdir = pOutdir;
 	return (XmlHelper::init(pTargetXmlFile));
 }
 
-std::string APIbuilder::getTDExternalDecl(void) {
+std::string VapiGenerator::getTDExternalDecl(void) {
 	static bool once = false;
 	if (!once) {
 		once = true;
@@ -36,7 +37,7 @@ std::string APIbuilder::getTDExternalDecl(void) {
 	}
 }
 
-std::string APIbuilder::getInludeStrings(void) {
+std::string VapiGenerator::getInludeStrings(void) {
 	std::stringstream ret;
 	ret << "/* Includes for Target Injection API */" << std::endl;
 	ret << "#include \"" << "VRTLmodAPI/TD/" << API_TD_HEADER_NAME << "\"" << std::endl;
@@ -44,7 +45,7 @@ std::string APIbuilder::getInludeStrings(void) {
 	return (ret.str());
 }
 
-std::string APIbuilder::get_intermittenInjectionStmtString(Target &t) {
+std::string VapiGenerator::get_intermittenInjectionStmtString(Target &t) {
 	std::stringstream ret;
 	if (t.mElData.vrtlCxxType.find("WData") == std::string::npos) {
 		ret << "INT_TARGET_INJECT(gTD." << get_targetdictionaryTargetClassDeclName(t);
@@ -60,7 +61,7 @@ std::string APIbuilder::get_intermittenInjectionStmtString(Target &t) {
 	return (ret.str());
 }
 
-std::string APIbuilder::get_sequentInjectionStmtString(Target &t, int word //expression
+std::string VapiGenerator::get_sequentInjectionStmtString(Target &t, int word //expression
 		) {
 	std::stringstream ret;
 	if (word < 0) { // insert simple variable access
@@ -74,7 +75,7 @@ std::string APIbuilder::get_sequentInjectionStmtString(Target &t, int word //exp
 	return (ret.str());
 }
 
-int APIbuilder::isExprTarget(const char *pExpr) {
+int VapiGenerator::isExprTarget(const char *pExpr) {
 	int ret = -1;
 	ExprT x = ExprT(pExpr);
 	std::string expre;
@@ -93,23 +94,23 @@ int APIbuilder::isExprTarget(const char *pExpr) {
 	return (-1);
 }
 
-Target& APIbuilder::getExprTarget(int idx) {
+Target& VapiGenerator::getExprTarget(int idx) {
 	return (*mTargets.at(idx));
 }
 
-std::string APIbuilder::get_targetdictionaryTargetClassDeclName(Target &t) {
+std::string VapiGenerator::get_targetdictionaryTargetClassDeclName(Target &t) {
 	std::string ret = "e_";
 	ret += t.get_hierarchyDedotted();
 	return (ret);
 }
 
-std::string APIbuilder::get_targetdictionaryTargetClassDefName(Target &t) {
+std::string VapiGenerator::get_targetdictionaryTargetClassDefName(Target &t) {
 	std::string ret = "TDentry_";
 	ret += t.get_hierarchyDedotted();
 	return (ret);
 }
 
-std::string APIbuilder::get_targetdictionaryEntryTypeDefString(Target &t) {
+std::string VapiGenerator::get_targetdictionaryEntryTypeDefString(Target &t) {
 	std::stringstream ss;
 	ss << "/* (TDentry-Id " << t.get_index() << "):" << t << " */" << std::endl;
 	ss << "class " << get_targetdictionaryTargetClassDefName(t) << ": public TDentry {" << std::endl;
@@ -156,21 +157,21 @@ std::string APIbuilder::get_targetdictionaryEntryTypeDefString(Target &t) {
 	return (t.mTD_typedef);
 }
 
-int APIbuilder::build_API(void) {
+int VapiGenerator::build_API(void) {
 	std::stringstream tmp;
 
-	std::string ret = utils::system::exec("echo ${VRTLMOD_SRCDIR}");
+	std::string ret = util::system::exec("echo ${VRTLMOD_SRCDIR}");
 	std::string vrtlmoddir = ret;
 
-	utils::strhelp::replaceAll(vrtlmoddir, "\n", "");
+	util::strhelp::replaceAll(vrtlmoddir, "\n", "");
 
 	tmp << "cp -r " << vrtlmoddir << "/APItemplates/* " << get_outputDir() << " && " << "mkdir -p " << get_outputDir() << "/" << API_DIRPREFIX << "/"
 		<< API_TD_DIRPREFIX;
-	utils::system::exec(tmp.str().c_str());
+	util::system::exec(tmp.str().c_str());
 	return (build_targetdictionary());
 }
 
-int APIbuilder::build_targetdictionary(void) {
+int VapiGenerator::build_targetdictionary(void) {
 	std::stringstream tgtdir;
 	tgtdir << outdir << "/" << API_DIRPREFIX;
 	if (build_targetdictionary_HPP((tgtdir.str() + "/TD").c_str()) > 0) {
@@ -186,13 +187,13 @@ int APIbuilder::build_targetdictionary(void) {
 
 	for (const auto &it : mTargets) {
 		if ((it->mSeqInjCnt / it->mElData.words) > 2) {
-			ftcv::log(ftcv::WARNING, std::string("More than 2 sequential injections for: ") + it->_self());
+			util::logging::log(util::logging::WARNING, std::string("More than 2 sequential injections for: ") + it->_self());
 		}
 	}
 	return (1);
 }
 
-int APIbuilder::build_targetdictionary_HPP(const char *outputdir) {
+int VapiGenerator::build_targetdictionary_HPP(const char *outputdir) {
 	std::string filepath = outputdir;
 	filepath += "/";
 	filepath += API_TD_HEADER_NAME;
@@ -238,8 +239,8 @@ int APIbuilder::build_targetdictionary_HPP(const char *outputdir) {
 				filetemplate << "} sTD_t;" << std::endl;
 
 			} else {
-				utils::strhelp::replace(tmp, "//<INSERT_TOP_INCLUDE>", std::string("#include \"") + mTopTypeName + ".h\"");
-				utils::strhelp::replace(tmp, "<INSERT_VTOPTYPE>", mTopTypeName);
+				util::strhelp::replace(tmp, "//<INSERT_TOP_INCLUDE>", std::string("#include \"") + mTopTypeName + ".h\"");
+				util::strhelp::replace(tmp, "<INSERT_VTOPTYPE>", mTopTypeName);
 				filetemplate << tmp << std::endl;
 			}
 		}
@@ -257,7 +258,7 @@ int APIbuilder::build_targetdictionary_HPP(const char *outputdir) {
 	return (1);
 }
 
-int APIbuilder::build_API_HPP(const char *outputdir) {
+int VapiGenerator::build_API_HPP(const char *outputdir) {
 	std::ofstream file;
 	std::string filepath = outputdir;
 	filepath += "/";
@@ -272,8 +273,8 @@ int APIbuilder::build_API_HPP(const char *outputdir) {
 			if (tmp.find("//<INSERT_HEADER_COMMMENT>") != std::string::npos) {
 				filetemplate << get_fileheader(API_TD_API_HEADER_NAME);
 			} else {
-				utils::strhelp::replace(tmp, "//<INSERT_TOP_INCLUDE>", std::string("#include \"") + mTopTypeName + ".h\"");
-				utils::strhelp::replace(tmp, "<INSERT_VTOPTYPE>", mTopTypeName);
+				util::strhelp::replace(tmp, "//<INSERT_TOP_INCLUDE>", std::string("#include \"") + mTopTypeName + ".h\"");
+				util::strhelp::replace(tmp, "<INSERT_VTOPTYPE>", mTopTypeName);
 				filetemplate << tmp << std::endl;
 			}
 		}
@@ -290,7 +291,7 @@ int APIbuilder::build_API_HPP(const char *outputdir) {
 	return (1);
 }
 
-int APIbuilder::build_API_CPP(const char *outputdir) {
+int VapiGenerator::build_API_CPP(const char *outputdir) {
 	std::string filepath = outputdir;
 	filepath += "/";
 	filepath += API_TD_SOURCE_NAME;
@@ -366,15 +367,16 @@ int APIbuilder::build_API_CPP(const char *outputdir) {
 	return (1);
 }
 
-std::string APIbuilder::get_fileheader(const char *filename) {
+std::string VapiGenerator::get_fileheader(const char *filename) {
 	std::stringstream x;
 	std::time_t timestamp = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	x << "////////////////////////////////////////////////////////////////////////////////" << std::endl;
 	x << "/// @file " << API_TD_API_HEADER_NAME << std::endl;
-	x << "/// @brief Modified VRTL-API main header" << std::endl;
+	x << "/// @brief vrtlmod_api main header" << std::endl;
 	x << "/// @details Automatically generated from: " << mFilepath << std::endl;
 	x << "/// @date Created on " << std::ctime(&timestamp);
-	x << "/// @author APIbuilder version " << APIBUILDER_VERSION << std::endl;
+	x << "/// @author vapi_generator version " << APIBUILDER_VERSION << std::endl;
 	x << "////////////////////////////////////////////////////////////////////////////////" << std::endl;
 	return (x.str());
 }
+} // namespace vapi

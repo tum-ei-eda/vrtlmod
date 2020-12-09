@@ -1,10 +1,13 @@
 ////////////////////////////////////////////////////////////////////////////////
-/// @file FileContext.cpp
+/// @file filecontext.cpp
+/// @date Created on ?
+/// @modified on Wed Dec 09 13:32:12 2020 (johannes.geier@tum.de)
+/// @author ?
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "ftcv/FileContext.h"
+#include "vrtlmod/transform/filecontext.hpp"
 
-namespace ftcv {
+namespace transform {
 
 FileContext::FileContext(clang::Rewriter &rw, const std::string &file) : rewriter_(rw), file_(file), context_(0), changed_(false), incompatibleChange_(
 		false) {
@@ -31,4 +34,4 @@ bool FileContext::fatalFailure() {
 	return fatalFailure_;
 }
 
-} // namespace ftcv
+} // namespace transform
