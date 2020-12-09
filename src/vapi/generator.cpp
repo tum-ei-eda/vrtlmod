@@ -16,6 +16,9 @@
 #include <chrono>
 #include <ctime>
 
+#include "boost/filesystem.hpp"
+namespace fs = boost::filesystem;
+
 namespace vapi {
 
 VapiGenerator::VapiGenerator(void) :
@@ -39,9 +42,10 @@ std::string VapiGenerator::getTDExternalDecl(void) {
 
 std::string VapiGenerator::getInludeStrings(void) {
 	std::stringstream ret;
-	ret << "/* Includes for Target Injection API */" << std::endl;
-	ret << "#include \"" << "VRTLmodAPI/TD/" << API_TD_HEADER_NAME << "\"" << std::endl;
-	ret << "#include \"VRTLmodAPI/vrtlmod_api.hpp\"" << std::endl;
+	ret <<
+"/* Includes for Target Injection API */ \n\
+#include \"" << API_DIRPREFIX << "/" << API_TD_DIRPREFIX << "/" << API_TD_HEADER_NAME << "\" \n\
+#include \"" << API_DIRPREFIX << "/" << API_HEADER_NAME << "\"\n";
 	return (ret.str());
 }
 
@@ -114,43 +118,45 @@ std::string VapiGenerator::get_targetdictionaryEntryTypeDefString(Target &t) {
 	std::stringstream ss;
 	ss << "/* (TDentry-Id " << t.get_index() << "):" << t << " */" << std::endl;
 	ss << "class " << get_targetdictionaryTargetClassDefName(t) << ": public TDentry {" << std::endl;
-	ss << "\t" << "public:" << std::endl;
+	ss << "public:" << std::endl;
 //	ss << "\t\t" << "unsigned bits;" << std::endl;
 
-	ss << "\t\t" << t.mElData.vrtlCxxType.substr(0, t.mElData.vrtlCxxType.find("[")) << "* data;" << "\t// " << t.mElData.vrtlCxxType << std::endl;
+	ss << "\t" << t.mElData.vrtlCxxType.substr(0, t.mElData.vrtlCxxType.find("[")) << "* data;" << "\t// " << t.mElData.vrtlCxxType << std::endl;
 	if (t.mElData.words <= 1) {
-		ss << "\t\t" << t.mElData.vrtlCxxType << " mask;" << std::endl;
-		ss << "\t\t" << "void reset_mask(void){mask = 0;}" << std::endl;
+		ss << "\t" << t.mElData.vrtlCxxType << " mask;" << std::endl;
+		ss << "\t" << "void reset_mask(void){mask = 0;}" << std::endl;
 		if (t.mElData.vrtlCxxType == "QData") {
-			ss << "\t\t" << "void set_maskBit(unsigned bit){VL_ASSIGNBIT_QO(1, bit, mask, 0);}" << std::endl;
+			ss << "\t" << "void set_maskBit(unsigned bit){VL_ASSIGNBIT_QO(1, bit, mask, 0);}" << std::endl;
 		} else {
-			ss << "\t\t" << "void set_maskBit(unsigned bit){VL_ASSIGNBIT_IO(1, bit, mask, 0);}" << std::endl;
+			ss << "\t" << "void set_maskBit(unsigned bit){VL_ASSIGNBIT_IO(1, bit, mask, 0);}" << std::endl;
 		}
 	} else {
-		ss << "\t\t" << t.mElData.vrtlCxxType.substr(0, t.mElData.vrtlCxxType.find("[")) << " mask[" << t.mElData.words << "];" << std::endl;
-		ss << "\t\t" << "void reset_mask(void){" << std::endl;
+		ss << "\t" << t.mElData.vrtlCxxType.substr(0, t.mElData.vrtlCxxType.find("[")) << " mask[" << t.mElData.words << "];" << std::endl;
+		ss << "\t" << "void reset_mask(void){" << std::endl;
 		for (unsigned i = 0; i < t.mElData.words; i++) {
-			ss << "\t\t\t" << "mask[" << i << "] = 0;" << std::endl;
+			ss << "\t\t" << "mask[" << i << "] = 0;" << std::endl;
 		}
-		ss << "\t\t}" << std::endl;
-		ss << "\t\t" << "void set_maskBit(unsigned bit){VL_ASSIGNBIT_WO(1, bit, mask, 1);}" << std::endl;
+		ss << "\t}" << std::endl;
+		ss << "\t" << "void set_maskBit(unsigned bit){VL_ASSIGNBIT_WO(1, bit, mask, 1);}" << std::endl;
 	}
 	ss <<
-			"void read_data(uint8_t* pData) { \n\
-				unsigned byte = 0; \n\
-				uint8_t* xData = reinterpret_cast<uint8_t*>(data); \n\
-				for(unsigned bit = 0; bit < bits; bit++){ \n\
-					if((bit % 8)==0){ \n\
-						pData[byte] = xData[byte]; \n\
-						byte++; \n\
-					} \n\
-				} \n\
-			}" << std::endl;
+"	void read_data(uint8_t* pData) { \n\
+		unsigned byte = 0; \n\
+		uint8_t* xData = reinterpret_cast<uint8_t*>(data); \n\
+		for(unsigned bit = 0; bit < bits; bit++){ \n\
+			if((bit % 8)==0){ \n\
+				pData[byte] = xData[byte]; \n\
+				byte++; \n\
+			} \n\
+		} \n\
+	}" << std::endl;
 
-	ss << "\t\t" << get_targetdictionaryTargetClassDefName(t) << "(const char* name, " << t.mElData.vrtlCxxType.substr(0, t.mElData.vrtlCxxType.find("["))
-			<< "* data) :" << std::endl;
-	ss << "\t\t\t" << "TDentry(name, " << t.index << ", "<< t.mElData.nmbBits << "), data(data), mask() {}" << std::endl;
-	ss << "};" << std::endl;
+	ss <<
+"	" << get_targetdictionaryTargetClassDefName(t) << "(const char* name, " << t.mElData.vrtlCxxType.substr(0, t.mElData.vrtlCxxType.find("[")) << "* data) \n\
+		: TDentry(name, " << t.index << ", " << t.mElData.nmbBits << ") \n\
+		, data(data) \n\
+		, mask() {} \n\
+};" << std::endl;
 
 	t.mTD_typedef = ss.str();
 
@@ -158,32 +164,19 @@ std::string VapiGenerator::get_targetdictionaryEntryTypeDefString(Target &t) {
 }
 
 int VapiGenerator::build_API(void) {
-	std::stringstream tmp;
+	std::string api_dir = std::string(outdir) + std::string("/") + std::string( API_DIRPREFIX) + std::string("/");
 
-	std::string ret = util::system::exec("echo ${VRTLMOD_SRCDIR}");
-	std::string vrtlmoddir = ret;
-
-	util::strhelp::replaceAll(vrtlmoddir, "\n", "");
-
-	tmp << "cp -r " << vrtlmoddir << "/APItemplates/* " << get_outputDir() << " && " << "mkdir -p " << get_outputDir() << "/" << API_DIRPREFIX << "/"
-		<< API_TD_DIRPREFIX;
-	util::system::exec(tmp.str().c_str());
-	return (build_targetdictionary());
-}
-
-int VapiGenerator::build_targetdictionary(void) {
-	std::stringstream tgtdir;
-	tgtdir << outdir << "/" << API_DIRPREFIX;
-	if (build_targetdictionary_HPP((tgtdir.str() + "/TD").c_str()) > 0) {
-		if (build_API_CPP((tgtdir.str()).c_str()) <= 0) {
-			return (-2);
-		}
-		if (build_API_HPP((tgtdir.str()).c_str()) <= 0) {
-			return (-2);
-		}
-	} else {
-		return (-1);
+	if( !fs::exists(fs::path(api_dir)) ) {
+		fs::create_directory( fs::path(api_dir) );
 	}
+	vapisrc_.write( (api_dir + std::string(API_SOURCE_NAME)).c_str());
+	vapiheader_.write((api_dir + std::string(API_HEADER_NAME)).c_str());
+
+	std::string targetdictionary_dir = api_dir + std::string(API_TD_DIRPREFIX) + std::string("/");
+	if( !fs::exists(fs::path(targetdictionary_dir)) ) {
+		fs::create_directory( fs::path(targetdictionary_dir) );
+	}
+	td_.write( (targetdictionary_dir + std::string(API_TD_HEADER_NAME)).c_str() );
 
 	for (const auto &it : mTargets) {
 		if ((it->mSeqInjCnt / it->mElData.words) > 2) {
@@ -262,7 +255,7 @@ int VapiGenerator::build_API_HPP(const char *outputdir) {
 	std::ofstream file;
 	std::string filepath = outputdir;
 	filepath += "/";
-	filepath += API_TD_API_HEADER_NAME;
+	filepath += API_HEADER_NAME;
 	std::ifstream ifile(filepath);
 	std::stringstream filetemplate;
 
@@ -271,7 +264,7 @@ int VapiGenerator::build_API_HPP(const char *outputdir) {
 		std::string tmp;
 		while (std::getline(ifile, tmp)) {
 			if (tmp.find("//<INSERT_HEADER_COMMMENT>") != std::string::npos) {
-				filetemplate << get_fileheader(API_TD_API_HEADER_NAME);
+				filetemplate << get_fileheader(API_HEADER_NAME);
 			} else {
 				util::strhelp::replace(tmp, "//<INSERT_TOP_INCLUDE>", std::string("#include \"") + mTopTypeName + ".h\"");
 				util::strhelp::replace(tmp, "<INSERT_VTOPTYPE>", mTopTypeName);
@@ -294,7 +287,7 @@ int VapiGenerator::build_API_HPP(const char *outputdir) {
 int VapiGenerator::build_API_CPP(const char *outputdir) {
 	std::string filepath = outputdir;
 	filepath += "/";
-	filepath += API_TD_SOURCE_NAME;
+	filepath += API_SOURCE_NAME;
 	std::ifstream ifile(filepath);
 	std::stringstream filetemplate;
 	std::ofstream file;
@@ -311,7 +304,7 @@ int VapiGenerator::build_API_CPP(const char *outputdir) {
 	if (file.fail()) {
 		return (-1);
 	}
-	file << get_fileheader(API_TD_SOURCE_NAME);
+	file << get_fileheader(API_SOURCE_NAME);
 
 	file << std::endl;
 	file << "// Vrtl-specific includes:" << std::endl;
@@ -371,7 +364,7 @@ std::string VapiGenerator::get_fileheader(const char *filename) {
 	std::stringstream x;
 	std::time_t timestamp = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	x << "////////////////////////////////////////////////////////////////////////////////" << std::endl;
-	x << "/// @file " << API_TD_API_HEADER_NAME << std::endl;
+	x << "/// @file " << API_TD_HEADER_NAME << std::endl;
 	x << "/// @brief vrtlmod_api main header" << std::endl;
 	x << "/// @details Automatically generated from: " << mFilepath << std::endl;
 	x << "/// @date Created on " << std::ctime(&timestamp);

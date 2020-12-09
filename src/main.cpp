@@ -11,6 +11,9 @@
 #include <fstream>
 #include <iostream>
 
+#include "boost/filesystem.hpp"
+namespace fs = boost::filesystem;
+
 #include "vrtlmod/vrtlmod.hpp"
 #include "vrtlmod/util/system.hpp"
 
@@ -45,14 +48,19 @@ int main(int argc, const char **argv) {
 	if(bool(Silent)){
 		util::logging::log(util::logging::OBLIGAT, "Executing silently - Warnings and Infos disabled", true);
 	}
-	vapi::VapiGenerator& tAPI = vapi::VapiGenerator::_i();
-	if (!vrtlmod::env::check_environment()) {
-		util::logging::log(util::logging::ERROR, "Environment not specified!");
-		return (-1);
+
+	if(!fs::exists(OUTdir.c_str())){
+		util::logging::abort(std::string("Output directory ") + std::string(OUTdir) + " doesn't exist!");
 	}
 
-	if (tAPI.init(RegisterXmlFilename.c_str(), OUTdir.c_str()) < 0)
-		return (-1);
+	if(!fs::exists(RegisterXmlFilename.c_str())){
+		util::logging::abort(std::string("XML file ") + std::string(RegisterXmlFilename) + " doesn't exist!");
+	}
+
+	vapi::VapiGenerator& tAPI = vapi::VapiGenerator::_i();
+	if (tAPI.init(RegisterXmlFilename.c_str(), OUTdir.c_str()) < 0){
+		util::logging::abort(std::string("Vrtlmod API generator initialization failed"));
+	}
 
 	std::vector<std::string> sources = op.getSourcePathList();
 
@@ -94,14 +102,18 @@ void vrtlmod::prepare_sources(std::vector<std::string> &sources) {
 			tmp << vapi::VapiGenerator::_i().get_outputDir();
 			tmp << "/";
 			tmp << srcName << "_vrtlmod.cpp";
-			system((std::string("cp \"") + sources[i] + "\" \"" + tmp.str() + "\"").c_str());
+			fs::copy_file(fs::path(sources[i]), fs::path(tmp.str()), fs::copy_option::overwrite_if_exists);
+			// system((std::string("cp \"") + sources[i] + "\" \"" + tmp.str() + "\"").c_str());
 			sources[i] = tmp.str();
 		}
 	}
 }
 
+
+
 bool vrtlmod::env::check_environment(void) {
-	std::string console;
+	// Replace with checks to verilator?
+/*	std::string console;
 	console = util::system::exec("[ -z \"$VRTLMOD_SRCDIR\" ] && echo \"Empty\"");
 	if (console == "Empty") {
 		console = util::system::exec("ls template");
@@ -110,10 +122,10 @@ bool vrtlmod::env::check_environment(void) {
 			return (false);
 		}
 	}
+*/
 	return (true);
 }
 
 std::string vrtlmod::env::get_environmenthelp(void) {
-	return("Either execute vrtlmod from its source directory or set \"VRTLMOD_SRCDIR\" to vrtlmod's source directory.\nE.g.: \"export VRTLMOD_SRCDIR=<path-to-vrtlmod-srcs>\""
-			);
+	return("Either execute vrtlmod from its source directory or set \"VRTLMOD_SRCDIR\" to vrtlmod's source directory.\nE.g.: \"export VRTLMOD_SRCDIR=<path-to-vrtlmod-srcs>\"");
 }

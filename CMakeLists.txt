@@ -20,7 +20,11 @@ SET(THISLIB "${PROJECT_NAME}_tool")
 FIND_PACKAGE(Clang REQUIRED CONFIG)
 FIND_PACKAGE(LLVM 9 REQUIRED CONFIG)
 FIND_PACKAGE(LibXml2 REQUIRED CONFIG)
+FIND_PACKAGE(Boost REQUIRED
+  COMPONENTS filesystem
+)
 
+MESSAGE("Boost Version: ${Boost_VERSION}")
 MESSAGE("Using LLVM_DIR: ${LLVM_DIR}")
 MESSAGE("LLVM Version: ${LLVM_VERSION} at ${LLVM_INSTALL_PREFIX}")
 MESSAGE("LLVM INCLUDE DIRS: ${LLVM_INCLUDE_DIRS}")
@@ -50,11 +54,15 @@ IF(LLVM_FOUND AND Clang_FOUND AND LibXml2_FOUND)
         src/vapi/generator.cpp
         src/vapi/xmlhelper.cpp
         src/vapi/target.cpp
+        src/vapi/templates/targetdictionary_header.cpp
+        src/vapi/templates/vrtlmodapi_header.cpp
+        src/vapi/templates/vrtlmodapi_source.cpp
     )
 
     TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC
         ${LLVM_LIBS}
         ${LIBXML2_LIBRARIES}
+        ${Boost_LIBRARIES}
         clangFrontend
         clangCodeGen
         clangTooling
@@ -166,6 +174,6 @@ IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
     SET(TBDIR ${CMAKE_CURRENT_BINARY_DIR}/Testing)
 
 	ADD_TEST(NAME ${PROJECT_NAME}-functional
-		COMMAND ${PROJECT_NAME} --regxml=${TDIR}/regpicker.xml --out=${TBDIR} ${TDIR}/vrtl/Vfiapp.cpp -- clang++ -I$ENV{VERILATOR_ROOT}/include -I${CLANG_INCLUDE_DIRS}
+		COMMAND ${PROJECT_NAME} --regxml=${TDIR}/regpicker.xml --out=${TBDIR} ${TDIR}/vrtl/Vfiapp.cpp -- clang++ -I${TDIR}/vrtl/ -I$ENV{VERILATOR_ROOT}/include -I${CLANG_INCLUDE_DIRS}
 	)
 ENDIF()
