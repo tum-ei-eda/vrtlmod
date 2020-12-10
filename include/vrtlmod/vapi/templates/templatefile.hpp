@@ -44,13 +44,15 @@ protected:
 	virtual void generate_header(void){
 		std::stringstream x;
 		header_ = "";
-		x << "////////////////////////////////////////////////////////////////////////////////" << std::endl
-			<< "/// @file " 		<< filename_ 			<< std::endl
-			<< "/// @date " 		<< get_date() 		<< std::endl
-			<< "/// @author " 	<< get_author() 	<< std::endl
-			<< "/// @brief " 		<< get_brief() 		<< std::endl
-			<< "/// @details " 	<< get_details() 	<< std::endl
-			<< "////////////////////////////////////////////////////////////////////////////////" << std::endl;
+		x <<
+"////////////////////////////////////////////////////////////////////////////////\n\
+/// @file " 	<< filename_ 	<< "\n\
+/// @date " 	<< get_date() << "\
+/// @author " 	<< get_author() 	<< "\n\
+/// @brief " 	<< get_brief() 	<< "\n\
+/// @details " 	<< get_details() 	<< "\n\
+////////////////////////////////////////////////////////////////////////////////\n" << std::endl;
+		header_ = x.str();
 	};
 	virtual void generate_body(void) = 0;
 
@@ -74,8 +76,8 @@ public:
 	void write(const std::string filepath){
 		filepath_ = filepath;
 		filename_ = (filepath_.rfind("/") != std::string::npos) ?
-			 filepath_.substr(filepath_.rfind("/"))
-			: (filepath_.rfind("\\") != std::string::npos) ? filepath_.substr(filepath_.rfind("\\")) : filepath_;
+			 filepath_.substr(filepath_.rfind("/")+1)
+			: (filepath_.rfind("\\") != std::string::npos) ? filepath_.substr(filepath_.rfind("\\")+1) : filepath_;
 
 		generate_header();
 		generate_body();

@@ -108,17 +108,10 @@ if(BUILD_DOC)
     configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
     message("Doxygen build started")
 
-    add_custom_target( doc_doxygen ALL
+    add_custom_target( doc ALL
       COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
       COMMENT "Generating ${PROJECT_NAME} API documentation with Doxygen"
-      VERBATIM )
-
-    add_custom_target( doc_pdf ALL
-      DEPENDS doc_doxygen
-      COMMAND make && cp ${CMAKE_CURRENT_BINARY_DIR}/doc/latex/refman.pdf ${CMAKE_SOURCE_DIR}/bin/${PROJECT_NAME}.pdf
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc/latex
-      COMMENT "Generating ${PROJECT_NAME} API pdf"
       VERBATIM )
 
   else (DOXYGEN_FOUND)
