@@ -48,7 +48,7 @@ void VapiGenerator::TargetDictionary::generate_body(void){
 #define __VRTLMODAPI_TARGETDICTIONARY_HPP__ \n\n\
 #include <vector> \n\
 #include \"verilated.h\" \n\
-#include \"" << gen.mTopTypeName << ".h\" \n\n\
+#include \"" << gen.get_vrtltopheader_filename() << "\" \n\n\
 typedef enum INJ_TYPE{BIASED_S, BIASED_R, BITFLIP} INJ_TYPE_t; \n\
 class TD_API; \n"
 		<< std::endl

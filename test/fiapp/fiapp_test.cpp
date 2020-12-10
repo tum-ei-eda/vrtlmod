@@ -4,15 +4,13 @@
 /// @author Johannes Geier (johannes.geier@tum.de)
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "vrtl/VRTLmodAPI/vrtlmod_api.hpp"
+#include "vrtlmod/Vfiapp_vrtlmodapi.hpp"
 #include "verilated.h"
 
 #include "iostream"
 
-
-VRTLmodAPI& gFrame = VRTLmodAPI::i();
-Vfiapp& gVtop = VRTLmodAPI::i().mVRTL;
-
+VfiappVRTLmodAPI& gFrame = VfiappVRTLmodAPI::i();
+Vfiapp& gVtop = VfiappVRTLmodAPI::i().mVRTL;
 
 void clockspin(void){
 	gVtop.eval();
@@ -45,7 +43,7 @@ int main(void){
 
 	// VRTL warum-up
 	gVtop.eval();
-	VRTLmodAPI::i().mVRTL.reset = 0;
+	gVtop.reset = 0;
 	std::cout << std::endl << "Running test for simple fault injection application (fiapp)" << "..." << std::endl;
 	//test injections
 	bool testreturn = true;

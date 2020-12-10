@@ -14,12 +14,12 @@ void VapiGenerator::VapiSource::generate_body(void){
 
 	x <<
 "// Vrtl-specific includes: \n\
-#include \"" << "../" << gen.mTopTypeName << ".h\" \n\
-#include \"" << "../" << gen.mTopTypeName << "__Syms.h\" \n\
+#include \"" << gen.get_vrtltopheader_filename() << "\" \n\
+#include \"" << gen.get_vrtltopsymsheader_filename() << "\" \n\
 // General API includes: \n\
 #include \"verilated.h\" \n\
-#include \"targetdictionary/targetdictionary.hpp\" \n\
-#include \"vrtlmodapi.hpp\" \n"
+#include \"" << gen.get_targetdictionary_relpath() << "\" \n\
+#include \"" << gen.get_apiheader_filename() << "\" \n"
 		<< std::endl
 		<<
 "TDentry::TDentry(const char* name, const unsigned index, const unsigned bits) \n\
@@ -123,7 +123,7 @@ void VapiGenerator::VapiSource::generate_body(void){
 		<< std::endl
 		<< std::endl
 		<<
-"VRTLmodAPI::VRTLmodAPI(void) \n\
+"" << gen.mTopTypeName << "VRTLmodAPI::" << gen.mTopTypeName << "VRTLmodAPI(void) \n\
 	: mVRTL(* new " << gen.mTopTypeName << ") \n\
 	, TD_API() { \n\
 	TD_API::init(mVRTL); \n\

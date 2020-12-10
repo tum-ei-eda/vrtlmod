@@ -32,20 +32,22 @@ int VapiGenerator::init(const char *pTargetXmlFile, const char *pOutdir) {
 
 std::string VapiGenerator::getTDExternalDecl(void) {
 	static bool once = false;
+	std::stringstream ret;
 	if (!once) {
 		once = true;
-		return ("sTD_t& gTD = VRTLmodAPI::i().get_struct(); \t// global target dictionary\n");
+		ret << "sTD_t& gTD = " << mTopTypeName << "VRTLmodAPI::i().get_struct(); \t// global target dictionary\n";
 	} else {
-		return ("extern sTD_t& gTD;\n");
+		ret << "extern sTD_t& gTD;\n";
 	}
+	return (ret.str());
 }
 
 std::string VapiGenerator::getInludeStrings(void) {
 	std::stringstream ret;
 	ret <<
 "/* Includes for Target Injection API */ \n\
-#include \"" << API_DIRPREFIX << "/" << API_TD_DIRPREFIX << "/" << API_TD_HEADER_NAME << "\" \n\
-#include \"" << API_DIRPREFIX << "/" << API_HEADER_NAME << "\"\n";
+#include \"" << API_DIRPREFIX << "/" << get_targetdictionary_relpath() << "\" \n\
+#include \"" << API_DIRPREFIX << "/" << get_apiheader_filename() << "\"\n";
 	return (ret.str());
 }
 
@@ -169,14 +171,14 @@ int VapiGenerator::build_API(void) {
 	if( !fs::exists(fs::path(api_dir)) ) {
 		fs::create_directory( fs::path(api_dir) );
 	}
-	vapisrc_.write( (api_dir + std::string(API_SOURCE_NAME)).c_str());
-	vapiheader_.write((api_dir + std::string(API_HEADER_NAME)).c_str());
+	vapisrc_.write( api_dir + get_apisource_filename());
+	vapiheader_.write( api_dir + get_apiheader_filename());
 
 	std::string targetdictionary_dir = api_dir + std::string(API_TD_DIRPREFIX) + std::string("/");
 	if( !fs::exists(fs::path(targetdictionary_dir)) ) {
 		fs::create_directory( fs::path(targetdictionary_dir) );
 	}
-	td_.write( (targetdictionary_dir + std::string(API_TD_HEADER_NAME)).c_str() );
+	td_.write( targetdictionary_dir + get_targetdictionary_filename() );
 
 	for (const auto &it : mTargets) {
 		if ((it->mSeqInjCnt / it->mElData.words) > 2) {
@@ -186,190 +188,4 @@ int VapiGenerator::build_API(void) {
 	return (1);
 }
 
-int VapiGenerator::build_targetdictionary_HPP(const char *outputdir) {
-	std::string filepath = outputdir;
-	filepath += "/";
-	filepath += API_TD_HEADER_NAME;
-	std::ifstream ifile(filepath);
-	std::stringstream filetemplate;
-	std::ofstream file;
-
-	if (ifile.is_open()) {
-		std::string tmp;
-		while (std::getline(ifile, tmp)) {
-			if (tmp.find("//<INSERT_HEADER_COMMMENT>") != std::string::npos) {
-				filetemplate << get_fileheader(API_TD_HEADER_NAME);
-			} else if (tmp.find("//<INSERT_TD_CLASSES>") != std::string::npos) {
-				for (auto const &it : mTargets) {
-					filetemplate << std::endl << get_targetdictionaryEntryTypeDefString(*it);
-				}
-				filetemplate << std::endl << "typedef struct sTD {" << std::endl;
-				for (auto const &it : mTargets) {
-					filetemplate << "\t" << get_targetdictionaryTargetClassDefName(*it) << "& " << get_targetdictionaryTargetClassDeclName(*it) << ";"
-							<< std::endl;
-				}
-				filetemplate << "\tsTD(" << std::endl;
-				bool first = true;
-				for (auto const &it : mTargets) {
-					if (first) {
-						first = false;
-					} else {
-						filetemplate << ", " << std::endl;
-					}
-					filetemplate << "\t\t" << get_targetdictionaryTargetClassDefName(*it) << "& a" << it->index;
-				}
-				filetemplate << ") : " << std::endl;
-				first = true;
-				for (auto const &it : mTargets) {
-					if (first) {
-						first = false;
-					} else {
-						filetemplate << "," << std::endl;
-					}
-					filetemplate << "\t\t\t " << get_targetdictionaryTargetClassDeclName(*it) << "(a" << it->index << ")";
-				}
-				filetemplate << "{}" << std::endl;
-				filetemplate << "} sTD_t;" << std::endl;
-
-			} else {
-				util::strhelp::replace(tmp, "//<INSERT_TOP_INCLUDE>", std::string("#include \"") + mTopTypeName + ".h\"");
-				util::strhelp::replace(tmp, "<INSERT_VTOPTYPE>", mTopTypeName);
-				filetemplate << tmp << std::endl;
-			}
-		}
-		ifile.close();
-	}
-
-	file.open(filepath);
-	if (file.fail()) {
-		return (-1);
-	}
-	file << filetemplate.str();
-
-	file.close();
-
-	return (1);
-}
-
-int VapiGenerator::build_API_HPP(const char *outputdir) {
-	std::ofstream file;
-	std::string filepath = outputdir;
-	filepath += "/";
-	filepath += API_HEADER_NAME;
-	std::ifstream ifile(filepath);
-	std::stringstream filetemplate;
-
-
-	if (ifile.is_open()) {
-		std::string tmp;
-		while (std::getline(ifile, tmp)) {
-			if (tmp.find("//<INSERT_HEADER_COMMMENT>") != std::string::npos) {
-				filetemplate << get_fileheader(API_HEADER_NAME);
-			} else {
-				util::strhelp::replace(tmp, "//<INSERT_TOP_INCLUDE>", std::string("#include \"") + mTopTypeName + ".h\"");
-				util::strhelp::replace(tmp, "<INSERT_VTOPTYPE>", mTopTypeName);
-				filetemplate << tmp << std::endl;
-			}
-		}
-		ifile.close();
-	}
-
-	file.open(filepath);
-	if (file.fail()) {
-		return (-1);
-	}
-	file << filetemplate.str();
-	file.close();
-
-	return (1);
-}
-
-int VapiGenerator::build_API_CPP(const char *outputdir) {
-	std::string filepath = outputdir;
-	filepath += "/";
-	filepath += API_SOURCE_NAME;
-	std::ifstream ifile(filepath);
-	std::stringstream filetemplate;
-	std::ofstream file;
-
-	if (ifile.is_open()) {
-		std::string tmp;
-		while (std::getline(ifile, tmp)) {
-			filetemplate << tmp << std::endl;
-		}
-		ifile.close();
-	}
-
-	file.open(filepath);
-	if (file.fail()) {
-		return (-1);
-	}
-	file << get_fileheader(API_SOURCE_NAME);
-
-	file << std::endl;
-	file << "// Vrtl-specific includes:" << std::endl;
-	file << "#include \"" << "../" << mTopTypeName << ".h\"" << std::endl;
-	file << "#include \"" << "../" << mTopTypeName << "__Syms.h\"" << std::endl;
-	file << "// General API includes:" << std::endl;
-	file << filetemplate.str();
-	file << std::endl;
-
-	file << std::endl;
-	file << "VRTLmodAPI::VRTLmodAPI(void) :" << std::endl << "\tmVRTL(* new " << mTopTypeName << ")," << std::endl << "TD_API()" << std::endl
-			<< "{TD_API::init(mVRTL);}";
-	file << std::endl;
-
-	file << "void TD_API::init(" << mTopTypeName << "& pVRTL){" << std::endl;
-	file << "mTD = new sTD(" << std::endl;
-	std::string top = "pVRTL";
-
-	bool first = true;
-	for (auto const &it : mTargets) {
-		if (first) {
-			first = false;
-		} else {
-			file << "," << std::endl;
-		}
-		file << "\t\t* new " << get_targetdictionaryTargetClassDefName(*it) << "(\"" << it->mElData.hierarchy << "\", ";
-		std::string hier = it->get_hierarchy();
-		auto fdot = hier.find(".");
-		if (fdot != std::string::npos) {
-			if (it->mElData.words > 1) {
-				file << top << ".__VlSymsp->TOPp->" << hier.substr(0, fdot) << "->" << hier.substr(fdot + 1);
-			} else {
-				file << "&(" << top << ".__VlSymsp->TOPp->" << hier.substr(0, hier.find(".")) << "->" << hier.substr(hier.find(".") + 1) << ")";
-			}
-		} else {
-			if (it->mElData.words > 1) {
-				file << top << ".__VlSymsp->TOPp->" << hier;
-			} else {
-				file << "&(" << top << ".__VlSymsp->TOPp->" << hier << ")";
-			}
-		}
-		file << ")";
-	}
-	file << std::endl << "\t);" << std::endl;
-	file << std::endl;
-	for (auto const &it : mTargets) {
-		file << "\tmEntryList.push_back(&(mTD->" << get_targetdictionaryTargetClassDeclName(*it) << "));" << std::endl;
-	}
-	file << "}" << std::endl;
-
-	file.close();
-
-	return (1);
-}
-
-std::string VapiGenerator::get_fileheader(const char *filename) {
-	std::stringstream x;
-	std::time_t timestamp = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-	x << "////////////////////////////////////////////////////////////////////////////////" << std::endl;
-	x << "/// @file " << API_TD_HEADER_NAME << std::endl;
-	x << "/// @brief vrtlmod_api main header" << std::endl;
-	x << "/// @details Automatically generated from: " << mFilepath << std::endl;
-	x << "/// @date Created on " << std::ctime(&timestamp);
-	x << "/// @author vapi_generator version " << APIBUILDER_VERSION << std::endl;
-	x << "////////////////////////////////////////////////////////////////////////////////" << std::endl;
-	return (x.str());
-}
 } // namespace vapi

@@ -70,9 +70,8 @@ public:
 	/// \brief Constructor
 	TemplateFile(void) { }
 	virtual ~TemplateFile(void){};
-	TemplateFile(const TemplateFile& x) : filepath_(x.get_filepath()), filename_(x.get_filename()) {}
 
-	void write(const char* filepath){
+	void write(const std::string filepath){
 		filepath_ = filepath;
 		filename_ = (filepath_.rfind("/") != std::string::npos) ?
 			 filepath_.substr(filepath_.rfind("/"))
@@ -82,15 +81,15 @@ public:
 		generate_body();
 
 		std::ofstream out;
-		util::logging::log(util::logging::INFO, std::string("TemplateFile file path: ") + filepath_ + std::string("open"));
+		util::logging::log(util::logging::INFO, std::string("TemplateFile file path: ") + filepath_ + std::string(" open"));
 		out.open(filepath_);
 		if (out.fail()) {
-			util::logging::abort(std::string("TemplateFile file path: ") + filepath_ + std::string("invalid."));
+			util::logging::abort(std::string("TemplateFile file path: ") + filepath_ + std::string(" invalid."));
 		}
 		out << header_;
 		out << body_;
 		out.close();
-		util::logging::log(util::logging::INFO, std::string("TemplateFile file path: ") + filepath_ + std::string("written"));
+		util::logging::log(util::logging::INFO, std::string("TemplateFile file path: ") + filepath_ + std::string(" written"));
 	}
 };
 

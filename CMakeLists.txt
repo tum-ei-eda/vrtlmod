@@ -2,15 +2,6 @@ PROJECT(vrtlmod)
 
 CMAKE_MINIMUM_REQUIRED(VERSION 3.15)
 
-#IF(NOT ENV{LLVM_DIR})
-#    SET(ENV{LLVM_DIR} "/usr/local/research/projects/SystemDesign/tools/llvm/9.0.0")
-#ENDIF()
-
-#SET(LLVM_DIR ENV{LLVM_DIR})
-#SET(Clang_DIR ENV{CLANG_DIR})
-
-#SET(THISDIR ${CMAKE_SOURCE_DIR}/src/vrtlmod)
-
 IF(NOT Clang_DIR)
 SET(Clang_DIR ${LLVM_DIR}/../clang)
 ENDIF()
@@ -110,29 +101,29 @@ option(BUILD_DOC "Build documentation" OFF)
 find_package(Doxygen)
 
 if(BUILD_DOC)
-    if (DOXYGEN_FOUND)
-        set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/doc/doxyfile.cmake.in)
-        set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/doc/doxyfile)
+  if (DOXYGEN_FOUND)
+    set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/doc/doxyfile.cmake.in)
+    set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/doc/doxyfile)
 
-        configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
-        message("Doxygen build started")
+    configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
+    message("Doxygen build started")
 
-        add_custom_target( doc_doxygen ALL
-                COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
-                WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-                COMMENT "Generating ${PROJECT_NAME} API documentation with Doxygen"
-                VERBATIM )
+    add_custom_target( doc_doxygen ALL
+      COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+      COMMENT "Generating ${PROJECT_NAME} API documentation with Doxygen"
+      VERBATIM )
 
-        add_custom_target( doc_pdf ALL
-                DEPENDS doc_doxygen
-                COMMAND make && cp ${CMAKE_CURRENT_BINARY_DIR}/doc/latex/refman.pdf ${CMAKE_SOURCE_DIR}/bin/${PROJECT_NAME}.pdf
-                WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc/latex
-                COMMENT "Generating ${PROJECT_NAME} API pdf"
-                VERBATIM )
+    add_custom_target( doc_pdf ALL
+      DEPENDS doc_doxygen
+      COMMAND make && cp ${CMAKE_CURRENT_BINARY_DIR}/doc/latex/refman.pdf ${CMAKE_SOURCE_DIR}/bin/${PROJECT_NAME}.pdf
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc/latex
+      COMMENT "Generating ${PROJECT_NAME} API pdf"
+      VERBATIM )
 
-    else (DOXYGEN_FOUND)
-        message("Doxygen need to be installed to generate the doxygen documentation")
-    endif (DOXYGEN_FOUND)
+  else (DOXYGEN_FOUND)
+    message("Doxygen need to be installed to generate the doxygen documentation")
+  endif (DOXYGEN_FOUND)
 endif(BUILD_DOC)
 
 ########### TESTING #################
@@ -140,40 +131,65 @@ endif(BUILD_DOC)
 ENABLE_TESTING()
 SET(TEST_BUILD ON CACHE STRING "Include Tests in build")
 IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
-	FIND_PACKAGE(GTest)
-	IF(NOT GTest_FOUND)
-		INCLUDE(FetchContent)
-		SET(FETCHCONTENT_QUIET FALSE)
-		FetchContent_Declare(gtest_srcs
-			GIT_REPOSITORY https://github.com/google/googletest.git
-			GIT_PROGRESS TRUE
-		)
-		IF(NOT gtest_srcs_POPULATED)
-			FetchContent_Populate(gtest_srcs)
-			FetchContent_GetProperties(gtest_srcs)
-			SET(GTest_LOCATION ${gtest_srcs_SOURCE_DIR})
-			SET(INSTALL_GTest OFF CACHE PATH "Do not install GTEST - build gtest locally.")
-			ADD_SUBDIRECTORY(${GTest_LOCATION})
-		ENDIF()
-	ENDIF()
-#	IF(NOT GTest_FOUND)
-#		TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME}-test PRIVATE
-#			${GTest_LOCATION}/
-#			${GTest_LOCATION}/googletest/include
-#		)
-#		TARGET_LINK_LIBRARIES(${PROJECT_NAME}-test PUBLIC gtest )
-#	ELSE()
-#		TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME}-test PRIVATE
-#			${GTest_INCLUDE_DIR}/
-#		)
-#		TARGET_LINK_LIBRARIES(${PROJECT_NAME}-test GTest::GTest)
-#	ENDIF()
+  FIND_PACKAGE(verilator HINTS $ENV{VERILATOR_ROOT} ${VERILATOR_ROOT})
 
-#	TARGET_LINK_LIBRARIES(${PROJECT_NAME}-test PUBLIC ${PROJECT_NAME} )
-    SET(TDIR ${CMAKE_CURRENT_SOURCE_DIR}/test)
-    SET(TBDIR ${CMAKE_CURRENT_BINARY_DIR}/Testing)
+  SET(TDIR ${CMAKE_CURRENT_SOURCE_DIR}/test)
+  SET(TBDIR ${CMAKE_CURRENT_BINARY_DIR}/Testing)
 
-	ADD_TEST(NAME ${PROJECT_NAME}-functional
-		COMMAND ${PROJECT_NAME} --regxml=${TDIR}/regpicker.xml --out=${TBDIR} ${TDIR}/vrtl/Vfiapp.cpp -- clang++ -I${TDIR}/vrtl/ -I$ENV{VERILATOR_ROOT}/include -I${CLANG_INCLUDE_DIRS}
-	)
+  SET(RTL_SRCS ${RTL_PKG_FILES} ${RTL_SRC_FILES} ${RTL_UTIL_FILES})
+  FILE(WRITE ${TBDIR}/null.cpp "int main(){}")
+  ADD_EXECUTABLE(null
+    ${TBDIR}/null.cpp
+  )
+  VERILATE(null
+    TOP_MODULE fiapp
+    DIRECTORY ${TBDIR}/obj_dir
+    SOURCES ${TDIR}/fiapp/fiapp.sv
+  )
+
+  set(CIN
+    ${TBDIR}/obj_dir/Vfiapp.cpp
+    ${TBDIR}/obj_dir/Vfiapp__Syms.cpp
+    ${TBDIR}/obj_dir/Vfiapp__Slow.cpp
+  )
+  string(REPLACE ".cpp" "_vrtlmod.cpp;" COUT ${CIN})
+
+  message ("cout ${COUT}")
+
+  SET(DUT_NAME fiapp)
+
+  add_custom_command(
+    OUTPUT ${COUT} ${TBDIR}/obj_dir/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp ${TBDIR}/obj_dir/vrtlmod/V${DUT_NAME}_vrtlmodapi.hpp ${TBDIR}/obj_dir/vrtlmod/targetdictionary/V${DUT_NAME}_td.hpp
+    DEPENDS null ${PROJECT_NAME}
+    COMMAND ${PROJECT_NAME} ARGS --regxml=${TDIR}/fiapp/regpicker.xml --out=${TBDIR}/obj_dir ${CIN} -- clang++ -I${TBDIR}/obj_dir/ -I${VERILATOR_ROOT}/include -I${CLANG_INCLUDE_DIRS}
+  )
+
+  ADD_EXECUTABLE( ${PROJECT_NAME}-test
+    ${COUT}
+    ${TBDIR}/obj_dir/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp
+    ${TDIR}/fiapp/fiapp_test.cpp
+    ${VERILATOR_ROOT}/include/verilated.cpp
+  )
+  TARGET_INCLUDE_DIRECTORIES( ${PROJECT_NAME}-test PUBLIC
+    ${TBDIR}/obj_dir
+    ${TBDIR}
+    ${VERILATOR_ROOT}/include
+  )
+
+  ADD_TEST(NAME ${PROJECT_NAME}:build
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target ${PROJECT_NAME}
+  )
+  ADD_TEST(NAME ${PROJECT_NAME}:vrtlmod:test/fiapp
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target ${PROJECT_NAME}-test
+  )
+  SET_TESTS_PROPERTIES(${PROJECT_NAME}:vrtlmod:test/fiapp
+    PROPERTIES DEPENDS ${PROJECT_NAME}:build
+  )
+  ADD_TEST(NAME ${PROJECT_NAME}:run:test/fiapp
+    COMMAND ${PROJECT_NAME}-test
+  )
+  SET_TESTS_PROPERTIES(${PROJECT_NAME}:run:test/fiapp
+    PROPERTIES DEPENDS ${PROJECT_NAME}:vrtlmod:test/fiapp
+  )
+
 ENDIF()

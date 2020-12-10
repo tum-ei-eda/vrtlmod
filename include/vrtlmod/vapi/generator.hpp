@@ -21,13 +21,14 @@ namespace vapi {
 /// @author Johannes Geier (johannes.geier@tum.de)
 ////////////////////////////////////////////////////////////////////////////////
 class VapiGenerator: public XmlHelper {
-public:
+
 #define APIBUILDER_VERSION "0.9"
 #define API_DIRPREFIX "vrtlmod"
 #define API_TD_DIRPREFIX "targetdictionary"
-#define API_TD_HEADER_NAME "targetdictionary.hpp"
+#define API_TD_HEADER_NAME "td.hpp"
 #define API_HEADER_NAME "vrtlmodapi.hpp"
 #define API_SOURCE_NAME "vrtlmodapi.cpp"
+
 private:
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Specified path to output directory
@@ -61,6 +62,24 @@ private:
 	} vapiheader_;
 
 public:
+	std::string get_vrtltopheader_filename(void){
+		return(mTopTypeName + ".h");
+	}
+	std::string get_vrtltopsymsheader_filename(void){
+		return(mTopTypeName + "__Syms.h");
+	}
+	std::string get_targetdictionary_filename(void){
+		return(mTopTypeName + std::string("_") + API_TD_HEADER_NAME);
+	}
+	std::string get_targetdictionary_relpath(void){
+		return(std::string(API_TD_DIRPREFIX) + std::string("/") + get_targetdictionary_filename());
+	}
+	std::string get_apiheader_filename(void){
+		return(mTopTypeName + std::string("_") + API_HEADER_NAME);
+	}
+	std::string get_apisource_filename(void){
+		return(mTopTypeName + std::string("_") + API_SOURCE_NAME);
+	}
 
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Returns output directory
@@ -123,11 +142,6 @@ public:
 	/// \brief Build API: Target dictionary (.cpp/.hpp) and InjAPI to specified output directory
 	int build_API(void);
 protected:
-	int build_targetdictionary(void);
-	int build_targetdictionary_HPP(const char *outputdir);
-	int build_API_HPP(const char *outputdir);
-	int build_API_CPP(const char *outputdir);
-	std::string get_fileheader(const char *filename);
 	VapiGenerator(void); //: mTargets(){};
 	VapiGenerator(const VapiGenerator&);
 	VapiGenerator& operator =(const VapiGenerator&);
