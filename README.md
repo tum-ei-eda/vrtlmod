@@ -9,6 +9,7 @@ Besides standard (gmake, cmake, gcc, ...)
 1. Verilator  - min. v4.1 (see: https://www.veripool.org/wiki/verilator and install guide)
 2. libxml2
 3. llvm			  - min. v9.0.1
+4. Boost    - min. v1.72.0
 
 ## Build
 1. **Clone the repository:**
