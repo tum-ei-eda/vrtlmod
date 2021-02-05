@@ -18,6 +18,7 @@ void VapiGenerator::VapiHeader::generate_body(void){
 		<< std::endl
 		<<
 "#include <vector> \n\
+#include <memory> \n\
 #include \"verilated.h\" \n\
 #include \"" << gen.get_targetdictionary_relpath() << "\" \n"
 		<<
@@ -63,12 +64,11 @@ void VapiGenerator::VapiHeader::generate_body(void){
 		<<
 "class " << gen.mTopTypeName << "VRTLmodAPI : public TD_API { \n\
 public: \n\
-	"	<<  gen.mTopTypeName  << "& mVRTL; \n\
 	static " << gen.mTopTypeName << "VRTLmodAPI& i(void) { \n\
 		static " << gen.mTopTypeName << "VRTLmodAPI _instance; \n\
 		return (_instance); \n\
 	} \n\
-private: \n\
+	private: \n\
 	" << gen.mTopTypeName << "VRTLmodAPI(void); \n\
 	" << gen.mTopTypeName << "VRTLmodAPI(" << gen.mTopTypeName << "VRTLmodAPI const&); \n\
 	void operator=(" << gen.mTopTypeName << "VRTLmodAPI const&); \n\

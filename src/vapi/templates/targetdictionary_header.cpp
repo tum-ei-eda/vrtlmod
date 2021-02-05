@@ -47,6 +47,7 @@ void VapiGenerator::TargetDictionary::generate_body(void){
 "#ifndef __VRTLMODAPI_TARGETDICTIONARY_HPP__ \n\
 #define __VRTLMODAPI_TARGETDICTIONARY_HPP__ \n\n\
 #include <vector> \n\
+#include <memory> \n\
 #include \"verilated.h\" \n\
 #include \"" << gen.get_vrtltopheader_filename() << "\" \n\n\
 typedef enum INJ_TYPE{BIASED_S, BIASED_R, BITFLIP} INJ_TYPE_t; \n\
@@ -85,15 +86,19 @@ public: \n\
 	}BIT_CODES_t; \n"
 		<< std::endl
 		<<
-"	sTD_t* mTD; \n\
+
+"	std::unique_ptr<"	<<  gen.mTopTypeName  << "> vrtl_{nullptr}; \n\
+	sTD_t* mTD; \n\
 	std::vector<TDentry*> mEntryList; \n\
 	sTD_t& get_struct(void){ return(*mTD); } \n\
 	int push(TDentry *newEntry) { \n\
+		int i = 0; \n\
 		for (auto const & it: mEntryList) { \n\
-			if(it == newEntry) return (0); \n\
+			if(it == newEntry) return (i); \n\
+			++i; \n\
 		} \n\
 		mEntryList.push_back(newEntry); \n\
-		return (1); \n\
+		return (0); \n\
 	} \n"
 		<< std::endl
 		<<
@@ -101,10 +106,11 @@ public: \n\
 	int prep_inject(const unsigned targetindex, const unsigned bit, const INJ_TYPE_t type = BITFLIP); \n\
 	int reset_inject(const char* targetname); \n\
 	int reset_inject(const unsigned targetindex); \n\
-	void init(" << gen.mTopTypeName << "& pVRTL); \n\
 	int get_EntryArrayIndex(const char* targetname) const; \n\
 	int get_EntryArrayIndex(const unsigned targetindex) const; \n\
 	TD_API(void): mTD(), mEntryList(){} \n\
+protected: \n\
+	void init(std::unique_ptr<" << gen.mTopTypeName << ">&& vrtl); \n\
 };" <<	std::endl
 		<< std::endl
 		<<

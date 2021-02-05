@@ -21,6 +21,9 @@ namespace fs = boost::filesystem;
 /// \brief Frontend user option category
 static llvm::cl::OptionCategory UserCat("User Options");
 ////////////////////////////////////////////////////////////////////////////////
+/// \brief Frontend user option "systemc".
+static llvm::cl::opt<bool> SystemC("systemc", llvm::cl::Optional, llvm::cl::desc("Input VRTL is SystemC code"), llvm::cl::cat(UserCat));
+////////////////////////////////////////////////////////////////////////////////
 /// \brief Frontend user option "regxml". Sets input Xml
 static llvm::cl::opt<std::string> RegisterXmlFilename("regxml", llvm::cl::Required, llvm::cl::desc("Specify input register xml"),
 		llvm::cl::value_desc("file name"), llvm::cl::cat(UserCat));
@@ -58,7 +61,7 @@ int main(int argc, const char **argv) {
 	}
 
 	vapi::VapiGenerator& tAPI = vapi::VapiGenerator::_i();
-	if (tAPI.init(RegisterXmlFilename.c_str(), OUTdir.c_str()) < 0){
+	if (tAPI.init(RegisterXmlFilename.c_str(), OUTdir.c_str(), SystemC) < 0){
 		util::logging::abort(std::string("Vrtlmod API generator initialization failed"));
 	}
 

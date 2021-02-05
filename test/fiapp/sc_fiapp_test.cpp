@@ -5,19 +5,28 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "vrtlmod/Vfiapp_vrtlmodapi.hpp"
-#include "Vfiapp.h"
 #include "verilated.h"
+#include "systemc.h"
 
 #include "iostream"
 
 VfiappVRTLmodAPI& gFrame = VfiappVRTLmodAPI::i();
 #define gVtop (*(gFrame.vrtl_))
 
-void clockspin(void){
-	gVtop.eval();
-	gVtop.clk = 1;
-	gVtop.eval();
-	gVtop.clk = 0;
+sc_signal<bool> tb_clk{"clk"};
+sc_signal<bool> tb_reset{"reset"};
+sc_signal<bool> tb_a{"a"};
+sc_signal<bool> tb_enable{"enable"};
+sc_signal<bool> tb_o1{"o1"};
+sc_signal<bool> tb_o2{"o2"};
+sc_signal<bool> tb_o3{"o3"};
+
+void clockspin(void) {
+	static const sc_core::sc_time halfspintime{5.0, sc_core::SC_NS};
+	tb_clk.write(0);
+	sc_start( halfspintime );
+	tb_clk.write(1);
+	sc_start( halfspintime );
 }
 
 bool testinject(TDentry& target){
@@ -40,11 +49,19 @@ bool testinject(TDentry& target){
 	return true;
 }
 
-int main(void){
+int sc_main(int argc, char* argv[]){
+
+	gVtop.clk(tb_clk);
+	gVtop.reset(tb_reset);
+	gVtop.a(tb_a);
+	gVtop.enable(tb_enable);
+	gVtop.o1(tb_o1);
+	gVtop.o2(tb_o2);
+	gVtop.o3(tb_o3);
 
 	// VRTL warum-up
-	gVtop.eval();
-	gVtop.reset = 0;
+	tb_reset.write(0);
+	clockspin();
 	std::cout << std::endl << "Running test for simple fault injection application (fiapp)" << "..." << std::endl;
 	//test injections
 	bool testreturn = true;
