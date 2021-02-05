@@ -17,6 +17,8 @@ void VapiGenerator::VapiSource::generate_body(void){
 #include \"" << gen.get_vrtltopheader_filename() << "\" \n\
 #include \"" << gen.get_vrtltopsymsheader_filename() << "\" \n\
 // General API includes: \n\
+#include <memory> \n\
+#include <iostream> \n\
 #include \"verilated.h\" \n\
 #include \"" << gen.get_targetdictionary_relpath() << "\" \n\
 #include \"" << gen.get_apiheader_filename() << "\" \n"
@@ -124,13 +126,17 @@ void VapiGenerator::VapiSource::generate_body(void){
 		<< std::endl
 		<<
 "" << gen.mTopTypeName << "VRTLmodAPI::" << gen.mTopTypeName << "VRTLmodAPI(void) \n\
-	: mVRTL(* new " << gen.mTopTypeName << ") \n\
-	, TD_API() { \n\
-	TD_API::init(mVRTL); \n\
-}"
+	: TD_API() { \n\
+		init(std::move(std::make_unique<" << gen.mTopTypeName << ">(";
+	if(gen.is_systemc()) {
+		x << "\"" << gen.mTopTypeName << "\"";
+	}
+	x << "))); \n\
+} \n"
 		<< std::endl
 		<<
-"void TD_API::init(" << gen.mTopTypeName << "& pVRTL) { \n\
+"void TD_API::init(std::unique_ptr<" << gen.mTopTypeName << ">&& vrtl) { \n\
+	vrtl_ = std::move(vrtl);\n\
 	mTD = new sTD(" << std::endl;
 
 	bool first = true;
@@ -145,23 +151,27 @@ void VapiGenerator::VapiSource::generate_body(void){
 		auto fdot = hier.find(".");
 		if (fdot != std::string::npos) {
 			if (it->mElData.words > 1) {
-				x << "pVRTL" << ".__VlSymsp->TOPp->" << hier.substr(0, fdot) << "->" << hier.substr(fdot + 1);
+				x << "vrtl_" << "->__VlSymsp->TOPp->" << hier.substr(0, fdot) << "->" << hier.substr(fdot + 1);
 			} else {
-				x << "&(" << "pVRTL" << ".__VlSymsp->TOPp->" << hier.substr(0, hier.find(".")) << "->" << hier.substr(hier.find(".") + 1) << ")";
+				x << "&(" << "vrtl_" << "->__VlSymsp->TOPp->" << hier.substr(0, hier.find(".")) << "->" << hier.substr(hier.find(".") + 1) << ")";
 			}
 		} else {
 			if (it->mElData.words > 1) {
-				x << "pVRTL" << ".__VlSymsp->TOPp->" << hier;
+				x << "vrtl_" << "->__VlSymsp->TOPp->" << hier;
 			} else {
-				x << "&(" << "pVRTL" << ".__VlSymsp->TOPp->" << hier << ")";
+				x << "&(" << "vrtl_" << "->__VlSymsp->TOPp->" << hier << ")";
 			}
 		}
 		x << ")";
 	}
-	x << std::endl << "\t);" << std::endl;
-	x << std::endl;
+	x << std::endl << "\t); \n\
+	int i = 0; \n" << std::endl;
 	for (auto const &it : gen.mTargets) {
-		x << "\tmEntryList.push_back(&(mTD->" << gen.get_targetdictionaryTargetClassDeclName(*it) << "));" << std::endl;
+	x << "\
+	i = push(&(mTD->" << gen.get_targetdictionaryTargetClassDeclName(*it) << ")); \n\
+	if( i > 0 ) { \n\
+		std::cout << \"ERROR: " <<  gen.mTopTypeName << "VRTLmodAPI target registered multiple times [" << gen.get_targetdictionaryTargetClassDeclName(*it) << "]\" << std::endl; \n\
+	}" << std::endl;
 	}
 	x << "}";
 

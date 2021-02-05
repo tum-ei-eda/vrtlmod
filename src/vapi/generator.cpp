@@ -21,12 +21,14 @@ namespace fs = boost::filesystem;
 
 namespace vapi {
 
-VapiGenerator::VapiGenerator(void) :
-		outdir() {
+VapiGenerator::VapiGenerator(void)
+	:	outdir_()
+	, systemc_(false) {
 }
 
-int VapiGenerator::init(const char *pTargetXmlFile, const char *pOutdir) {
-	outdir = pOutdir;
+int VapiGenerator::init(const char *pTargetXmlFile, const char *pOutdir, bool systemc) {
+	systemc_ = systemc;
+	outdir_ = pOutdir;
 	return (XmlHelper::init(pTargetXmlFile));
 }
 
@@ -166,7 +168,7 @@ std::string VapiGenerator::get_targetdictionaryEntryTypeDefString(Target &t) {
 }
 
 int VapiGenerator::build_API(void) {
-	std::string api_dir = std::string(outdir) + std::string("/") + std::string( API_DIRPREFIX) + std::string("/");
+	std::string api_dir = outdir_ + std::string("/") + std::string( API_DIRPREFIX) + std::string("/");
 
 	if( !fs::exists(fs::path(api_dir)) ) {
 		fs::create_directory( fs::path(api_dir) );

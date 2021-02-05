@@ -32,7 +32,10 @@ class VapiGenerator: public XmlHelper {
 private:
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Specified path to output directory
-	const char *outdir;
+	std::string outdir_;
+	///////////////////////////////////////////////////////////////////////
+	/// \brief Specified path to output directory
+	bool systemc_;
 
 	class TargetDictionary final : public TemplateFile {
 		public:
@@ -83,8 +86,13 @@ public:
 
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Returns output directory
-	std::string get_outputDir(void) {
-		return (std::string(outdir));
+	std::string& get_outputDir(void) {
+		return (outdir_);
+	}
+	///////////////////////////////////////////////////////////////////////
+	/// \brief Returns true if the API generator was configured for SystemC VRTL
+	bool is_systemc(void) {
+		return (systemc_);
 	}
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Returns static to singleton instance
@@ -96,7 +104,7 @@ public:
 	/// \brief Initiates instance
 	/// \param pTargetXmlFile File path to RegPicker-Xml input
 	/// \param pOutdir Directory path to where output is written
-	int init(const char *pTargetXmlFile, const char *pOutdir);
+	int init(const char *pTargetXmlFile, const char *pOutdir, bool systemc);
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Checks whether given Expr is a target in the Xml-Input
 	/// \param pExpr Expression String
