@@ -24,121 +24,20 @@ void VapiGenerator::VapiSource::generate_body(void){
 #include \"" << gen.get_apiheader_filename() << "\" \n"
 		<< std::endl
 		<<
-"TDentry::TDentry(const char* name, const unsigned index, const unsigned bits) \n\
-	:	name(name) \n\
-	, index(index) \n\
-	, cntr() \n\
-	, enable(false) \n\
-	, inj_type(INJ_TYPE::BITFLIP) \n\
-	, bits(bits) { }"
-		<< std::endl
-		<<
-"int TD_API::get_EntryArrayIndex(const char* targetname) const { \n\
-	unsigned int i= 0; \n\
-	for(auto & it: mEntryList) { \n\
-		if(std::strcmp(targetname, it->name) == 0) { \n\
-			return i; \n\
-		} \n\
-		++i; \n\
-	} \n\
-	return (-1); \n\
-}"
-		<< std::endl
-		<<
-"int TD_API::get_EntryArrayIndex(const unsigned targetindex) const { \n\
-	unsigned int i= 0; \n\
-	for(auto & it: mEntryList) { \n\
-		if(it->index == targetindex) { \n\
-			return i; \n\
-		} \n\
-		++i; \n\
-	} \n\
-	return (-1); \n\
-}"
-		<< std::endl
-		<<
-"int TD_API::prep_inject(const char* targetname, unsigned bit, INJ_TYPE_t type) { \n\
-	int ret = 0; \n\
-	if (type != INJ_TYPE::BITFLIP) { \n\
-		ret |= BIT_CODES::ERROR_INJTYPE_UNSUPPORTED; \n\
-	} \n\
-	const int tIndex = get_EntryArrayIndex(targetname); \n\
-	if(tIndex < 0) { \n\
-		ret |= BIT_CODES::ERROR_TARGET_NAME_UNKNOWN; \n\
-	} \n\
-	if(ret != 0) { \n\
-		return (ret); \n\
-	} else { \n\
-		unsigned index = static_cast<unsigned>(tIndex); \n\
-		return(prep_inject(index, bit, type)); \n\
-	} \n\
-}"
-		<< std::endl
-		<<
-"int TD_API::prep_inject(const unsigned targetindex, const unsigned bit, INJ_TYPE_t type) { \n\
-	int ret = 0; \n\
-	if (type != INJ_TYPE::BITFLIP) { \n\
-		ret |= BIT_CODES::ERROR_INJTYPE_UNSUPPORTED; \n\
-	} \n\
-	const int tIndex = get_EntryArrayIndex(targetindex); \n\
-	if(tIndex < 0) { \n\
-		ret |= BIT_CODES::ERROR_TARGET_IDX_UNKNOWN; \n\
-	} \n\
-	if(ret != 0) { \n\
-		return (ret); \n\
-	} else { \n\
-		unsigned index = static_cast<unsigned>(tIndex); \n\
-		if(bit > mEntryList[index]->bits -1) { \n\
-			return BIT_CODES::ERROR_BIT_OUTOFRANGE; \n\
-		} \n\
-		mEntryList[index]->inj_type = type; \n\
-		mEntryList[index]->set_maskBit(bit); \n\
-		mEntryList[index]->cntr = 0; \n\
-	} \n\
-	return (BIT_CODES::SUCC_TARGET_ARMED); \n\
-}"
-		<< std::endl
-		<<
-"int TD_API::reset_inject(const char* targetname) { \n\
-	const int tIndex = get_EntryArrayIndex(targetname); \n\
-	if(tIndex < 0) { \n\
-		return(BIT_CODES::ERROR_TARGET_NAME_UNKNOWN); \n\
-	} else { \n\
-		unsigned index = static_cast<unsigned>(tIndex); \n\
-		return(reset_inject(index)); \n\
-	} \n\
-}"
-		<< std::endl
-		<<
-"int TD_API::reset_inject(const unsigned targetindex) { \n\
-	const int tIndex = get_EntryArrayIndex(targetindex); \n\
-	if(tIndex < 0) { \n\
-		return(BIT_CODES::ERROR_TARGET_IDX_UNKNOWN); \n\
-	} else { \n\
-		unsigned index = static_cast<unsigned>(tIndex); \n\
-		mEntryList[index]->enable =false; \n\
-		mEntryList[index]->cntr = 0; \n\
-		mEntryList[index]->reset_mask(); \n\
-		return (BIT_CODES::SUCC_TARGET_DISARMED); \n\
-	} \n\
-}"
-		<< std::endl
-		<< std::endl
-		<<
 "" << gen.mTopTypeName << "VRTLmodAPI::" << gen.mTopTypeName << "VRTLmodAPI(void) \n\
 	: TD_API() { \n\
-		init(std::move(std::make_unique<" << gen.mTopTypeName << ">(";
+		vrtl_ = std::make_unique<" << gen.mTopTypeName << ">(";
 	if(gen.is_systemc()) {
 		x << "\"" << gen.mTopTypeName << "\"";
 	}
-	x << "))); \n\
-} \n"
+	x << "); \n"
+//} \n"
 		<< std::endl
 		<<
-"void TD_API::init(std::unique_ptr<" << gen.mTopTypeName << ">&& vrtl) { \n\
+//"void TD_API::init(std::unique_ptr<" << gen.mTopTypeName << ">&& vrtl) { \n\
 	vrtl_ = std::move(vrtl);\n\
 	mTD = new sTD(" << std::endl;
-
+"	auto td = std::make_unique<"<< gen.mTopTypeName<< "_TD>(\n";
 	bool first = true;
 	for (auto const &it : gen.mTargets) {
 		if (first) {
@@ -146,7 +45,7 @@ void VapiGenerator::VapiSource::generate_body(void){
 		} else {
 			x << "," << std::endl;
 		}
-		x << "\t\t* new " << gen.get_targetdictionaryTargetClassDefName(*it) << "(\"" << it->mElData.hierarchy << "\", ";
+		x << "\t\t std::make_shared<" << gen.get_targetdictionaryTargetClassDefName(*it) << ">(\"" << it->mElData.hierarchy << "\", ";
 		std::string hier = it->get_hierarchy();
 		auto fdot = hier.find(".");
 		if (fdot != std::string::npos) {
@@ -164,18 +63,54 @@ void VapiGenerator::VapiSource::generate_body(void){
 		}
 		x << ")";
 	}
-	x << std::endl << "\t); \n\
+	x << "\n\t); \n";
+/*	x << "\n\
 	int i = 0; \n" << std::endl;
 	for (auto const &it : gen.mTargets) {
 	x << "\
-	i = push(&(mTD->" << gen.get_targetdictionaryTargetClassDeclName(*it) << ")); \n\
+	i = push((td->" << gen.get_targetdictionaryTargetClassDeclName(*it) << ")); \n\
 	if( i > 0 ) { \n\
 		std::cout << \"ERROR: " <<  gen.mTopTypeName << "VRTLmodAPI target registered multiple times [" << gen.get_targetdictionaryTargetClassDeclName(*it) << "]\" << std::endl; \n\
 	}" << std::endl;
+} */
+	x <<
+"	td_ = std::move(td); \n\
+}\n" << std::endl;
+
+	x << gen.mTopTypeName << "VRTLmodAPI::~" << gen.mTopTypeName << "VRTLmodAPI(void) { \n\
+	vrtl_.reset(nullptr); \n\
+} \n" << std::endl;
+
+	entries << gen.mTopTypeName << "_TD::" << gen.mTopTypeName << "_TD(" << std::endl;
+	first = true;
+	for (auto const &it : gen.mTargets) {
+		if (first) {
+			first = false;
+		} else {
+			entries << ", " << std::endl;
+		}
+		entries << "\tstd::shared_ptr<" << gen.get_targetdictionaryTargetClassDefName(*it) << "> a" << it->index;
 	}
-	x << "}";
+	entries << ") : " << std::endl;
+	first = true;
+	for (auto const &it :	gen.mTargets) {
+		if (first) {
+			first = false;
+		} else {
+			entries << "," << std::endl;
+		}
+		entries << "\t\t" << gen.get_targetdictionaryTargetClassDeclName(*it) << "(a" << it->index << ")";
+	}
+	entries << " { \n";
+	for (auto const &it :	gen.mTargets) {
+		entries << "\t" << "entries_.push_back(" << gen.get_targetdictionaryTargetClassDeclName(*it) << "); \n";
+	}
+	entries << "}" << std::endl;
+
+	x << entries.str();
 
 	body_ = x.str();
+
 }
 
 } // namespace vapi

@@ -12,6 +12,27 @@ void VapiGenerator::VapiHeader::generate_body(void){
 	std::stringstream x, entries;
 	VapiGenerator& gen = VapiGenerator::_i();
 
+	for (auto const &it : gen.mTargets) {
+		entries << std::endl << gen.get_targetdictionaryEntryTypeDefString(*it);
+	}
+	entries << std::endl << "typedef struct "<< gen.mTopTypeName << "_TD : TD {" << std::endl;
+	for (auto const &it : gen.mTargets) {
+		entries << "\tstd::shared_ptr<" << gen.get_targetdictionaryTargetClassDefName(*it) << "> " << gen.get_targetdictionaryTargetClassDeclName(*it) << "{ };"
+			<< std::endl;
+	}
+	entries << "\t"<< gen.mTopTypeName << "_TD(" << std::endl;
+	bool first = true;
+	for (auto const &it : gen.mTargets) {
+		if (first) {
+			first = false;
+		} else {
+			entries << ", " << std::endl;
+		}
+		entries << "\t\tstd::shared_ptr<" << gen.get_targetdictionaryTargetClassDefName(*it) << "> a" << it->index;
+	}
+	entries << ");\n" << std::endl;
+	entries << "} "<< gen.mTopTypeName << "_TD;" << std::endl;
+
 	x <<
 "#ifndef __" << gen.mTopTypeName << "VRTLMODAPI_VRTLMODAPI_HPP__ \n\
 #define __" << gen.mTopTypeName << "VRTLMODAPI_VRTLMODAPI_HPP__ \n"
@@ -24,43 +45,8 @@ void VapiGenerator::VapiHeader::generate_body(void){
 		<<
 "class " << gen.mTopTypeName << ";" << std::endl
 		<< std::endl
-    <<
-"#define FI_LIKELY(x)   __builtin_expect(!!(x), 1) \n\
-#define FI_UNLIKELY(x) __builtin_expect(!!(x), 0) \n\n\
-#define SEQ_TARGET_INJECT(TDentry) { \\\n\
-	if(FI_UNLIKELY((TDentry).enable)) { \\\n\
-		if(((TDentry).cntr <= 0) and (TDentry).mask) { \\\n\
-			if(FI_LIKELY(((TDentry).inj_type == INJ_TYPE::BITFLIP))){ \\\n\
-				*((TDentry).data) = *((TDentry).data) ^ (TDentry).mask; \\\n\
-			} \\\n\
-			(TDentry).cntr++; \\\n\
-		} \\\n\
-	} \\\n\
-}"
-		<<  std::endl
-		<<
-"#define SEQ_TARGET_INJECT_W(TDentry, word) { \\\n\
-	if(FI_UNLIKELY((TDentry).enable)) { \\\n\
-		if(((TDentry).cntr <= 0) and (TDentry).mask[(word)]) { \\\n\
-			if(FI_LIKELY(((TDentry).inj_type == INJ_TYPE::BITFLIP))){ \\\n\
-				((TDentry).data[(word)]) = ((TDentry).data[(word)]) ^ (TDentry).mask[(word)]; \\\n\
-			} \\\n\
-			(TDentry).cntr++; \\\n\
-		} \\\n\
-	} \\\n\
-}"
-		<<  std::endl
-		<<
-"#define INT_TARGET_INJECT(TDentry) { \\\n\
-	SEQ_TARGET_INJECT(TDentry) \\\n\
-}"
-		<<	std::endl
-		<<
-"#define INT_TARGET_INJECT_W(TDentry, words) { \\\n\
-	for(unsigned i = 0; i < words; ++i) { \\\n\
-		SEQ_TARGET_INJECT_W(TDentry, i) } \\\n\
-}"
-		<<  std::endl
+		<< std::endl
+		<< entries.str() << std::endl
 		<<
 "class " << gen.mTopTypeName << "VRTLmodAPI : public TD_API { \n\
 public: \n\
@@ -73,10 +59,11 @@ public: \n\
 	" << gen.mTopTypeName << "VRTLmodAPI(" << gen.mTopTypeName << "VRTLmodAPI const&); \n\
 	void operator=(" << gen.mTopTypeName << "VRTLmodAPI const&); \n\
 public: \n\
-	virtual ~" << gen.mTopTypeName << "VRTLmodAPI(void) { } \n\
+	std::unique_ptr<"	<<  gen.mTopTypeName  << "> vrtl_{nullptr}; \n\
+"	<< gen.mTopTypeName <<"_TD& get_struct(void){ return(dynamic_cast<"<< gen.mTopTypeName <<"_TD&>(*td_) ); } \n\
+	virtual ~" << gen.mTopTypeName << "VRTLmodAPI(void);\n\
 }; \n"
-		<< std::endl
-		<<
+		<< std::endl <<
 "#endif /* __" << gen.mTopTypeName << "VRTLMODAPI_VRTLMODAPI_HPP__ */";
 
 	body_ = x.str();
