@@ -24,8 +24,8 @@ class VapiGenerator: public XmlHelper {
 
 #define APIBUILDER_VERSION "0.9"
 #define API_DIRPREFIX "vrtlmod"
-#define API_TD_DIRPREFIX "targetdictionary"
-#define API_TD_HEADER_NAME "td.hpp"
+#define API_TD_DIRPREFIX "vrtl-fi/targetdictionary"
+#define API_TD_HEADER_NAME "targetdictionary.hpp"
 #define API_HEADER_NAME "vrtlmodapi.hpp"
 #define API_SOURCE_NAME "vrtlmodapi.cpp"
 
@@ -36,15 +36,6 @@ private:
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Specified path to output directory
 	bool systemc_;
-
-	class TargetDictionary final : public TemplateFile {
-		public:
-			TargetDictionary(void) {}
-			const std::string get_brief(void){return (std::string("vrtlmod target dictionary"));}
-			const std::string get_details(void){return (std::string("automatically generated file"));}
-			const std::string get_author(void){return (std::string("vrtlmod::vapi::VapiGenerator v0.9"));}
-			void generate_body(void);
-	} td_;
 
 	class VapiSource final : public TemplateFile {
 		public:
@@ -72,7 +63,7 @@ public:
 		return(mTopTypeName + "__Syms.h");
 	}
 	std::string get_targetdictionary_filename(void){
-		return(mTopTypeName + std::string("_") + API_TD_HEADER_NAME);
+		return(API_TD_HEADER_NAME);
 	}
 	std::string get_targetdictionary_relpath(void){
 		return(std::string(API_TD_DIRPREFIX) + std::string("/") + get_targetdictionary_filename());

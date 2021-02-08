@@ -37,9 +37,9 @@ std::string VapiGenerator::getTDExternalDecl(void) {
 	std::stringstream ret;
 	if (!once) {
 		once = true;
-		ret << "sTD_t& gTD = " << mTopTypeName << "VRTLmodAPI::i().get_struct(); \t// global target dictionary\n";
+		ret << mTopTypeName << "_TD& gTD = " << mTopTypeName << "VRTLmodAPI::i().get_struct(); \t// global target dictionary\n";
 	} else {
-		ret << "extern sTD_t& gTD;\n";
+		ret << "extern " << mTopTypeName << "_TD& gTD;\n";
 	}
 	return (ret.str());
 }
@@ -48,7 +48,7 @@ std::string VapiGenerator::getInludeStrings(void) {
 	std::stringstream ret;
 	ret <<
 "/* Includes for Target Injection API */ \n\
-#include \"" << API_DIRPREFIX << "/" << get_targetdictionary_relpath() << "\" \n\
+#include \"" << get_targetdictionary_relpath() << "\" \n\
 #include \"" << API_DIRPREFIX << "/" << get_apiheader_filename() << "\"\n";
 	return (ret.str());
 }
@@ -175,12 +175,6 @@ int VapiGenerator::build_API(void) {
 	}
 	vapisrc_.write( api_dir + get_apisource_filename());
 	vapiheader_.write( api_dir + get_apiheader_filename());
-
-	std::string targetdictionary_dir = api_dir + std::string(API_TD_DIRPREFIX) + std::string("/");
-	if( !fs::exists(fs::path(targetdictionary_dir)) ) {
-		fs::create_directory( fs::path(targetdictionary_dir) );
-	}
-	td_.write( targetdictionary_dir + get_targetdictionary_filename() );
 
 	for (const auto &it : mTargets) {
 		if ((it->mSeqInjCnt / it->mElData.words) > 2) {
