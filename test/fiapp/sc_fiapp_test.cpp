@@ -7,7 +7,7 @@
 #include "vrtlmod/Vfiapp_vrtlmodapi.hpp"
 #include "verilated.h"
 #include "systemc.h"
-
+#include "Vfiapp.h"
 #include "iostream"
 
 VfiappVRTLmodAPI& gFrame = VfiappVRTLmodAPI::i();
@@ -65,7 +65,7 @@ int sc_main(int argc, char* argv[]){
 	std::cout << std::endl << "Running test for simple fault injection application (fiapp)" << "..." << std::endl;
 	//test injections
 	bool testreturn = true;
-	for(auto &it: gFrame.mEntryList){
+	for(auto &it: gFrame.td_->entries_){
 		testreturn &= testinject(*it);
 	}
 	if(testreturn){
