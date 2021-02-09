@@ -45,7 +45,7 @@ IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
     BYBEHAVIOR
     #VERBOSE
     TOP_MODULE ${DUT_NAME}
-    INPUT_DIRS ${TDIR}/${DUT_NAME}/
+    SOURCES ${TDIR}/${DUT_NAME}/${DUT_NAME}.sv
     CLOCK_PORT clk
     RESET_PORT reset
     VARGS ${VERILATE_ARGS}
@@ -62,7 +62,7 @@ IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
   ADD_EXECUTABLE( ${PROJECT_NAME}-test-cc
     ${COUT}
     ${TBDIR}/${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp
-    ${TDIR}/fiapp/fiapp_test.cpp
+    ${TDIR}/${DUT_NAME}/${DUT_NAME}_test.cpp
     ${VERILATOR_ROOT}/include/verilated.cpp
   )
   TARGET_INCLUDE_DIRECTORIES( ${PROJECT_NAME}-test-cc PUBLIC
@@ -130,7 +130,7 @@ IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
     #VERBOSE
     SYSTEMC
     TOP_MODULE ${DUT_NAME}
-    INPUT_DIRS ${TDIR}/${DUT_NAME}/
+    SOURCES ${TDIR}/${DUT_NAME}/${DUT_NAME}.sv
     CLOCK_PORT clk
     RESET_PORT reset
     VARGS ${VERILATE_ARGS}
@@ -149,7 +149,7 @@ IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
   ADD_EXECUTABLE( ${PROJECT_NAME}-test-sc
     ${SCOUT}
     ${TBDIR}/${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp
-    ${TDIR}/fiapp/sc_fiapp_test.cpp
+    ${TDIR}/${DUT_NAME}/sc_${DUT_NAME}_test.cpp
     ${VERILATOR_ROOT}/include/verilated.cpp
   )
   TARGET_INCLUDE_DIRECTORIES( ${PROJECT_NAME}-test-sc PUBLIC
@@ -161,6 +161,8 @@ IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
   TARGET_LINK_LIBRARIES(${PROJECT_NAME}-test-sc PUBLIC
       SystemC::systemc
   )
+  SET_PROPERTY(TARGET ${PROJECT_NAME}-test-sc PROPERTY CXX_STANDARD ${SystemC_CXX_STANDARD})
+
   ADD_TEST(NAME ${PROJECT_NAME}:vrtlmod:test/fiapp-sc
     COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target ${PROJECT_NAME}-test-sc
   )
