@@ -2,6 +2,7 @@ PROJECT(vrtlmod)
 
 CMAKE_MINIMUM_REQUIRED(VERSION 3.15)
 
+# ENVIRONMENT ##################################################
 IF(NOT LLVM_DIR) #try environment
   SET(LLVM_DIR $ENV{LLVM_DIR})
 ENDIF()
@@ -25,6 +26,18 @@ MESSAGE("LLVM Version: ${LLVM_VERSION} at ${LLVM_INSTALL_PREFIX}")
 MESSAGE("LLVM INCLUDE DIRS: ${LLVM_INCLUDE_DIRS}")
 MESSAGE("Using Clang_DIR: ${Clang_DIR}")
 MESSAGE("Clang INCLUDE DIRS: ${LLVM_INSTALL_PREFIX}/lib/clang/${LLVM_VERSION}/include")
+################################################################
+
+# SETTINGS #####################################################
+set(CMAKE_SKIP_BUILD_RPATH FALSE)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+#list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" IS_SYSTEMDIR)
+#if("${IS_SYSTEMDIR}" STREQUAL "-1")
+#    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+#endif("${IS_SYSTEMDIR}" STREQUAL "-1")
+################################################################
 
 IF(LLVM_FOUND AND Clang_FOUND AND LibXml2_FOUND)
 
@@ -49,12 +62,12 @@ IF(LLVM_FOUND AND Clang_FOUND AND LibXml2_FOUND)
         src/vapi/generator.cpp
         src/vapi/xmlhelper.cpp
         src/vapi/target.cpp
-        
+
         src/vapi/templates/vrtlmodapi_header.cpp
         src/vapi/templates/vrtlmodapi_source.cpp
     )
 
-    TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC
+    TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE
         ${LLVM_LIBS}
         ${LIBXML2_LIBRARIES}
         ${Boost_LIBRARIES}
@@ -130,3 +143,12 @@ SET(TEST_BUILD OFF CACHE STRING "Include Tests in build")
 IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
   add_subdirectory(test)
 ENDIF()
+
+########### INSTALL #################
+install(TARGETS ${PROJECT_NAME}
+  RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+)
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/vrtlmod-config.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/vrtlmod-config.cmake @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/vrtlmod-config.cmake DESTINATION ${CMAKE_INSTALL_PREFIX})
