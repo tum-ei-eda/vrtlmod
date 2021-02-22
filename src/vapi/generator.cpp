@@ -55,7 +55,7 @@ std::string VapiGenerator::getInludeStrings(void) {
 
 std::string VapiGenerator::get_intermittenInjectionStmtString(Target &t) {
 	std::stringstream ret;
-	if (t.mElData.vrtlCxxType.find("WData") == std::string::npos) {
+	if (t.mElData.vrtlCxxType.find("[") == std::string::npos) { //(t.mElData.vrtlCxxType.find("WData") == std::string::npos) {
 		ret << "INT_TARGET_INJECT(gTD." << get_targetdictionaryTargetClassDeclName(t);
 	} else { // insert word accessed write
 		int words = -1;
@@ -78,6 +78,15 @@ std::string VapiGenerator::get_sequentInjectionStmtString(Target &t, int word //
 	} else { // insert word accessed write
 		ret << "SEQ_TARGET_INJECT_W(gTD." << get_targetdictionaryTargetClassDeclName(t) << ", " << word;
 	}
+	ret << ")";
+	t.mSeqInjCnt++;
+	return (ret.str());
+}
+
+std::string VapiGenerator::get_sequentInjectionStmtString(Target &t, const std::string& word //expression
+		) {
+	std::stringstream ret;
+	ret << "SEQ_TARGET_INJECT_W(gTD." << get_targetdictionaryTargetClassDeclName(t) << ", " << word;
 	ret << ")";
 	t.mSeqInjCnt++;
 	return (ret.str());
@@ -135,13 +144,23 @@ std::string VapiGenerator::get_targetdictionaryEntryTypeDefString(Target &t) {
 			ss << "\t" << "void set_maskBit(unsigned bit){VL_ASSIGNBIT_IO(1, bit, mask, 0);}" << std::endl;
 		}
 	} else {
-		ss << "\t" << t.mElData.vrtlCxxType.substr(0, t.mElData.vrtlCxxType.find("[")) << " mask[" << t.mElData.words << "];" << std::endl;
+		std::string basetype = t.mElData.vrtlCxxType.substr(0, t.mElData.vrtlCxxType.find(" ["));
+		ss << "\t" << basetype << " mask[" << t.mElData.words << "];" << std::endl;
 		ss << "\t" << "void reset_mask(void){" << std::endl;
-		for (unsigned i = 0; i < t.mElData.words; i++) {
-			ss << "\t\t" << "mask[" << i << "] = 0;" << std::endl;
+		ss << "\t\t for (size_t word = 0; word < " << t.mElData.words << " ; ++word) { " << std::endl;
+		ss << "\t\t\t" << "mask[word] = 0;" << std::endl;
+		ss << "\t\t}" << std::endl;
+		ss << "\t}" << std::endl;
+		ss << "\t" << "void set_maskBit(unsigned bit) {" << std::endl;
+		if(basetype == "WData"){
+			ss << "\t\tVL_ASSIGNBIT_WO" << "(1, bit, mask, 1);"  << std::endl;
+		} else if (basetype == "QData") {
+			ss << "\t\tVL_ASSIGNBIT_QO" << "(1, bit, mask[bit / " << t.mElData.words << "], 1);"  << std::endl;
+		} else {
+			util::logging::log(util::logging::ERROR, std::string("CType of injection target not supported for mask method: ") + t.mElData.vrtlCxxType);
 		}
 		ss << "\t}" << std::endl;
-		ss << "\t" << "void set_maskBit(unsigned bit){VL_ASSIGNBIT_WO(1, bit, mask, 1);}" << std::endl;
+		
 	}
 	ss <<
 "	void read_data(uint8_t* pData) { \n\
@@ -182,6 +201,42 @@ int VapiGenerator::build_API(void) {
 		}
 	}
 	return (1);
+}
+
+std::vector<std::string> VapiGenerator::prepare_sources(const std::vector<std::string>& sources, bool overwrite) {
+	/* clean file list */
+	std::vector<std::string> nsources;
+	for (size_t i = 0; i < sources.size(); ++i) {
+		if(fs::is_regular_file(fs::path(sources[i])) == false) {
+			util::logging::log(util::logging::WARNING, std::string("Input source ")+ sources[i] + std::string(" is not a file. Removed from input set."));
+		} else {
+			nsources.push_back(sources[i]);
+		}
+	}
+	auto outdir = fs::path(get_outputDir());
+	if(!fs::is_directory(outdir)){
+		auto ret = create_directory(outdir);
+		if(ret == false){
+			util::logging::log(util::logging::ERROR, std::string("Failed to create output directory ")+ get_outputDir());
+		}
+	}
+	if (overwrite == false) {		
+		for (size_t i = 0; i < nsources.size(); ++i) {
+			std::stringstream tmp;
+			std::string srcName;
+			auto lSl = sources[i].rfind("/");
+			auto dcpp = sources[i].rfind(".cpp");
+			if (lSl != std::string::npos) {
+			 srcName = nsources[i].substr(lSl + 1, dcpp - lSl - 1);
+			} else {
+			 srcName = nsources[i].substr(0, dcpp - 1);
+			}
+			tmp << get_outputDir() << "/" << srcName << "_vrtlmod.cpp";
+			fs::copy_file(fs::path(nsources[i]), fs::path(tmp.str()), fs::copy_option::overwrite_if_exists);
+			nsources[i] = tmp.str();
+		}
+	}
+	return nsources;
 }
 
 } // namespace vapi

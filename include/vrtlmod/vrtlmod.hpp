@@ -67,11 +67,6 @@ private:
 };
 
 namespace vrtlmod {
-///////////////////////////////////////////////////////////////////////
-/// \brief Prepare sources for transformation
-/// \details Copies (or overwrites - corresponding to cmd line options) sources
-void prepare_sources(std::vector<std::string>& sources);
-
 
 namespace env {
 ///////////////////////////////////////////////////////////////////////

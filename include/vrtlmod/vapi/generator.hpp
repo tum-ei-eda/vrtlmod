@@ -97,6 +97,12 @@ public:
 	/// \param pOutdir Directory path to where output is written
 	int init(const char *pTargetXmlFile, const char *pOutdir, bool systemc);
 	///////////////////////////////////////////////////////////////////////
+	/// \brief Prepare soruces according to the API
+	/// \param sources Reference tFile path to RegPicker-Xml input
+	/// \return A new vector of sources file paths (path is generated on call)
+	/// \details Copies (or overwrites - corresponding to cmd line options) sources
+	std::vector<std::string> prepare_sources(const std::vector<std::string>& sources, bool overwrite);
+	///////////////////////////////////////////////////////////////////////
 	/// \brief Checks whether given Expr is a target in the Xml-Input
 	/// \param pExpr Expression String
 	/// \return -1 if not a target. >-1 as index in target list of XmlHelper
@@ -121,6 +127,11 @@ public:
 	/// \param t Reference to Target
 	/// \param word Default = -1 (trivial assignment). Otherwise word count in array assignment
 	std::string get_sequentInjectionStmtString(Target &t, int word = -1);
+	///////////////////////////////////////////////////////////////////////
+	/// \brief Returns String containing the sequential injection statement
+	/// \param t Reference to Target
+	/// \param word string containing the array subscript
+	std::string get_sequentInjectionStmtString(Target &t, const std::string& word);
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Returns String containing target dictionary definition name of a target (class definition)
 	/// \param t Reference to Target
