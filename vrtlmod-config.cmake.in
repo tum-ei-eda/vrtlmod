@@ -1,0 +1,132 @@
+######################################################################
+# @File: vrtlmod-config.cmake
+# @Date: February, 2021
+# @Brief: CMake configuration file for vrtlmod
+# @Details: Include in CMakeLists.txt with `find_package(vrtlmod)`. This adds a vrtlmod function to CMake.
+#           `vrtlmod()`
+# @Author: Johannes Geier (johannes.geier@tum.de)
+#######################################################################
+
+cmake_minimum_required(VERSION 3.15)
+
+# Prefer VRTLMOD_ROOT from environment
+if (DEFINED ENV{VRTLMOD_ROOT})
+  set(VRTLMOD_ROOT "$ENV{VRTLMOD_ROOT}" CACHE PATH "VRTLMOD_ROOT")
+endif()
+
+set(VRTLMOD_ROOT "${CMAKE_CURRENT_LIST_DIR}" CACHE PATH "VRTLMOD_ROOT")
+
+if (NOT VRTLMOD_ROOT)
+  message(FATAL_ERROR "VRTLMOD_ROOT cannot be detected.")
+endif()
+
+find_program(VRTLMOD NAMES vrtlmod
+  HINTS ${VRTLMOD_ROOT} "@CMAKE_INSTALL_PREFIX@" ENV VRTLMOD_ROOT
+  NO_CMAKE_PATH
+  NO_CMAKE_ENVIRONMENT_PATH
+  NO_CMAKE_SYSTEM_PATH)
+
+if (NOT VRTLMOD)
+  message(FATAL_ERROR "Cannot find vrtlmod executable.")
+endif()
+
+set(vrtlmod_FOUND 1)
+
+function(vrtlmod)
+  set(options
+    SILENT
+    OVERWRITE
+    SYSTEMC
+  )
+  set(oneValueArgs
+    OUT_DIR
+    REGPICKER_XML
+    CLANG_INCLUDE_DIR
+  )
+  set(multiValueArgs
+    INCLUDE_DIRS
+    SOURCES
+  )
+  cmake_parse_arguments(VRTLMOD "${options}" "${oneValueArgs}" "${multiValueArgs}"
+                                 ${ARGN})
+  # REQUIRED
+  message("sources: ${VRTLMOD_SOURCES}")
+  if(NOT VRTLMOD_SOURCES)
+    message(FATAL_ERROR "Need to specify a source file list vrtlmod(SOURCES)")
+  else()
+    set(SOURCES ${VRTLMOD_SOURCES})
+  endif()
+  if(NOT VRTLMOD_OUT_DIR)
+    message(FATAL_ERROR "Need to specify an output directory [OUT_DIR]")
+  else()
+    set(OUT_DIR "--out=${VRTLMOD_OUT_DIR}")
+  endif()
+  if(NOT VRTLMOD_REGPICKER_XML)
+    message(FATAL_ERROR "Need to specify a RegPicker XML file [REGPICKER_XML]")
+  else()
+    set(REGPICKER_XML "--regxml=${VRTLMOD_REGPICKER_XML}")
+  endif()
+
+  # OPTIONAL
+  if(VRTLMOD_CLANG_INCLUDE_DIR)
+    set(CLANG_INCLUDE_DIR "-I${VRTLMOD_CLANG_INCLUDE_DIR}")
+  else()
+    set(CLANG_INCLUDE_DIR "-I@CLANG_INCLUDE_DIRS@")
+  endif()
+
+  if(VRTLMOD_SILENT)
+    set(SILENT --silent)
+  endif()
+
+  if(VRTLMOD_OVERWRITE)
+    set(OVERWRITE --overwrite)
+    set(OUTSOURCES ${SOURCES})
+  else()
+    set(OUTSOURCES ${SOURCES})
+    list(TRANSFORM OUTSOURCES REPLACE ".cpp$" "_vrtlmod.cpp")
+  endif()
+
+  if(VRTLMOD_SYSTEMC)
+    FIND_PACKAGE(SystemCLanguage CONFIG REQUIRED)
+    get_target_property(SYSTEMC_INCLUDE_DIR SystemC::systemc INTERFACE_INCLUDE_DIRECTORIES)
+    set(VRTLMOD_INCLUDE_DIRS ${VRTLMOD_INCLUDE_DIRS} ${SYSTEMC_INCLUDE_DIR})
+    set(SYSTEMC --systemc)
+  endif()
+
+  if(VRTLMOD_INCLUDE_DIRS)
+    set(INCLUDE_DIRS ${VRTLMOD_INCLUDE_DIRS})
+    list(TRANSFORM INCLUDE_DIRS PREPEND "-I")
+  endif()
+  if(REGPICK_BYBEHAVIOR)
+    set(ARG_TYPE pbb)
+  endif()
+
+  set(VRTLMOD_ARGS ${SYSTEMC} ${REGPICKER_XML} ${SILENT} ${OVERWRITE} ${OUT_DIR} ${SOURCES} -- clang++ ${CLANG_INCLUDE_DIR} ${INCLUDE_DIRS})
+  set(ARGS_FILE ${CMAKE_CURRENT_BINARY_DIR}/vrtlmod-args.txt)
+
+  if (NOT EXISTS "${ARGS_FILE}")
+    set(VRTLMOD_OUTDATED ON)
+  else()
+    file(READ "${ARGS_FILE}" PRV_VRTLMOD_ARGS )
+    if(NOT VRTLMOD_ARGS STREQUAL PRV_VRTLMOD_ARGS OR NOT EXISTS "${OUTSOURCES}")
+      set(VRTLMOD_OUTDATED ON)
+    endif()
+  endif()
+
+  if(VRTLMOD_OUTDATED)
+    string(REPLACE ";" " " COMMAND_SPACES "${VRTLMOD} ${VRTLMOD_ARGS}")
+    file(WRITE ${ARGS_FILE} "${VRTLMOD} ${VRTLMOD_ARGS}")
+    
+    message(STATUS "executing vrtlmod .. ${COMMAND_SPACES}")
+    execute_process(
+      COMMAND ${VRTLMOD} ${VRTLMOD_ARGS}
+      WORKING_DIRECTORY "${CMAKE_BINARY_SOURCE_DIR}"
+      RESULT_VARIABLE _VRTLMOD_RC
+      OUTPUT_VARIABLE _VRTLMOD_OUTPUT
+      ERROR_VARIABLE _VRTLMOD_ERROR
+    )
+  endif()
+
+  set(${SOURCES} ${OUTSOURCES} PARENT_SCOPE)
+
+endfunction()

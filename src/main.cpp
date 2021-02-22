@@ -53,7 +53,7 @@ int main(int argc, const char **argv) {
 	}
 
 	if(!fs::exists(OUTdir.c_str())){
-		util::logging::abort(std::string("Output directory ") + std::string(OUTdir) + " doesn't exist!");
+		util::logging::log(util::logging::WARNING, std::string("Output directory ") + std::string(OUTdir) + " doesn't exist!");
 	}
 
 	if(!fs::exists(RegisterXmlFilename.c_str())){
@@ -68,7 +68,7 @@ int main(int argc, const char **argv) {
 	std::vector<std::string> sources = op.getSourcePathList();
 
 	// prepare *_vrtlmod.cpp files: create, de-macro, clean comments.
-	vrtlmod::prepare_sources(sources);
+	sources = tAPI.prepare_sources(sources, Overwrite);
 
 	// create a new Clang Tool instance
 	ClangTool ToolM(op.getCompilations(), sources);
@@ -88,31 +88,6 @@ int main(int argc, const char **argv) {
 
 	return (0);
 }
-
-//-------------------------
-void vrtlmod::prepare_sources(std::vector<std::string> &sources) {
-	if (Overwrite == false) {
-		for (size_t i = 0; i < sources.size(); i++) {
-			std::stringstream tmp;
-			std::string srcName;
-			auto lSl = sources[i].rfind("/");
-			auto dcpp = sources[i].rfind(".cpp");
-			if (lSl != std::string::npos) {
-				srcName = sources[i].substr(lSl + 1, dcpp - lSl - 1);
-			} else {
-				srcName = sources[i].substr(0, dcpp - 1);
-			}
-			tmp << vapi::VapiGenerator::_i().get_outputDir();
-			tmp << "/";
-			tmp << srcName << "_vrtlmod.cpp";
-			fs::copy_file(fs::path(sources[i]), fs::path(tmp.str()), fs::copy_option::overwrite_if_exists);
-			// system((std::string("cp \"") + sources[i] + "\" \"" + tmp.str() + "\"").c_str());
-			sources[i] = tmp.str();
-		}
-	}
-}
-
-
 
 bool vrtlmod::env::check_environment(void) {
 	// Replace with checks to verilator?

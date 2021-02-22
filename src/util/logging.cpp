@@ -20,11 +20,11 @@ const char* toString(LEVEL level) {
 	case OBLIGAT:
 		return "\033[0;36m";
 	case INFO:
-		return "\033[1;37mInfo";
+		return "\033[1;37mInfo ";
 	case WARNING:
-		return "\033[1;33mWarning";
+		return "\033[1;33mWarning ";
 	case ERROR:
-		return "\033[0;31mError";
+		return "\033[0;31mError ";
 	default:
 		return "Unknown";
 	}

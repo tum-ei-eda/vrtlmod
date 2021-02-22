@@ -40,7 +40,7 @@ IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
 
   add_custom_target(${REGPICK_OUT}
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-  message("Using installed regpicker")
+  message("Using system regpicker at ${REGPICKER_ROOT}")
   regpick( TARGET ${CMAKE_CURRENT_BINARY_DIR}/${REGPICK_OUT}
     BYBEHAVIOR
     #VERBOSE
@@ -50,6 +50,7 @@ IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
     RESET_PORT reset
     VARGS ${VERILATE_ARGS}
     DIRECTORY ${TBDIR}/cc-regpick/
+    SILENT
   )
 
   add_custom_command(
@@ -124,7 +125,7 @@ IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
   SET(SC_REGPICK_OUT sc-${DUT_NAME}-pbb.xml)
   add_custom_target(${SC_REGPICK_OUT}
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-  message("Using installed regpicker")
+  message("Using system regpicker at ${REGPICKER_ROOT}")
   regpick( TARGET ${CMAKE_CURRENT_BINARY_DIR}/${SC_REGPICK_OUT}
     BYBEHAVIOR
     #VERBOSE
@@ -135,6 +136,7 @@ IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
     RESET_PORT reset
     VARGS ${VERILATE_ARGS}
     DIRECTORY ${TBDIR}/sc-regpick/
+    SILENT
   )
 
   get_target_property(SYSTEMC_INCLUDE_DIR SystemC::systemc INTERFACE_INCLUDE_DIRECTORIES)
