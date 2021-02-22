@@ -10,6 +10,8 @@
 #include "vrtlmod/vapi/generator.hpp"
 #include "vrtlmod/vapi/xmlhelper.hpp"
 
+#include <boost/lexical_cast.hpp>
+
 #include <sstream>
 #include <string>
 #include <iostream>
@@ -66,8 +68,15 @@ void InjectionRewriter::writeSequentInject(const BinaryOperator *op, const Expr 
 		std::string newc = getRewriter().getRewrittenText(op->getSourceRange());
 		newc += "; ";
 		if ((base != nullptr) and (index != nullptr)) {
-			unsigned x = std::stoi(getRewriter().getRewrittenText(index->getSourceRange()), 0, 16);
-			newc += vapi::VapiGenerator::_i().get_sequentInjectionStmtString(t, x);
+			int x = -1;
+			std::string subscr = getRewriter().getRewrittenText(index->getSourceRange());
+			try {
+				x = boost::lexical_cast<int>(subscr);
+				newc += vapi::VapiGenerator::_i().get_sequentInjectionStmtString(t, x);
+			} catch (boost::bad_lexical_cast) {
+				util::logging::log(util::logging::INFO, std::string("Array subscript not a const number\n\t"));
+				newc += vapi::VapiGenerator::_i().get_sequentInjectionStmtString(t, subscr);
+			}			
 		} else {
 			newc += vapi::VapiGenerator::_i().get_sequentInjectionStmtString(t);
 		}
