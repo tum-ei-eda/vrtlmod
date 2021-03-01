@@ -24,7 +24,7 @@ class VapiGenerator: public XmlHelper {
 
 #define APIBUILDER_VERSION "0.9"
 #define API_DIRPREFIX "vrtlmod"
-#define API_TD_DIRPREFIX "vrtl-fi/targetdictionary"
+#define API_TD_DIRPREFIX "vrtl-fi/td"
 #define API_TD_HEADER_NAME "targetdictionary.hpp"
 #define API_HEADER_NAME "vrtlmodapi.hpp"
 #define API_SOURCE_NAME "vrtlmodapi.cpp"
@@ -135,19 +135,19 @@ public:
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Returns String containing target dictionary definition name of a target (class definition)
 	/// \param t Reference to Target
-	std::string get_targetdictionaryTargetClassDefName(Target &t);
+	//std::string get_targetdictionaryTargetClassDefName(Target &t);
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Returns String containing target dictionary declaration name of a target (class instance)
 	/// \param t Reference to Target
-	std::string get_targetdictionaryTargetClassDeclName(Target &t);
+	//std::string get_targetdictionaryTargetClassDeclName(Target &t);
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Returns String containing target dictionary class definition of a target
 	/// \param t Reference to Target
-	std::string get_targetdictionaryEntryTypeDefString(Target &t);
+	//std::string get_targetdictionaryEntryTypeDefString(Target &t);
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Returns String containing target dictionary class declaration of a target
 	/// \param t Reference to Target
-	std::string get_targetdictionaryEntryDeclString(Target &t);
+	//std::string get_targetdictionaryEntryDeclString(Target &t);
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Build API: Target dictionary (.cpp/.hpp) and InjAPI to specified output directory
 	int build_API(void);

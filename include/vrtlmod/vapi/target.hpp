@@ -10,6 +10,10 @@
 
 #include <string>
 #include <iostream>
+#include <sstream>
+#include <algorithm>
+
+#include <boost/lexical_cast.hpp>
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief namespace for all API building functionalities
@@ -34,49 +38,102 @@ typedef struct sXmlEl {
 	/// \brief Element's signal class
 	signalClass_t signalClass;
 	///////////////////////////////////////////////////////////////////////
-	/// \brief Element's number of bits
+	/// \brief Element's total number of bits
 	unsigned int nmbBits;
+	///////////////////////////////////////////////////////////////////////
+	/// \brief Element's one-dimensional, i.e., element, number of bits
+	unsigned int nmbonedimBits;
+	///////////////////////////////////////////////////////////////////////
+	/// \brief Element's dimensions of one-dimensional bit vectors
+	std::vector<int> dim_{};
+	
+	std::string cxxbasetype_;
+	std::vector<int> cxxdim_{};
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Element's VRTL type
 	std::string type;
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Number of words
-	unsigned int words;
+//	unsigned int words;
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Element's VRTL c++ type (CData, IData, WData[..], ...)
 	std::string vrtlCxxType;
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Copy Constructor
-	sXmlEl(const sXmlEl &x) :
-			name(x.name), hierarchy(x.hierarchy), signalClass(x.signalClass), nmbBits(x.nmbBits), type(x.type), words(x.words), vrtlCxxType(x.vrtlCxxType) {
+	sXmlEl(const sXmlEl &x) 
+		: name(x.name)
+		, hierarchy(x.hierarchy)
+		, signalClass(x.signalClass)
+		, nmbBits(x.nmbBits)
+		, nmbonedimBits(x.nmbonedimBits)
+		, dim_(x.dim_)
+		, cxxbasetype_(x.cxxbasetype_)
+		, cxxdim_(x.cxxdim_)
+		, type(x.type)
+		, vrtlCxxType(x.vrtlCxxType) {
 	}
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Constructor
-	sXmlEl(const char *name = "", const char *hierarchy = "", const char *signalClass_s = "", unsigned int nmbBits = 0, const char *type = "",
-			const char *vrtlCxxType = "") :
-				name(name), hierarchy(hierarchy), signalClass(UNDEF), nmbBits(nmbBits), type(type), words(1), vrtlCxxType(vrtlCxxType) {
-			if (signalClass_s != NULL) {
-				std::string x = signalClass_s;
-				if (x == "register") {
-					signalClass = REG;
-				} else if (x == "wire") {
-					signalClass = WIRE;
-				} else if (x == "constant") {
-					signalClass = CONST;
-				} else {
-					signalClass = UNDEF;
-				}
-			}
-			if (sXmlEl::vrtlCxxType.find("[") != std::string::npos) {
-				auto brOpen = sXmlEl::vrtlCxxType.find('[');
-				auto brClose = sXmlEl::vrtlCxxType.find(']');
-				words = std::stoi(sXmlEl::vrtlCxxType.substr(brOpen + 1, brClose - brOpen - 1));
-
-				if (sXmlEl::nmbBits <= 32) {
-					sXmlEl::nmbBits = words * sXmlEl::nmbBits;
-				}
+	sXmlEl(const char *name = "", const char *hierarchy = "", const char *signalClass_s = "", unsigned int nmbBits = 0, unsigned int nmbonedimBits = 0,  const char* dim = "", const char *type = "", const char *vrtlCxxType = "") 
+		: name(name)
+		, hierarchy(hierarchy)
+		, signalClass(UNDEF)
+		, nmbBits(nmbBits)
+		, nmbonedimBits(nmbonedimBits)
+		, dim_()
+		, cxxbasetype_()
+		, cxxdim_()
+		, type(type)
+		, vrtlCxxType(vrtlCxxType) 
+	{
+		if (signalClass_s != NULL) {
+			std::string x = signalClass_s;
+			if (x == "register") {
+				signalClass = REG;
+			} else if (x == "wire") {
+				signalClass = WIRE;
+			} else if (x == "constant") {
+				signalClass = CONST;
+			} else {
+				signalClass = UNDEF;
 			}
 		}
+		std::string s, dimstr = dim;
+		std::cout << dimstr << ":" << std::endl;
+		auto brOpen = dimstr.find('[');
+		auto brClose = dimstr.rfind(']');
+		dimstr = dimstr.substr(brOpen+1, brClose - brOpen -1);
+		dimstr.erase(remove_if(dimstr.begin(), dimstr.end(), isspace), dimstr.end());
+		std::istringstream x(
+			dimstr
+		);
+		while(getline(x, s, ',')) {
+			std::cout << s << std::endl;;
+			dim_.push_back(boost::lexical_cast<int>(s));
+		}
+		
+		std::string cxxdimsstr, basetypestr = vrtlCxxType;
+		std::cout << "*" << vrtlCxxType << std::endl;
+		brOpen = basetypestr.find('[');
+		if(brOpen != std::string::npos){
+			cxxdimsstr = basetypestr.substr(brOpen);
+			std::istringstream y(
+				cxxdimsstr
+			);
+			while(getline(y, s, ']')) {
+				std::cout << s << std::endl;
+				s = s.substr(1);
+				std::cout << s << std::endl;
+				cxxdim_.push_back(boost::lexical_cast<int>(s));
+			}
+			cxxbasetype_ = basetypestr.substr(0, brOpen-1);
+			std::cout << "**" << cxxbasetype_ << std::endl;
+		} else {
+			//cxxdim_.push_back(1);
+			cxxbasetype_ = basetypestr;
+			std::cout << "**" << cxxbasetype_ << std::endl;
+		}
+	}
 } sXmlEl_t;
 
 class ExprT {

@@ -9,19 +9,31 @@
 #include "vrtlmod/vapi/target.hpp"
 #include "vrtlmod/util/logging.hpp"
 
+#include <boost/lexical_cast.hpp>
+
 namespace vapi {
 
 void XmlHelper::get_var(void) {
 	static unsigned int targetcounter;
 
 	const char *bits = (const char*) xmlTextReaderGetAttribute(mReader, (const xmlChar*) "bits");
+	const char *onedimbits = (const char*) xmlTextReaderGetAttribute(mReader, (const xmlChar*) "onedimbits");
+	const char *dim = (const char*) xmlTextReaderGetAttribute(mReader, (const xmlChar*) "dim");
 	const char *name = (const char*) xmlTextReaderGetAttribute(mReader, (const xmlChar*) "name");
 	const char *signalClass = (const char*) xmlTextReaderGetAttribute(mReader, (const xmlChar*) "signalClass");
 	const char *type = (const char*) xmlTextReaderGetAttribute(mReader, (const xmlChar*) "type");
 	const char *vhier = (const char*) xmlTextReaderGetAttribute(mReader, (const xmlChar*) "vHier");
 	const char *cxxtype = (const char*) xmlTextReaderGetAttribute(mReader, (const xmlChar*) "CppType");
 
-	sXmlEl x(name, vhier, signalClass, std::stoi(bits), type, cxxtype);
+	int _bits = 0, _onedimbits = 0;
+	try {
+		_bits = boost::lexical_cast<int>(bits);
+		_onedimbits = boost::lexical_cast<int>(onedimbits);
+	} catch (boost::bad_lexical_cast) {
+		util::logging::log(util::logging::ERROR, std::string("Could not convert to integer:\tbits=") + std::string(bits) + std::string("\tonedimbits=") + std::string(onedimbits));
+	}	
+
+	sXmlEl x(name, vhier, signalClass, _bits, _onedimbits, dim, type, cxxtype);
 	Target *v = new Target(targetcounter, x);
 
 	if ((v->mElData.signalClass == sXmlEl::REG) and (v->mElData.type.find("_IN") == std::string::npos)) {

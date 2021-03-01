@@ -37,9 +37,9 @@ std::string VapiGenerator::getTDExternalDecl(void) {
 	std::stringstream ret;
 	if (!once) {
 		once = true;
-		ret << mTopTypeName << "_TD& gTD = " << mTopTypeName << "VRTLmodAPI::i().get_struct(); \t// global target dictionary\n";
+		ret << mTopTypeName << "VRTLmodAPI& gTD = " << mTopTypeName << "VRTLmodAPI::i(); \t// global target dictionary (api)\n";
 	} else {
-		ret << "extern " << mTopTypeName << "_TD& gTD;\n";
+		ret << "extern " << mTopTypeName << "VRTLmodAPI& gTD;\n";
 	}
 	return (ret.str());
 }
@@ -55,17 +55,7 @@ std::string VapiGenerator::getInludeStrings(void) {
 
 std::string VapiGenerator::get_intermittenInjectionStmtString(Target &t) {
 	std::stringstream ret;
-	if (t.mElData.vrtlCxxType.find("[") == std::string::npos) { //(t.mElData.vrtlCxxType.find("WData") == std::string::npos) {
-		ret << "INT_TARGET_INJECT(gTD." << get_targetdictionaryTargetClassDeclName(t);
-	} else { // insert word accessed write
-		int words = -1;
-		for (int i = t.mElData.nmbBits; i >= 0; i -= 32) {
-			words++;
-		}
-		ret << "INT_TARGET_INJECT_W(gTD." << get_targetdictionaryTargetClassDeclName(t) << ", " << words; //word;
-	}
-	ret << ")";
-
+	ret << "gTD.td_.at(\"" << t.get_hierarchyDedotted() << "\")->inject()";
 	return (ret.str());
 }
 
@@ -73,12 +63,10 @@ std::string VapiGenerator::get_sequentInjectionStmtString(Target &t, int word //
 		) {
 	std::stringstream ret;
 	if (word < 0) { // insert simple variable access
-		ret << "SEQ_TARGET_INJECT(gTD." << get_targetdictionaryTargetClassDeclName(t);
-
+		ret << "gTD.td_.at(\"" << t.get_hierarchyDedotted() << "\")->inject()";
 	} else { // insert word accessed write
-		ret << "SEQ_TARGET_INJECT_W(gTD." << get_targetdictionaryTargetClassDeclName(t) << ", " << word;
+		ret << "gTD.td_.at(\"" << t.get_hierarchyDedotted() << "\")->inject(" << word << ")";
 	}
-	ret << ")";
 	t.mSeqInjCnt++;
 	return (ret.str());
 }
@@ -86,8 +74,9 @@ std::string VapiGenerator::get_sequentInjectionStmtString(Target &t, int word //
 std::string VapiGenerator::get_sequentInjectionStmtString(Target &t, const std::string& word //expression
 		) {
 	std::stringstream ret;
-	ret << "SEQ_TARGET_INJECT_W(gTD." << get_targetdictionaryTargetClassDeclName(t) << ", " << word;
-	ret << ")";
+	ret << "gTD.td_.at(\"" << t.get_hierarchyDedotted() << "\")->inject(" << word << ")";
+	//	ret << "SEQ_TARGET_INJECT_W(gTD.td_[\"" << t.get_hierarchyDedotted() << "\"], " << word;
+	//	ret << ")";
 	t.mSeqInjCnt++;
 	return (ret.str());
 }
@@ -115,77 +104,6 @@ Target& VapiGenerator::getExprTarget(int idx) {
 	return (*mTargets.at(idx));
 }
 
-std::string VapiGenerator::get_targetdictionaryTargetClassDeclName(Target &t) {
-	std::string ret = "e_";
-	ret += t.get_hierarchyDedotted();
-	return (ret);
-}
-
-std::string VapiGenerator::get_targetdictionaryTargetClassDefName(Target &t) {
-	std::string ret = "TDentry_";
-	ret += t.get_hierarchyDedotted();
-	return (ret);
-}
-
-std::string VapiGenerator::get_targetdictionaryEntryTypeDefString(Target &t) {
-	std::stringstream ss;
-	ss << "/* (TDentry-Id " << t.get_index() << "):" << t << " */" << std::endl;
-	ss << "class " << get_targetdictionaryTargetClassDefName(t) << ": public TDentry {" << std::endl;
-	ss << "public:" << std::endl;
-//	ss << "\t\t" << "unsigned bits;" << std::endl;
-
-	ss << "\t" << t.mElData.vrtlCxxType.substr(0, t.mElData.vrtlCxxType.find("[")) << "* data;" << "\t// " << t.mElData.vrtlCxxType << std::endl;
-	if (t.mElData.words <= 1) {
-		ss << "\t" << t.mElData.vrtlCxxType << " mask;" << std::endl;
-		ss << "\t" << "void reset_mask(void){mask = 0;}" << std::endl;
-		if (t.mElData.vrtlCxxType == "QData") {
-			ss << "\t" << "void set_maskBit(unsigned bit){VL_ASSIGNBIT_QO(1, bit, mask, 0);}" << std::endl;
-		} else {
-			ss << "\t" << "void set_maskBit(unsigned bit){VL_ASSIGNBIT_IO(1, bit, mask, 0);}" << std::endl;
-		}
-	} else {
-		std::string basetype = t.mElData.vrtlCxxType.substr(0, t.mElData.vrtlCxxType.find(" ["));
-		ss << "\t" << basetype << " mask[" << t.mElData.words << "];" << std::endl;
-		ss << "\t" << "void reset_mask(void){" << std::endl;
-		ss << "\t\t for (size_t word = 0; word < " << t.mElData.words << " ; ++word) { " << std::endl;
-		ss << "\t\t\t" << "mask[word] = 0;" << std::endl;
-		ss << "\t\t}" << std::endl;
-		ss << "\t}" << std::endl;
-		ss << "\t" << "void set_maskBit(unsigned bit) {" << std::endl;
-		if(basetype == "WData"){
-			ss << "\t\tVL_ASSIGNBIT_WO" << "(1, bit, mask, 1);"  << std::endl;
-		} else if (basetype == "QData") {
-			ss << "\t\tVL_ASSIGNBIT_QO" << "(1, bit, mask[bit / " << t.mElData.words << "], 1);"  << std::endl;
-		} else {
-			util::logging::log(util::logging::ERROR, std::string("CType of injection target not supported for mask method: ") + t.mElData.vrtlCxxType);
-		}
-		ss << "\t}" << std::endl;
-		
-	}
-	ss <<
-"	void read_data(uint8_t* pData) { \n\
-		unsigned byte = 0; \n\
-		uint8_t* xData = reinterpret_cast<uint8_t*>(data); \n\
-		for(unsigned bit = 0; bit < bits; bit++){ \n\
-			if((bit % 8)==0){ \n\
-				pData[byte] = xData[byte]; \n\
-				byte++; \n\
-			} \n\
-		} \n\
-	}" << std::endl;
-
-	ss <<
-"	" << get_targetdictionaryTargetClassDefName(t) << "(const char* name, " << t.mElData.vrtlCxxType.substr(0, t.mElData.vrtlCxxType.find("[")) << "* data) \n\
-		: TDentry(name, " << t.index << ", " << t.mElData.nmbBits << ") \n\
-		, data(data) \n\
-		, mask() {} \n\
-};" << std::endl;
-
-	t.mTD_typedef = ss.str();
-
-	return (t.mTD_typedef);
-}
-
 int VapiGenerator::build_API(void) {
 	std::string api_dir = outdir_ + std::string("/") + std::string( API_DIRPREFIX) + std::string("/");
 
@@ -195,11 +113,6 @@ int VapiGenerator::build_API(void) {
 	vapisrc_.write( api_dir + get_apisource_filename());
 	vapiheader_.write( api_dir + get_apiheader_filename());
 
-	for (const auto &it : mTargets) {
-		if ((it->mSeqInjCnt / it->mElData.words) > 2) {
-			util::logging::log(util::logging::WARNING, std::string("More than 2 sequential injections for: ") + it->_self());
-		}
-	}
 	return (1);
 }
 

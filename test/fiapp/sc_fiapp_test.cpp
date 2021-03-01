@@ -31,12 +31,12 @@ void clockspin(void) {
 
 bool testinject(TDentry& target){
 	int cntr = 0;
-	std::cout << "\033[1;37mTesting Injection in:\033[0m " << target.name << std::endl;
-	target.enable = true;
+	std::cout << "\033[1;37mTesting Injection in:\033[0m " << target.get_name() << std::endl;
+	target.enable_ = true;
 	target.set_maskBit(1);
-	cntr = target.cntr;
+	cntr = target.cntr_;
 	clockspin();
-	int cntrdiff = cntr - target.cntr;
+	int cntrdiff = cntr - target.cntr_;
 	if(cntrdiff >= 0){
 		std::cout << "|-> \033[0;31mFailed\033[0m - No injection" << std::endl;
 		return false;
@@ -65,10 +65,10 @@ int sc_main(int argc, char* argv[]){
 	std::cout << std::endl << "Running test for simple fault injection application (fiapp)" << "..." << std::endl;
 	//test injections
 	bool testreturn = true;
-	for(auto &it: gFrame.td_->entries_){
-		testreturn &= testinject(*it);
+	for(auto &it: gFrame.td_){
+		testreturn &= testinject( *(it.second) );
 	}
-	if(testreturn){
+	if(testreturn && gFrame.td_.size() > 0){
 		std::cout << std::endl << "..." << "All passed. \033[0;32mTest successful.\033[0m" << std::endl;
 	}else {
 		std::cout << std::endl << "..." << "\033[0;31mTest failed.\033[0m" << std::endl;
