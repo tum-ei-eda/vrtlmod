@@ -15,6 +15,7 @@
 #include <sstream>
 #include <string>
 #include <iostream>
+#include <algorithm>
 
 using namespace clang;
 using namespace clang::ast_matchers;
@@ -44,12 +45,12 @@ void InjectionRewriter::writeSequentInject(ExtDeclFunc *sequent_function) {
 	for (auto &compound : sequent_function->mCompounds) {
 		std::vector<ExtAsgnmnt*> tInjectionPoints = compound->get_dominantAssignments();
 		for (auto &a : tInjectionPoints) {
-			if (a->get_type() == ExtAsgnmnt::TRIVIAL) {
+			//if (a->get_type() == ExtAsgnmnt::TRIVIAL) {
 				writeSequentInject(a->op);
-			} else //if(assignment->mType == ExtAsgnmnt::ARRAY)
-			{
-				writeSequentInject(a->op, a->get_base(), a->get_idx());
-			}
+			//} else //if(assignment->mType == ExtAsgnmnt::ARRAY)
+			//{
+			//	writeSequentInject(a->op, a->get_base(), a->get_idx());
+			//}
 		}
 	}
 }
@@ -57,29 +58,45 @@ void InjectionRewriter::writeSequentInject(ExtDeclFunc *sequent_function) {
 void InjectionRewriter::writeSequentInject(const BinaryOperator *op, const Expr *base, const Expr *index) { //(const BinaryOperator *op){
 
 	int idx;
-	if ((base != nullptr) and (index != nullptr)) {
-		idx = vapi::VapiGenerator::_i().isExprTarget(getRewriter().getRewrittenText(base->getSourceRange()).c_str());
+	std::cout << "op: --- " << getRewriter().getRewrittenText(op->getSourceRange()).c_str() << std::endl;
+	
+	std::string name, s, lhs = getRewriter().getRewrittenText(op->getLHS()->getSourceRange());
+	std::vector<std::string> subscripts{};
+	
+	size_t bropen = lhs.find('[');
+	if (bropen != std::string::npos){
+		name = lhs.substr(0, bropen);
+		size_t lastmajor_open = 0, lastmajor_close = 0;
+		size_t pos = 0;
+		int brcnt = 0;
+		for(char const& c: lhs){
+			if(c == '['){
+				if(brcnt == 0) {
+					lastmajor_open = pos;
+				}
+				++brcnt;
+			}
+			if(c == ']'){
+				--brcnt;
+				if(brcnt == 0) {
+					lastmajor_close = pos;
+					subscripts.push_back(lhs.substr(lastmajor_open+1, lastmajor_close - (lastmajor_open + 1)));
+				}
+			}
+			++pos;
+		}
 	} else {
-		idx = vapi::VapiGenerator::_i().isExprTarget(getRewriter().getRewrittenText(op->getLHS()->getSourceRange()).c_str());
+		name = lhs;
 	}
+	
+	idx = vapi::VapiGenerator::_i().isExprTarget(name.c_str());
+	
 	if (idx >= 0) {
 		vapi::Target &t = vapi::VapiGenerator::_i().getExprTarget(idx);
 		util::logging::log(util::logging::INFO, std::string("Target found \n\t") + t._self());
 		std::string newc = getRewriter().getRewrittenText(op->getSourceRange());
 		newc += "; ";
-		if ((base != nullptr) and (index != nullptr)) {
-			int x = -1;
-			std::string subscr = getRewriter().getRewrittenText(index->getSourceRange());
-			try {
-				x = boost::lexical_cast<int>(subscr);
-				newc += vapi::VapiGenerator::_i().get_sequentInjectionStmtString(t, x);
-			} catch (boost::bad_lexical_cast) {
-				util::logging::log(util::logging::INFO, std::string("Array subscript not a const number\n\t"));
-				newc += vapi::VapiGenerator::_i().get_sequentInjectionStmtString(t, subscr);
-			}			
-		} else {
-			newc += vapi::VapiGenerator::_i().get_sequentInjectionStmtString(t);
-		}
+		newc += vapi::VapiGenerator::_i().get_sequentInjectionStmtString(t, subscripts);
 		getRewriter().ReplaceText(op->getSourceRange(), newc);
 		activeSequentFunc->addInjTarget(t);
 	}

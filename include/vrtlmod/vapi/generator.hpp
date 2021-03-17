@@ -126,12 +126,17 @@ public:
 	/// \brief Returns String containing the sequential injection statement
 	/// \param t Reference to Target
 	/// \param word Default = -1 (trivial assignment). Otherwise word count in array assignment
-	std::string get_sequentInjectionStmtString(Target &t, int word = -1);
+	//std::string get_sequentInjectionStmtString(Target &t, int word = -1);
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Returns String containing the sequential injection statement
 	/// \param t Reference to Target
 	/// \param word string containing the array subscript
-	std::string get_sequentInjectionStmtString(Target &t, const std::string& word);
+	//std::string get_sequentInjectionStmtString(Target &t, const std::string& word);
+	///////////////////////////////////////////////////////////////////////
+	/// \brief Returns String containing the sequential injection statement
+	/// \param t Reference to Target
+	/// \param subscripts Subscipts for array-based assignments. Empty vector if trivial
+	std::string get_sequentInjectionStmtString(Target &t, std::vector<std::string> subscripts);
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Returns String containing target dictionary definition name of a target (class definition)
 	/// \param t Reference to Target

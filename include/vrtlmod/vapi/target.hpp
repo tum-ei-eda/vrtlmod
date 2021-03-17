@@ -108,7 +108,7 @@ typedef struct sXmlEl {
 			dimstr
 		);
 		while(getline(x, s, ',')) {
-			std::cout << s << std::endl;;
+			//std::cout << s << std::endl;;
 			dim_.push_back(boost::lexical_cast<int>(s));
 		}
 		
@@ -121,9 +121,9 @@ typedef struct sXmlEl {
 				cxxdimsstr
 			);
 			while(getline(y, s, ']')) {
-				std::cout << s << std::endl;
+				//std::cout << s << std::endl;
 				s = s.substr(1);
-				std::cout << s << std::endl;
+				//std::cout << s << std::endl;
 				cxxdim_.push_back(boost::lexical_cast<int>(s));
 			}
 			cxxbasetype_ = basetypestr.substr(0, brOpen-1);

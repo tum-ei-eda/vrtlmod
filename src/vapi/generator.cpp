@@ -55,10 +55,12 @@ std::string VapiGenerator::getInludeStrings(void) {
 
 std::string VapiGenerator::get_intermittenInjectionStmtString(Target &t) {
 	std::stringstream ret;
-	ret << "gTD.td_.at(\"" << t.get_hierarchyDedotted() << "\")->inject()";
+	//ret << "gTD.td_.at(\"" << t.get_hierarchyDedotted() << "\")->inject_synchronous()";
+	ret << "gTD." << t.get_hierarchy() << "_->inject_synchronous();";
 	return (ret.str());
 }
 
+/*
 std::string VapiGenerator::get_sequentInjectionStmtString(Target &t, int word //expression
 		) {
 	std::stringstream ret;
@@ -80,6 +82,29 @@ std::string VapiGenerator::get_sequentInjectionStmtString(Target &t, const std::
 	t.mSeqInjCnt++;
 	return (ret.str());
 }
+*/
+
+std::string VapiGenerator::get_sequentInjectionStmtString(Target &t, std::vector<std::string> subscripts){
+	std::stringstream ret;
+	//ret << "gTD.td_.at(\"" << t.get_hierarchyDedotted() << "\")->inject_on_update(";
+	ret << "gTD." << t.get_hierarchy() << "_->inject_on_update(";
+	if(subscripts.size() > 0){
+		ret << "{";
+		bool first = true;
+		for (const auto& it: subscripts) {
+			if (first){
+				first = false;
+			} else {
+				ret << ", ";
+			}
+			ret << it;
+		}	 
+		ret << "}";
+	}
+	ret << ");" << std::endl;
+	
+	return(ret.str());
+}
 
 int VapiGenerator::isExprTarget(const char *pExpr) {
 	int ret = -1;
@@ -97,6 +122,9 @@ int VapiGenerator::isExprTarget(const char *pExpr) {
 			return ret;
 		}
 	}
+	std::stringstream s;
+	s << "dbg: --- " << x.expr << " not a target" << std::endl;
+	util::logging::log(util::logging::INFO, s.str());
 	return (-1);
 }
 

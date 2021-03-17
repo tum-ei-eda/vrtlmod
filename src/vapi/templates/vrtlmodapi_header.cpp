@@ -38,9 +38,15 @@ public: \n\
 	void operator=(" << gen.mTopTypeName << "VRTLmodAPI const&); \n\
 public: \n\
 	std::shared_ptr<"	<<  gen.mTopTypeName  << "> vrtl_{nullptr}; \n\
-	virtual ~" << gen.mTopTypeName << "VRTLmodAPI(void);\n\
-}; \n"
-		<< std::endl <<
+	virtual ~" << gen.mTopTypeName << "VRTLmodAPI(void);\n\n";
+	
+	
+	for (auto const &it : gen.mTargets) {
+		x << 
+"	std::shared_ptr<TDentry> " << it->get_hierarchy() << "_{};\n";
+	}
+		
+	x << std::endl << "}; \n"
 "#endif /* __" << gen.mTopTypeName << "VRTLMODAPI_VRTLMODAPI_HPP__ */";
 
 	body_ = x.str();

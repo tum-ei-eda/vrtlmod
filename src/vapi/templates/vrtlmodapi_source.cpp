@@ -35,7 +35,7 @@ void VapiGenerator::VapiSource::generate_body(void){
 		<< std::endl;
 		int i = 0;
 		for (auto const &it :	gen.mTargets) {
-			x << "	auto x" << i << " = std::make_unique<  ";
+			x << "	" << it->get_hierarchy() << "_ = std::make_shared<  ";
 			switch(it->mElData.cxxdim_.size()){
 				case 0:
 					x << "ZeroD_TDentry<decltype(\"" << it->get_hierarchyDedotted() << "\"_tstr)"
@@ -86,7 +86,8 @@ void VapiGenerator::VapiSource::generate_body(void){
 					util::logging::log(util::logging::ERROR, std::string("CType dimensions of injection target not supported: ") + it->mElData.vrtlCxxType);
 					break;
 			}
-			x << "	td_.insert( std::make_pair(\"" << it->get_hierarchyDedotted() <<"\", std::move(x" << i << ") ) );" << std::endl;
+			//x << "	td_.insert( std::make_pair(\"" << it->get_hierarchyDedotted() <<"\", std::move(x" << i << ") ) );" << std::endl;
+			x << "	td_.insert( std::make_pair(\"" << it->get_hierarchyDedotted() <<"\", " << it->get_hierarchy() << "_ ) );" << std::endl;
 			//entries << "\t" << "entries_.push_back(" << gen.get_targetdictionaryTargetClassDeclName(*it) << "); \n";
 			++i;
 		}
