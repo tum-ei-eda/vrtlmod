@@ -39,7 +39,7 @@ static llvm::cl::opt<bool> Overwrite("overwrite", llvm::cl::Optional, llvm::cl::
 static llvm::cl::opt<bool> Silent("silent", llvm::cl::Optional, llvm::cl::desc("Execute without Warnings and Info"), llvm::cl::cat(UserCat));
 
 static llvm::cl::extrahelp CommonHelp(CommonOptionsParser::HelpMessage);
-static llvm::cl::extrahelp MoreHelp(vrtlmod::env::get_environmenthelp().c_str());
+//static llvm::cl::extrahelp MoreHelp(vrtlmod::env::get_environmenthelp().c_str());
 
 ////////////////////////////////////////////////////////////////////////////////
 /// \brief vrtlmod main()
@@ -76,7 +76,7 @@ int main(int argc, const char **argv) {
 	// run Clang // insert macros (needed for macro code rewrite)
 	int err = ToolM.run(newFrontendActionFactory<transform::rewrite::RewriteMacrosAction>().get());
 
-	for (size_t i = 0; i < sources.size(); i++) {
+	for (size_t i = 0; i < sources.size(); ++i) {
 		transform::rewrite::RewriteMacrosAction::cleanFile(sources[i]);
 	}
 
@@ -87,23 +87,4 @@ int main(int argc, const char **argv) {
 	tAPI.build_API();
 
 	return (0);
-}
-
-bool vrtlmod::env::check_environment(void) {
-	// Replace with checks to verilator?
-/*	std::string console;
-	console = util::system::exec("[ -z \"$VRTLMOD_SRCDIR\" ] && echo \"Empty\"");
-	if (console == "Empty") {
-		console = util::system::exec("ls template");
-		if (console.find("No such file or directory") != std::string::npos) {
-			util::logging::log(util::logging::OBLIGAT, get_environmenthelp());
-			return (false);
-		}
-	}
-*/
-	return (true);
-}
-
-std::string vrtlmod::env::get_environmenthelp(void) {
-	return("Either execute vrtlmod from its source directory or set \"VRTLMOD_SRCDIR\" to vrtlmod's source directory.\nE.g.: \"export VRTLMOD_SRCDIR=<path-to-vrtlmod-srcs>\"");
 }

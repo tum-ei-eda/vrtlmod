@@ -73,9 +73,6 @@ namespace env {
 /// \brief Check (Shell) environment for correct specifications
 /// \return True if ok, false if not.
 bool check_environment(void);
-///////////////////////////////////////////////////////////////////////
-/// \brief Prints help for setting up the environment
-std::string get_environmenthelp(void);
 }
 }
 
