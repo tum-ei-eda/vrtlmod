@@ -40,7 +40,7 @@ make
 
 1. **Required inputs:**
 
-	- <a href="https://gitlab.lrz.de/ge29noy/regpicker" title="regpicker git">RegPicker</a>'s XML output: `<XML-file>`
+	- <a href="https://gitlab.lrz.de/de-tum-ei-eda-esl/fault_injection/regpicker" title="regpicker git">RegPicker</a>'s XML output: `<XML-file>`
 	- <a href="https://www.veripool.org/wiki/verilator" title="Verilator homepage">Verilator</a> output: `<VRTL-files>` `<VRTL-Hpp-files>`
 
 2. **Execution:**
