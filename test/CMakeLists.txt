@@ -38,26 +38,24 @@ IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
 
   SET(REGPICK_OUT ${DUT_NAME}-pbb.xml)
 
+  file(GLOB CC_SOURCES ${TBDIR}/${CC_SUBDIR}/*)
+  
   add_custom_target(${REGPICK_OUT}
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
   message("Using system regpicker at ${REGPICKER_ROOT}")
   regpick( TARGET ${CMAKE_CURRENT_BINARY_DIR}/${REGPICK_OUT}
-    BYBEHAVIOR
-    #VERBOSE
+    BYDESIGN
     TOP_MODULE ${DUT_NAME}
-    SOURCES ${TDIR}/${DUT_NAME}/${DUT_NAME}.sv
-    CLOCK_PORT clk
-    RESET_PORT reset
+    SOURCES ${CC_SOURCES}
     VARGS ${VERILATE_ARGS}
-    DIRECTORY ${TBDIR}/cc-regpick/
-    SILENT
+    NETLIST ${TDIR}/${DUT_NAME}/V${DUT_NAME}.xml
   )
 
   add_custom_command(
     OUTPUT ${COUT} ${TBDIR}/${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp ${TBDIR}/${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.hpp ${TBDIR}/${CC_SUBDIR}/vrtlmod/targetdictionary/V${DUT_NAME}_td.hpp
-    DEPENDS null ${PROJECT_NAME} ${REGPICK_OUT}
-    COMMAND ${PROJECT_NAME} ARGS --regxml=${REGPICK_OUT} --out=${TBDIR}/${CC_SUBDIR} ${CIN} -- clang++ -I${TBDIR}/${CC_SUBDIR}/ -I${VERILATOR_ROOT}/include -I${CLANG_INCLUDE_DIRS}
-    COMMENT "executing vrtlmod: .. ${PROJECT_NAME} ARGS --regxml=${REGPICK_OUT} --out=${TBDIR}/${CC_SUBDIR} ${CIN} -- clang++ -I${TBDIR}/${CC_SUBDIR}/ -I${VERILATOR_ROOT}/include -I${CLANG_INCLUDE_DIRS}"
+    DEPENDS null ${PROJECT_NAME} ${CMAKE_CURRENT_BINARY_DIR}/${REGPICK_OUT}
+    COMMAND ${PROJECT_NAME} ARGS --regxml=${CMAKE_CURRENT_BINARY_DIR}/${REGPICK_OUT} --out=${TBDIR}/${CC_SUBDIR} ${CIN} -- clang++ -I${TBDIR}/${CC_SUBDIR}/ -I${VERILATOR_ROOT}/include -I${CLANG_INCLUDE_DIRS}
+    COMMENT "executing vrtlmod: .. ${PROJECT_NAME} --regxml=${CMAKE_CURRENT_BINARY_DIR}/${REGPICK_OUT} --out=${TBDIR}/${CC_SUBDIR} ${CIN} -- clang++ -I${TBDIR}/${CC_SUBDIR}/ -I${VERILATOR_ROOT}/include -I${CLANG_INCLUDE_DIRS}"
   )
 
   ADD_EXECUTABLE( ${PROJECT_NAME}-test-cc
@@ -122,30 +120,28 @@ IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
 
   message ("cout ${SCOUT}")
 
+  file(GLOB CC_SOURCES ${TBDIR}/${SC_SUBDIR}/*)
+  
   SET(SC_REGPICK_OUT sc-${DUT_NAME}-pbb.xml)
   add_custom_target(${SC_REGPICK_OUT}
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
   message("Using system regpicker at ${REGPICKER_ROOT}")
   regpick( TARGET ${CMAKE_CURRENT_BINARY_DIR}/${SC_REGPICK_OUT}
-    BYBEHAVIOR
-    #VERBOSE
     SYSTEMC
+    BYDESIGN
     TOP_MODULE ${DUT_NAME}
-    SOURCES ${TDIR}/${DUT_NAME}/${DUT_NAME}.sv
-    CLOCK_PORT clk
-    RESET_PORT reset
+    SOURCES ${CC_SOURCES}
     VARGS ${VERILATE_ARGS}
-    DIRECTORY ${TBDIR}/sc-regpick/
-    SILENT
+    NETLIST ${TDIR}/${DUT_NAME}/V${DUT_NAME}.xml
   )
 
   get_target_property(SYSTEMC_INCLUDE_DIR SystemC::systemc INTERFACE_INCLUDE_DIRECTORIES)
 
   add_custom_command(
     OUTPUT ${SCOUT} ${TBDIR}/${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp ${TBDIR}/${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.hpp ${TBDIR}/${SC_SUBDIR}/vrtlmod/targetdictionary/V${DUT_NAME}_td.hpp
-    DEPENDS sc-null ${PROJECT_NAME} ${SC_REGPICK_OUT}
-    COMMAND ${PROJECT_NAME} ARGS --systemc --regxml=${SC_REGPICK_OUT} --out=${TBDIR}/${SC_SUBDIR} ${SCIN} -- clang++ -I${TBDIR}/${SC_SUBDIR}/ -I${VERILATOR_ROOT}/include -I${CLANG_INCLUDE_DIRS} -I${SYSTEMC_INCLUDE_DIR}
-    COMMENT "executing vrtlmod: .. ${PROJECT_NAME} ARGS --systemc --regxml=${SC_REGPICK_OUT} --out=${TBDIR}/${SC_SUBDIR} ${SCIN} -- clang++ -I${TBDIR}/${SC_SUBDIR}/ -I${VERILATOR_ROOT}/include -I${CLANG_INCLUDE_DIRS} -I${SYSTEMC_INCLUDE_DIR}"
+    DEPENDS sc-null ${PROJECT_NAME} ${CMAKE_CURRENT_BINARY_DIR}/${SC_REGPICK_OUT}
+    COMMAND ${PROJECT_NAME} ARGS --systemc --regxml=${CMAKE_CURRENT_BINARY_DIR}/${SC_REGPICK_OUT} --out=${TBDIR}/${SC_SUBDIR} ${SCIN} -- clang++ -I${TBDIR}/${SC_SUBDIR}/ -I${VERILATOR_ROOT}/include -I${CLANG_INCLUDE_DIRS} -I${SYSTEMC_INCLUDE_DIR}
+    COMMENT "executing vrtlmod: .. ${PROJECT_NAME} --systemc --regxml=${CMAKE_CURRENT_BINARY_DIR}/${SC_REGPICK_OUT} --out=${TBDIR}/${SC_SUBDIR} ${SCIN} -- clang++ -I${TBDIR}/${SC_SUBDIR}/ -I${VERILATOR_ROOT}/include -I${CLANG_INCLUDE_DIRS} -I${SYSTEMC_INCLUDE_DIR}"
   )
 
   ADD_EXECUTABLE( ${PROJECT_NAME}-test-sc
