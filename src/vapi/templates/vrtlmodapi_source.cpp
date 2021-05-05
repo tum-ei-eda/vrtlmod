@@ -7,6 +7,8 @@
 #include "vrtlmod/vapi/generator.hpp"
 #include "vrtlmod/util/logging.hpp"
 
+#include <boost/algorithm/string/replace.hpp>
+
 namespace vapi {
 
 void VapiGenerator::VapiSource::generate_body(void){
@@ -35,13 +37,15 @@ void VapiGenerator::VapiSource::generate_body(void){
 		<< std::endl;
 		int i = 0;
 		for (auto const &it :	gen.mTargets) {
+			if(it->mSeqInjCnt == 0) 
+				continue;
 			x << "	" << it->get_hierarchyDedotted() << "_ = std::make_shared<  ";
 			switch(it->mElData.cxxdim_.size()){
 				case 0:
 					x << "ZeroD_TDentry<decltype(\"" << it->get_hierarchyDedotted() << "\"_tstr)"
 						<< ", " << it->mElData.cxxbasetype_ << "> "
 						<< ">("
-						<< "vrtl_->__VlSymsp->TOPp->" << it->get_hierarchy()
+						<< "vrtl_->__VlSymsp->TOPp->" << boost::replace_all_copy(it->get_hierarchy(), ".", "->")
 						<< ", " << i
 						<< ", " << it->mElData.nmbBits 
 						<< ", " << it->mElData.nmbonedimBits
@@ -53,7 +57,7 @@ void VapiGenerator::VapiSource::generate_body(void){
 						<< ", " << it->mElData.cxxtypedim_.back()
 						<< ", " << it->mElData.cxxdim_[0] << "> "
 						<< ">("
-						<< "vrtl_->__VlSymsp->TOPp->" << it->get_hierarchy()
+						<< "vrtl_->__VlSymsp->TOPp->" << boost::replace_all_copy(it->get_hierarchy(), ".", "->")
 						<< ", " << i
 						<< ", " << it->mElData.nmbBits 
 						<< ", " << it->mElData.nmbonedimBits
@@ -66,7 +70,7 @@ void VapiGenerator::VapiSource::generate_body(void){
 						<< ", " << it->mElData.cxxdim_[0]
 						<< ", " << it->mElData.cxxdim_[1] << "> "
 						<< ">("
-						<< "vrtl_->__VlSymsp->TOPp->" << it->get_hierarchy()
+						<< "vrtl_->__VlSymsp->TOPp->" << boost::replace_all_copy(it->get_hierarchy(), ".", "->")
 						<< ", " << i
 						<< ", " << it->mElData.nmbBits 
 						<< ", " << it->mElData.nmbonedimBits
@@ -80,7 +84,7 @@ void VapiGenerator::VapiSource::generate_body(void){
 						<< ", " << it->mElData.cxxdim_[1]
 						<< ", " << it->mElData.cxxdim_[2] << "> "
 						<< ">("
-						<< "vrtl_->__VlSymsp->TOPp->" << it->get_hierarchy()
+						<< "vrtl_->__VlSymsp->TOPp->" << boost::replace_all_copy(it->get_hierarchy(), ".", "->")
 						<< ", " << i
 						<< ", " << it->mElData.nmbBits 
 						<< ", " << it->mElData.nmbonedimBits
@@ -91,7 +95,7 @@ void VapiGenerator::VapiSource::generate_body(void){
 					break;
 			}
 			//x << "	td_.insert( std::make_pair(\"" << it->get_hierarchyDedotted() <<"\", std::move(x" << i << ") ) );" << std::endl;
-			x << "	td_.insert( std::make_pair(\"" << it->get_hierarchyDedotted() <<"\", " << it->get_hierarchyDedotted() << "_ ) );" << std::endl;
+			x << "	td_.insert( std::make_pair(\"" << it->get_hierarchy() <<"\", " << it->get_hierarchyDedotted() << "_ ) );" << std::endl;
 			//entries << "\t" << "entries_.push_back(" << gen.get_targetdictionaryTargetClassDeclName(*it) << "); \n";
 			++i;
 		}

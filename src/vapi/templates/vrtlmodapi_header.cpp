@@ -42,6 +42,8 @@ public: \n\
 	
 	
 	for (auto const &it : gen.mTargets) {
+		if(it->mSeqInjCnt == 0) 
+			continue;
 		x << 
 "	std::shared_ptr<TDentry> " << it->get_hierarchyDedotted() << "_{};\n";
 	}
