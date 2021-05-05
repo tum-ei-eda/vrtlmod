@@ -76,7 +76,7 @@ public:
 
     void ownHandler(Handler * handler); // Add handler to consumer and matcher of this consumer to handler
 
-	virtual void Initialize(clang::ASTContext &Context);
+    virtual void Initialize(clang::ASTContext &Context);
 
     virtual void HandleTranslationUnit(clang::ASTContext &Context);
 

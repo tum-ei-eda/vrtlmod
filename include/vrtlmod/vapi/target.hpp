@@ -9,7 +9,6 @@
 #define __VRTLMOD_VAPI_TARGET_HPP__
 
 #include <string>
-#include <iostream>
 #include <sstream>
 #include <algorithm>
 
@@ -173,10 +172,11 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 class Target {
 	friend VapiGenerator;
-protected:
+public:
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Number of times the target received a SEQ_INJ
 	unsigned mSeqInjCnt;
+protected:
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Unique index of target
 	unsigned int index;

@@ -82,7 +82,7 @@ XmlHelper::XmlHelper(const char *pXmlFile) :
 		mReader(), mTargets(), mFilepath(pXmlFile), mTopName() {
 	if (pXmlFile) {
 		util::logging::log(util::logging::INFO, std::string("Register Xml-file found ") + pXmlFile);
-		std::cout << "\t ... Start parsing" << std::endl;
+		util::logging::log(util::logging::INFO, std::string("\t ... Start parsing"));
 		init(pXmlFile);
 	}
 }

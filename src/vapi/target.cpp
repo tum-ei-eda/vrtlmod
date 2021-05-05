@@ -45,7 +45,7 @@ std::string Target::_self(void) const {
 }
 
 Target::Target(unsigned int index, sXmlEl_t &data) :
-		mSeqInjCnt(), index(index), mElData(data), mTD_typedef(), mTD_decl() {
+		mSeqInjCnt(0), index(index), mElData(data), mTD_typedef(), mTD_decl() {
 }
 
 ExprT::ExprT(const char *Expr) :
