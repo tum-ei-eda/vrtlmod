@@ -12,9 +12,10 @@
 
 #include <boost/lexical_cast.hpp>
 
+#include "vrtlmod/util/logging.hpp"
+
 #include <sstream>
 #include <string>
-#include <iostream>
 #include <algorithm>
 
 using namespace clang;
@@ -44,6 +45,7 @@ void InjectionRewriter::writeSequentInject(ExtDeclFunc *sequent_function) {
 	util::logging::log(util::logging::INFO, (std::string("Writing Injection Points for ") + sequent_function->_self()));
 	for (auto &compound : sequent_function->mCompounds) {
 		std::vector<ExtAsgnmnt*> tInjectionPoints = compound->get_dominantAssignments();
+		util::logging::log(util::logging::INFO, std::string("Number of dominant assignments in compound [") + compound->_self() + std::string("]:") + boost::lexical_cast<std::string>(tInjectionPoints.size()));
 		for (auto &a : tInjectionPoints) {
 			//if (a->get_type() == ExtAsgnmnt::TRIVIAL) {
 				writeSequentInject(a->op);
@@ -58,7 +60,7 @@ void InjectionRewriter::writeSequentInject(ExtDeclFunc *sequent_function) {
 void InjectionRewriter::writeSequentInject(const BinaryOperator *op, const Expr *base, const Expr *index) { //(const BinaryOperator *op){
 
 	int idx;
-	std::cout << "op: --- " << getRewriter().getRewrittenText(op->getSourceRange()).c_str() << std::endl;
+	util::logging::log(util::logging::INFO, std::string("op: --- ") + getRewriter().getRewrittenText(op->getSourceRange()).c_str() );
 	
 	std::string name, s, lhs = getRewriter().getRewrittenText(op->getLHS()->getSourceRange());
 	std::vector<std::string> subscripts{};
@@ -99,6 +101,7 @@ void InjectionRewriter::writeSequentInject(const BinaryOperator *op, const Expr 
 		newc += vapi::VapiGenerator::_i().get_sequentInjectionStmtString(t, subscripts);
 		getRewriter().ReplaceText(op->getSourceRange(), newc);
 		activeSequentFunc->addInjTarget(t);
+		t.mSeqInjCnt++;
 	}
 }
 void InjectionRewriter::writeIntermittenInject(void) {
@@ -140,18 +143,22 @@ int InjectionRewriter::registerAssignment(ExtAsgnmnt *a) {
 	return (1);
 }
 
+void InjectionRewriter::wrap_up_active_sequent(void){
+	
+	writeSequentInject(activeSequentFunc);
+
+	writeIntermittenInject();
+
+	writeIncludeModification();
+
+	in_sequent = false;
+}
+
 void InjectionRewriter::run(const clang::ast_matchers::MatchFinder::MatchResult &Result) {
 	if (Result.Nodes.getNodeAs<Decl>("function")) {
 		if (activeSequentFunc != nullptr and in_sequent) {
 			util::logging::log(util::logging::INFO, std::string("Matcher LEAVING sequent body of \n\t") + activeSequentFunc->_self());
-
-			writeSequentInject(activeSequentFunc);
-
-			writeIntermittenInject();
-
-			writeIncludeModification();
-
-			in_sequent = false;
+			wrap_up_active_sequent();
 		}
 	}
 
@@ -226,7 +233,15 @@ void InjectionRewriter::analyzeRewrite(void) {
 		for (auto &it : setpoints) {
 			x << "\t- " << it << std::endl;
 		}
-		util::logging::log(util::logging::OBLIGAT, x.str());
+		util::logging::log(util::logging::INFO, x.str());
+	}
+}
+
+void InjectionRewriter::onEndOfTranslationUnit(void) {
+	if (activeSequentFunc != nullptr and in_sequent) {
+		util::logging::log(util::logging::WARNING, std::string("Matcher ALREADY LEFT sequent body of active\n\t") + activeSequentFunc->_self());
+		util::logging::log(util::logging::WARNING, std::string("Invoke wrap-up and rewrite at the end of source file for \n\t") + activeSequentFunc->_self());
+		wrap_up_active_sequent();
 	}
 }
 

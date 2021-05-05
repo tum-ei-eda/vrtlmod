@@ -12,6 +12,8 @@
 #include "vrtlmod/transform/extendedmatchers.hpp"
 #include "vrtlmod/vapi/target.hpp"
 
+#include "clang/ASTMatchers/ASTMatchFinder.h"
+
 #include <vector>
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -60,11 +62,16 @@ public:
 	/// \brief Destructor
 	virtual ~InjectionRewriter(void);
 	///////////////////////////////////////////////////////////////////////
+	/// \brief wrap up active sequent matching and start rewriter tools
+	void wrap_up_active_sequent(void);
+	///////////////////////////////////////////////////////////////////////
 	/// \brief ASTmatcher run
 	virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result);
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Adds matchers
 	virtual void addMatcher(clang::ast_matchers::MatchFinder &finder);
+
+	virtual void onEndOfTranslationUnit(void);
 
 protected:
 	void writeSequentInject(const clang::BinaryOperator *op, const clang::Expr *base = nullptr, const clang::Expr *index = nullptr);

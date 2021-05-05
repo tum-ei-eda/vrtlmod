@@ -60,34 +60,10 @@ std::string VapiGenerator::get_intermittenInjectionStmtString(Target &t) {
 	return (ret.str());
 }
 
-/*
-std::string VapiGenerator::get_sequentInjectionStmtString(Target &t, int word //expression
-		) {
-	std::stringstream ret;
-	if (word < 0) { // insert simple variable access
-		ret << "gTD.td_.at(\"" << t.get_hierarchyDedotted() << "\")->inject()";
-	} else { // insert word accessed write
-		ret << "gTD.td_.at(\"" << t.get_hierarchyDedotted() << "\")->inject(" << word << ")";
-	}
-	t.mSeqInjCnt++;
-	return (ret.str());
-}
-
-std::string VapiGenerator::get_sequentInjectionStmtString(Target &t, const std::string& word //expression
-		) {
-	std::stringstream ret;
-	ret << "gTD.td_.at(\"" << t.get_hierarchyDedotted() << "\")->inject(" << word << ")";
-	//	ret << "SEQ_TARGET_INJECT_W(gTD.td_[\"" << t.get_hierarchyDedotted() << "\"], " << word;
-	//	ret << ")";
-	t.mSeqInjCnt++;
-	return (ret.str());
-}
-*/
-
 std::string VapiGenerator::get_sequentInjectionStmtString(Target &t, std::vector<std::string> subscripts){
 	std::stringstream ret;
 	//ret << "gTD.td_.at(\"" << t.get_hierarchyDedotted() << "\")->inject_on_update(";
-	ret << "gTD." << t.get_hierarchy() << "_->inject_on_update(";
+	ret << "gTD." << t.get_hierarchyDedotted() << "_->inject_on_update(";
 	if(subscripts.size() > 0){
 		ret << "{";
 		bool first = true;
@@ -140,7 +116,28 @@ int VapiGenerator::build_API(void) {
 	}
 	vapisrc_.write( api_dir + get_apisource_filename());
 	vapiheader_.write( api_dir + get_apiheader_filename());
-
+	
+	std::vector<vapi::Target*> setpoints = vapi::VapiGenerator::_i().get_targets();
+	unsigned int failed = 0;
+	for(const auto& it: setpoints){
+		if (it->mSeqInjCnt == 0){
+			util::logging::log(util::logging::WARNING, "No injection point for target:\n\t" + it->get_hierarchy());
+			++failed;
+		}
+	}
+	std::stringstream x;
+	float perc = float(failed)) / float(setpoints.size()) * 100.0;
+	x << "Analysis vrtlmod run" << std::endl;
+	x << "Uninjected Targets: " << failed << " of " << setpoints.size() << " done. (" << perc << " %)" << std::endl;
+	x << "Remaining Targets: " << std::endl;
+	for(const auto& it: setpoints){
+		if (it->mSeqInjCnt == 0){
+			x << "\t- " << it << std::endl;
+			++failed;
+		}
+	}
+	util::logging::log(util::logging::OBLIGAT, x.str());
+	
 	return (1);
 }
 
