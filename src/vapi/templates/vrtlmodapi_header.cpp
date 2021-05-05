@@ -43,7 +43,7 @@ public: \n\
 	
 	for (auto const &it : gen.mTargets) {
 		x << 
-"	std::shared_ptr<TDentry> " << it->get_hierarchy() << "_{};\n";
+"	std::shared_ptr<TDentry> " << it->get_hierarchyDedotted() << "_{};\n";
 	}
 		
 	x << std::endl << "}; \n"

@@ -13,6 +13,8 @@
 #include <sstream>
 #include <algorithm>
 
+#include "vrtlmod/util/logging.hpp"
+
 #include <boost/lexical_cast.hpp>
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -49,9 +51,10 @@ typedef struct sXmlEl {
 	
 	std::string cxxbasetype_;
 	std::vector<int> cxxdim_{};
+	std::vector<std::string> cxxtypedim_{};
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Element's VRTL type
-	std::string type;
+	//std::string type;
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Number of words
 //	unsigned int words;
@@ -69,21 +72,22 @@ typedef struct sXmlEl {
 		, dim_(x.dim_)
 		, cxxbasetype_(x.cxxbasetype_)
 		, cxxdim_(x.cxxdim_)
-		, type(x.type)
+		, cxxtypedim_(x.cxxtypedim_)
+		//, type(x.type)
 		, vrtlCxxType(x.vrtlCxxType) {
 	}
 	///////////////////////////////////////////////////////////////////////
 	/// \brief Constructor
-	sXmlEl(const char *name = "", const char *hierarchy = "", const char *signalClass_s = "", unsigned int nmbBits = 0, unsigned int nmbonedimBits = 0,  const char* dim = "", const char *type = "", const char *vrtlCxxType = "") 
+	sXmlEl(const char *name = "", const char *hierarchy = "", const char *signalClass_s = "", unsigned int nmbBits = 0, const char* dim = "", const char* vrtlCxxType = "", const char* bases = "") 
 		: name(name)
 		, hierarchy(hierarchy)
 		, signalClass(UNDEF)
 		, nmbBits(nmbBits)
-		, nmbonedimBits(nmbonedimBits)
+		, nmbonedimBits(0)
 		, dim_()
-		, cxxbasetype_()
+		, cxxbasetype_(vrtlCxxType)
 		, cxxdim_()
-		, type(type)
+		//, type(type)
 		, vrtlCxxType(vrtlCxxType) 
 	{
 		if (signalClass_s != NULL) {
@@ -99,7 +103,7 @@ typedef struct sXmlEl {
 			}
 		}
 		std::string s, dimstr = dim;
-		std::cout << dimstr << ":" << std::endl;
+		util::logging::log(util::logging::INFO, dimstr);
 		auto brOpen = dimstr.find('[');
 		auto brClose = dimstr.rfind(']');
 		dimstr = dimstr.substr(brOpen+1, brClose - brOpen -1);
@@ -108,30 +112,47 @@ typedef struct sXmlEl {
 			dimstr
 		);
 		while(getline(x, s, ',')) {
-			//std::cout << s << std::endl;;
-			dim_.push_back(boost::lexical_cast<int>(s));
+			util::logging::log(util::logging::INFO, s);
+			s = s.substr(s.find("'")+1, s.rfind("'")-s.find("'")-1);
+			util::logging::log(util::logging::INFO, s);
+			if( s.find(':') == std::string::npos )
+				dim_.push_back(boost::lexical_cast<int>(s));
+			else{
+				std::string up = s.substr(0, s.find(':'));
+				std::string to = s.substr(s.find(':')+1);
+				int iup = boost::lexical_cast<int>(up);
+				int ito = boost::lexical_cast<int>(to);
+				nmbonedimBits = iup-ito+1;
+				dim_.push_back(nmbonedimBits);
+			}
+		}
+
+		std::string basetypestr = bases;
+		util::logging::log(util::logging::INFO, std::string("*")+vrtlCxxType+std::string(":=")+bases);
+		brOpen = basetypestr.find('[');
+		brClose = basetypestr.rfind(']');
+		basetypestr = basetypestr.substr(brOpen+1, brClose - brOpen -1);
+		basetypestr.erase(remove_if(dimstr.begin(), dimstr.end(), isspace), dimstr.end());
+		std::istringstream basetypestream(
+			basetypestr
+		);
+		while(getline(basetypestream, s, ',')) {
+			util::logging::log(util::logging::INFO, s);
+			s = s.substr(s.find("'")+1, s.rfind("'")-s.find("'")-1);
+			util::logging::log(util::logging::INFO, s);
+			cxxtypedim_.push_back(s);
 		}
 		
-		std::string cxxdimsstr, basetypestr = vrtlCxxType;
-		std::cout << "*" << vrtlCxxType << std::endl;
-		brOpen = basetypestr.find('[');
-		if(brOpen != std::string::npos){
-			cxxdimsstr = basetypestr.substr(brOpen);
-			std::istringstream y(
-				cxxdimsstr
-			);
-			while(getline(y, s, ']')) {
-				//std::cout << s << std::endl;
-				s = s.substr(1);
-				//std::cout << s << std::endl;
-				cxxdim_.push_back(boost::lexical_cast<int>(s));
-			}
-			cxxbasetype_ = basetypestr.substr(0, brOpen-1);
-			std::cout << "**" << cxxbasetype_ << std::endl;
-		} else {
-			//cxxdim_.push_back(1);
-			cxxbasetype_ = basetypestr;
-			std::cout << "**" << cxxbasetype_ << std::endl;
+		cxxdim_ = dim_;
+		if(cxxtypedim_.back().find("VlWide<") != std::string::npos){
+			dimstr = cxxtypedim_.back();
+			brOpen = dimstr.find('<');
+			brClose = dimstr.rfind('>');
+			dimstr = dimstr.substr(brOpen+1, brClose - brOpen -1);
+			cxxdim_.back() = boost::lexical_cast<int>(dimstr);
+			cxxtypedim_.push_back("EData");
+		} else { //remove last cxxdim_ element (numberof1dimbits)
+			cxxdim_.pop_back();
 		}
 	}
 } sXmlEl_t;

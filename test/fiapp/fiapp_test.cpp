@@ -8,7 +8,8 @@
 #include "Vfiapp.h"
 #include "verilated.h"
 
-#include "iostream"
+#include <iostream>
+#include <sstream>
 
 VfiappVRTLmodAPI& gFrame = VfiappVRTLmodAPI::i();
 #define gVtop (*(gFrame.vrtl_))
@@ -20,23 +21,42 @@ void clockspin(void){
 	gVtop.clk = 0;
 }
 
-bool testinject(TDentry& target){
-	int cntr = 0;
+bool testinject(TDentry& target, TD_API& api){
 	std::cout << "\033[1;37mTesting Injection in:\033[0m " << target.get_name() << std::endl;
-	target.enable_ = true;
-	target.set_maskBit(1);
-	cntr = target.cntr_;
+	int cntrsum = 0, cntrsum_new = 0;
+	std::vector<int> cntr = target.get_cntr();
+	api.prep_inject(target.get_name(), 0);
+	target.arm();
 	clockspin();
-	int cntrdiff = cntr - target.cntr_;
-	if(cntrdiff >= 0){
+	std::vector<int> cntr_new = target.get_cntr();
+	
+	std::stringstream x, y;
+	std::cout << "CO:\t";
+	for(const auto& it: cntr) {
+		x << "|" << it;
+		cntrsum += it;
+	}
+	std::cout << x.str() << "|" << std::endl << "CN:\t";
+	for(const auto& it: cntr_new) {
+		y << "|" << it;
+		cntrsum_new += it;
+	}
+	std::cout << y.str() << "|" << std::endl;
+	
+	if(cntrsum != 0) {
+		std::cout << "|-> \033[0;31mFailed\033[0m - Target dictionary in corrupt state" << std::endl;
+		return false;
+	}
+	if(cntrsum_new > 1) {
+		std::cout << "|-> \033[0;31mFailed\033[0m - More than one injection: " << cntrsum_new << std::endl;
+		return false;
+	}
+	if(cntrsum_new == 0) {
 		std::cout << "|-> \033[0;31mFailed\033[0m - No injection" << std::endl;
 		return false;
-	}else if(cntrdiff < -1){
-		std::cout << "|-> \033[0;31mFailed\033[0m - More than one injection: " << cntrdiff << std::endl;
-		return false;
-	}else{
-		std::cout << "|-> \033[0;32mPassed\033[0m" << std::endl;
 	}
+	
+	std::cout << "|-> \033[0;32mPassed\033[0m" << std::endl;
 	return true;
 }
 
@@ -49,7 +69,7 @@ int main(void){
 	//test injections
 	bool testreturn = true;
 	for(auto &it: gFrame.td_){
-		testreturn &= testinject( *(it.second) );
+		testreturn &= testinject( *(it.second), gFrame );
 	}
 	if(testreturn && gFrame.td_.size() > 0){
 		std::cout << std::endl << "..." << "All passed. \033[0;32mTest successful.\033[0m" << std::endl;

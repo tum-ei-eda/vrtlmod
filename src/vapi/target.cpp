@@ -40,7 +40,7 @@ std::string Target::_self(void) const {
 	default:
 		break;
 	}
-	ret << "\t" << mElData.hierarchy << "[" << mElData.nmbBits << "] " << mElData.type;
+	ret << "\t" << mElData.hierarchy << "[" << mElData.nmbBits << "] " << mElData.cxxbasetype_;
 	return (ret.str());
 }
 

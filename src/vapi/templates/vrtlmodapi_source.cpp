@@ -35,20 +35,22 @@ void VapiGenerator::VapiSource::generate_body(void){
 		<< std::endl;
 		int i = 0;
 		for (auto const &it :	gen.mTargets) {
-			x << "	" << it->get_hierarchy() << "_ = std::make_shared<  ";
+			x << "	" << it->get_hierarchyDedotted() << "_ = std::make_shared<  ";
 			switch(it->mElData.cxxdim_.size()){
 				case 0:
 					x << "ZeroD_TDentry<decltype(\"" << it->get_hierarchyDedotted() << "\"_tstr)"
 						<< ", " << it->mElData.cxxbasetype_ << "> "
 						<< ">("
-						<< "vrtl_->__VlSymsp->TOPp->" << it->get_hierarchy() << ", "
-						<< i << ", "
-						<< it->mElData.nmbBits 
+						<< "vrtl_->__VlSymsp->TOPp->" << it->get_hierarchy()
+						<< ", " << i
+						<< ", " << it->mElData.nmbBits 
+						<< ", " << it->mElData.nmbonedimBits
 						<< ");" << std::endl;
 					break;
 				case 1:
 					x << "OneD_TDentry<decltype(\"" << it->get_hierarchyDedotted() << "\"_tstr)"
-						<< ", " << it->mElData.cxxbasetype_  
+						<< ", " << it->mElData.cxxbasetype_
+						<< ", " << it->mElData.cxxtypedim_.back()
 						<< ", " << it->mElData.cxxdim_[0] << "> "
 						<< ">("
 						<< "vrtl_->__VlSymsp->TOPp->" << it->get_hierarchy()
@@ -58,10 +60,11 @@ void VapiGenerator::VapiSource::generate_body(void){
 						<< ");" << std::endl;
 					break;
 				case 2:
-					x << "TwoD_TDentry<decltype(\"" << it->get_hierarchyDedotted() << "\"_tstr), "
-						<< it->mElData.cxxbasetype_  << ", "
-						<< it->mElData.cxxdim_[0] << ", "
-						<< it->mElData.cxxdim_[1] << "> "
+					x << "TwoD_TDentry<decltype(\"" << it->get_hierarchyDedotted() << "\"_tstr)"
+						<< ", " << it->mElData.cxxbasetype_
+						<< ", " << it->mElData.cxxtypedim_.back()
+						<< ", " << it->mElData.cxxdim_[0]
+						<< ", " << it->mElData.cxxdim_[1] << "> "
 						<< ">("
 						<< "vrtl_->__VlSymsp->TOPp->" << it->get_hierarchy()
 						<< ", " << i
@@ -70,11 +73,12 @@ void VapiGenerator::VapiSource::generate_body(void){
 						<< ");" << std::endl;
 					break;
 				case 3:
-					x << "ThreeD_TDentry<decltype(\"" << it->get_hierarchyDedotted() << "\"_tstr), "
-						<< it->mElData.cxxbasetype_  << ", "
-						<< it->mElData.cxxdim_[0] << ", "
-						<< it->mElData.cxxdim_[1] << ", "
-						<< it->mElData.cxxdim_[2] << "> "
+					x << "ThreeD_TDentry<decltype(\"" << it->get_hierarchyDedotted() << "\"_tstr)"
+						<< ", " << it->mElData.cxxbasetype_
+						<< ", " << it->mElData.cxxtypedim_.back()
+						<< ", " << it->mElData.cxxdim_[0]
+						<< ", " << it->mElData.cxxdim_[1]
+						<< ", " << it->mElData.cxxdim_[2] << "> "
 						<< ">("
 						<< "vrtl_->__VlSymsp->TOPp->" << it->get_hierarchy()
 						<< ", " << i
@@ -87,7 +91,7 @@ void VapiGenerator::VapiSource::generate_body(void){
 					break;
 			}
 			//x << "	td_.insert( std::make_pair(\"" << it->get_hierarchyDedotted() <<"\", std::move(x" << i << ") ) );" << std::endl;
-			x << "	td_.insert( std::make_pair(\"" << it->get_hierarchyDedotted() <<"\", " << it->get_hierarchy() << "_ ) );" << std::endl;
+			x << "	td_.insert( std::make_pair(\"" << it->get_hierarchyDedotted() <<"\", " << it->get_hierarchyDedotted() << "_ ) );" << std::endl;
 			//entries << "\t" << "entries_.push_back(" << gen.get_targetdictionaryTargetClassDeclName(*it) << "); \n";
 			++i;
 		}
