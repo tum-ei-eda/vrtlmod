@@ -126,7 +126,7 @@ int VapiGenerator::build_API(void) {
 		}
 	}
 	std::stringstream x;
-	float perc = float(failed)) / float(setpoints.size()) * 100.0;
+	float perc = float(failed) / float(setpoints.size()) * 100.0;
 	x << "Analysis vrtlmod run" << std::endl;
 	x << "Uninjected Targets: " << failed << " of " << setpoints.size() << " done. (" << perc << " %)" << std::endl;
 	x << "Remaining Targets: " << std::endl;

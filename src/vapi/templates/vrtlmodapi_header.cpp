@@ -20,6 +20,7 @@ void VapiGenerator::VapiHeader::generate_body(void){
 "#include <vector> \n\
 #include <memory> \n\
 #include \"verilated.h\" \n\
+#include \"verilated_heavy.h\" \n\
 #include \"" << gen.get_targetdictionary_relpath() << "\" \n"
 		<<
 "class " << gen.mTopTypeName << ";" << std::endl
@@ -44,8 +45,45 @@ public: \n\
 	for (auto const &it : gen.mTargets) {
 		if(it->mSeqInjCnt == 0) 
 			continue;
-		x << 
-"	std::shared_ptr<TDentry> " << it->get_hierarchyDedotted() << "_{};\n";
+		
+		x << "std::shared_ptr< ";
+		
+		switch(it->mElData.cxxdim_.size()){
+			case 0:
+				x << "ZeroD_TDentry<decltype(\"" << it->get_hierarchyDedotted() << "\"_tstr)"
+					<< ", " << it->mElData.cxxbasetype_ << "> "
+					<< ">";
+				break;
+			case 1:
+				x << "OneD_TDentry<decltype(\"" << it->get_hierarchyDedotted() << "\"_tstr)"
+					<< ", " << it->mElData.cxxbasetype_
+					<< ", " << it->mElData.cxxtypedim_.back()
+					<< ", " << it->mElData.cxxdim_[0] << "> "
+					<< ">";
+				break;
+			case 2:
+				x << "TwoD_TDentry<decltype(\"" << it->get_hierarchyDedotted() << "\"_tstr)"
+					<< ", " << it->mElData.cxxbasetype_
+					<< ", " << it->mElData.cxxtypedim_.back()
+					<< ", " << it->mElData.cxxdim_[0]
+					<< ", " << it->mElData.cxxdim_[1] << "> "
+					<< ">";
+				break;
+			case 3:
+				x << "ThreeD_TDentry<decltype(\"" << it->get_hierarchyDedotted() << "\"_tstr)"
+					<< ", " << it->mElData.cxxbasetype_
+					<< ", " << it->mElData.cxxtypedim_.back()
+					<< ", " << it->mElData.cxxdim_[0]
+					<< ", " << it->mElData.cxxdim_[1]
+					<< ", " << it->mElData.cxxdim_[2] << "> "
+					<< ">";
+				break;
+			default:
+				util::logging::log(util::logging::ERROR, std::string("CType dimensions of injection target not supported: ") + it->mElData.vrtlCxxType);
+				break;
+		}
+		x << " " << it->get_hierarchyDedotted() << "_{};\n";
+//"	std::shared_ptr<TDentry> " << it->get_hierarchyDedotted() << "_{};\n";
 	}
 		
 	x << std::endl << "}; \n"
