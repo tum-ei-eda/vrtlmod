@@ -20,14 +20,14 @@ void VapiGenerator::VapiHeader::generate_body(void){
 "#include <vector> \n\
 #include <memory> \n\
 #include \"verilated.h\" \n\
-#include \"verilated_heavy.h\" \n\
-#include \"" << gen.get_targetdictionary_relpath() << "\" \n"
+#include \"verilated_heavy.h\" \n\n\
+#include \"" << gen.get_targetdictionary_relpath() << "\" \n" << std::endl
 		<<
 "class " << gen.mTopTypeName << ";" << std::endl
 		<< std::endl
 		<< std::endl
 		<<
-"class " << gen.mTopTypeName << "VRTLmodAPI : public TD_API { \n\
+"class " << gen.mTopTypeName << "VRTLmodAPI : public vrtlfi::td::TD_API { \n\
 public: \n\
 	static " << gen.mTopTypeName << "VRTLmodAPI& i(void) { \n\
 		static " << gen.mTopTypeName << "VRTLmodAPI _instance; \n\
@@ -46,7 +46,7 @@ public: \n\
 		if(it->mSeqInjCnt == 0) 
 			continue;
 		
-		x << "std::shared_ptr< ";
+		x << "	std::shared_ptr< vrtlfi::td::";
 		
 		switch(it->mElData.cxxdim_.size()){
 			case 0:

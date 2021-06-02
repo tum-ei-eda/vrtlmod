@@ -28,8 +28,9 @@ void VapiGenerator::VapiSource::generate_body(void){
 		<< std::endl
 		<<
 "" << gen.mTopTypeName << "VRTLmodAPI::" << gen.mTopTypeName << "VRTLmodAPI(void) \n\
-	: TD_API() { \n\
-		vrtl_ = std::make_shared<" << gen.mTopTypeName << ">(";
+	: vrtlfi::td::TD_API() \n\
+{\n\
+	vrtl_ = std::make_shared<" << gen.mTopTypeName << ">(";
 	if(gen.is_systemc()) {
 		x << "\"" << gen.mTopTypeName << "\"";
 	}
@@ -39,7 +40,7 @@ void VapiGenerator::VapiSource::generate_body(void){
 		for (auto const &it :	gen.mTargets) {
 			if(it->mSeqInjCnt == 0) 
 				continue;
-			x << "	" << it->get_hierarchyDedotted() << "_ = std::make_shared<  ";
+			x << "	" << it->get_hierarchyDedotted() << "_ = std::make_shared< vrtlfi::td::";
 			switch(it->mElData.cxxdim_.size()){
 				case 0:
 					x << "ZeroD_TDentry<decltype(\"" << it->get_hierarchyDedotted() << "\"_tstr)"

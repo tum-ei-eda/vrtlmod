@@ -31,7 +31,7 @@ void clockspin(void) {
 	sc_start( halfspintime );
 }
 
-bool testinject(TDentry& target, TD_API& api){
+bool testinject(vrtlfi::td::TDentry& target, vrtlfi::td::TD_API& api){
 	std::cout << "\033[1;37mTesting Injection in:\033[0m " << target.get_name() << std::endl;
 	int cntrsum = 0, cntrsum_new = 0;
 	std::vector<int> cntr = target.get_cntr();
