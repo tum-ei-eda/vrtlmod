@@ -8,6 +8,8 @@ ENABLE_TESTING()
 SET(TEST_BUILD OFF CACHE STRING "Include Tests in build")
 IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
 
+  add_subdirectory(vrtl-fi-framework)
+
   FIND_PACKAGE(verilator HINTS $ENV{VERILATOR_ROOT} ${VERILATOR_ROOT} REQUIRED)
   FIND_PACKAGE(regpicker HINTS $ENV{REGPICKER_ROOT} ${REGPICKER_ROOT} REQUIRED)
 
@@ -71,6 +73,7 @@ IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
     ${TBDIR}
     ${VERILATOR_ROOT}/include
     ${TDIR}/vrtl-fi-framework/include
+    ${TDIR}/vrtl-fi-framework/lib/proxyfabric/include
   )
 
   ADD_TEST(NAME ${PROJECT_NAME}:build
@@ -158,10 +161,10 @@ IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
     ${TBDIR}/${SC_SUBDIR}
     ${TBDIR}
     ${VERILATOR_ROOT}/include
-    ${TDIR}/vrtl-fi-framework/include
   )
   TARGET_LINK_LIBRARIES(${PROJECT_NAME}-test-sc PUBLIC
-      SystemC::systemc
+    SystemC::systemc
+    vrtl-fi
   )
   SET_PROPERTY(TARGET ${PROJECT_NAME}-test-sc PROPERTY CXX_STANDARD ${SystemC_CXX_STANDARD})
 
