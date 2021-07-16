@@ -1,6 +1,23 @@
+cmake_minimum_required(VERSION 3.15)
+
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_BINARY_DIR})
+list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_BINARY_DIR})
+
+include(ConanUser)
+
 PROJECT(vrtlmod)
 
-CMAKE_MINIMUM_REQUIRED(VERSION 3.15)
+option (FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." True)
+if (${FORCE_COLORED_OUTPUT})
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+       add_compile_options (-fdiagnostics-color=always)
+    elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+       add_compile_options (-fcolor-diagnostics)
+    endif ()
+endif ()
+
+setup_conan(TARGETS)
 
 # ENVIRONMENT ##################################################
 IF(NOT LLVM_DIR) #try environment
@@ -16,8 +33,13 @@ SET(THISLIB "${PROJECT_NAME}_tool")
 FIND_PACKAGE(Clang REQUIRED CONFIG)
 FIND_PACKAGE(LLVM 9 REQUIRED CONFIG)
 FIND_PACKAGE(LibXml2 REQUIRED CONFIG)
-FIND_PACKAGE(Boost 1.72.0 REQUIRED
-  COMPONENTS filesystem
+#FIND_PACKAGE(Boost 1.72.0 REQUIRED
+#  COMPONENTS filesystem
+#)
+
+find_package(SystemCLanguage CONFIG)
+find_package(Boost CONFIG COMPONENTS 
+    filesystem
 )
 
 MESSAGE("Boost Version: ${Boost_VERSION}")
@@ -70,7 +92,8 @@ IF(LLVM_FOUND AND Clang_FOUND AND LibXml2_FOUND)
     TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE
         ${LLVM_LIBS}
         ${LIBXML2_LIBRARIES}
-        ${Boost_LIBRARIES}
+        #${Boost_LIBRARIES}
+        Boost::filesystem
         clangFrontend
         clangCodeGen
         clangTooling
@@ -150,5 +173,9 @@ install(TARGETS ${PROJECT_NAME}
   LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 )
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/vrtlmod-config.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/vrtlmod-config.cmake @ONLY)
+get_target_property(SYSTEMC_INCLUDE_DIRS SystemC::systemc INTERFACE_INCLUDE_DIRECTORIES)
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/vrtlmod-config.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/vrtlmod-config.cmake.intermediate @ONLY)
+#file(READ ${CMAKE_CURRENT_BINARY_DIR}/vrtlmod-config.cmake.intermediate INTERMEDIATEVAL)
+file(GENERATE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/vrtlmod-config.cmake INPUT ${CMAKE_CURRENT_BINARY_DIR}/vrtlmod-config.cmake.intermediate)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/vrtlmod-config.cmake DESTINATION ${CMAKE_INSTALL_PREFIX})
