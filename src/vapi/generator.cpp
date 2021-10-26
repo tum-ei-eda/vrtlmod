@@ -55,8 +55,8 @@ std::string VapiGenerator::getInludeStrings(void) {
 
 std::string VapiGenerator::get_intermittenInjectionStmtString(Target &t) {
 	std::stringstream ret;
-	//ret << "gTD.td_.at(\"" << t.get_hierarchyDedotted() << "\")->inject_synchronous()";
-	ret << "gTD." << t.get_hierarchy() << "_->inject_synchronous();";
+	ret << "gTD.td_.at(\"" << t.get_hierarchyDedotted() << "\")->inject_synchronous()";
+	//ret << "gTD." << t.get_hierarchy() << "_->inject_synchronous();";
 	return (ret.str());
 }
 

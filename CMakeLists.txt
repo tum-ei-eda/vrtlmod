@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.15)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_BINARY_DIR})
@@ -8,16 +8,7 @@ include(ConanUser)
 
 PROJECT(vrtlmod)
 
-option (FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." True)
-if (${FORCE_COLORED_OUTPUT})
-    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-       add_compile_options (-fdiagnostics-color=always)
-    elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-       add_compile_options (-fcolor-diagnostics)
-    endif ()
-endif ()
-
-setup_conan(TARGETS)
+option(CMAKE_CXX_STANDARD_REQUIRED "Set CXX_STANDARD!" ON)
 
 # ENVIRONMENT ##################################################
 IF(NOT LLVM_DIR) #try environment
@@ -30,16 +21,73 @@ ENDIF()
 
 SET(THISLIB "${PROJECT_NAME}_tool")
 
-FIND_PACKAGE(Clang REQUIRED CONFIG)
-FIND_PACKAGE(LLVM 9 REQUIRED CONFIG)
-FIND_PACKAGE(LibXml2 REQUIRED CONFIG)
-#FIND_PACKAGE(Boost 1.72.0 REQUIRED
-#  COMPONENTS filesystem
-#)
+option (FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." True)
+if (${FORCE_COLORED_OUTPUT})
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+       add_compile_options (-fdiagnostics-color=always)
+    elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+       add_compile_options (-fcolor-diagnostics)
+    endif ()
+endif ()
 
-find_package(SystemCLanguage CONFIG)
-find_package(Boost CONFIG COMPONENTS 
-    filesystem
+set(CONAN_BOOST_OPTIONS
+  boost:shared=True
+  boost:header_only=False
+)
+set(CONAN_SYSTEMC_OPTIONS
+  systemc:shared=True
+)
+
+set(CONAN_PACKAGE_LIST
+  libxml2/[>2.9.10]
+  boost/[>1.70]
+  systemc/2.3.3@eda/stable
+)
+set(CONAN_PACKAGE_OPTIONS ${CONAN_BOOST_OPTIONS} ${CONAN_SYSTEMC_OPTIONS})
+
+conan_check()
+conan_cmake_configure(
+  REQUIRES ${CONAN_PACKAGE_LIST}
+  GENERATORS cmake_find_package
+  OPTIONS ${CONAN_PACKAGE_OPTIONS}
+)
+
+conan_cmake_autodetect(settings)
+if(CMAKE_CXX_STANDARD)
+  set(settings ${settings} compiler.cppstd=${CMAKE_CXX_STANDARD})
+endif()
+
+message("Conan settings are ${settings}")
+conan_cmake_install(
+  PATH_OR_REFERENCE ${CMAKE_CURRENT_BINARY_DIR}
+  BUILD missing
+  SETTINGS ${settings}
+)
+
+set(CMAKE_SKIP_BUILD_RPATH FALSE)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
+if("${isSystemDir}" STREQUAL "-1")
+    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+endif("${isSystemDir}" STREQUAL "-1")
+
+set(Boost_NO_BOOST_CMAKE ON)
+
+FIND_PACKAGE(Clang REQUIRED CONFIG
+  NO_DEFAULT_PATH
+  NO_SYSTEM_ENVIRONMENT_PATH
+  PATHS ${LLVM_DIR}/lib/cmake/clang ${Clang_DIR})
+
+FIND_PACKAGE(LLVM 9 REQUIRED CONFIG
+  NO_DEFAULT_PATH
+  NO_SYSTEM_ENVIRONMENT_PATH
+  PATHS ${LLVM_DIR}/lib/cmake/llvm)
+
+FIND_PACKAGE(LibXml2 REQUIRED)
+
+find_package(Boost REQUIRED
+  COMPONENTS filesystem
 )
 
 MESSAGE("Boost Version: ${Boost_VERSION}")
@@ -55,10 +103,10 @@ set(CMAKE_SKIP_BUILD_RPATH FALSE)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-#list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" IS_SYSTEMDIR)
-#if("${IS_SYSTEMDIR}" STREQUAL "-1")
-#    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
-#endif("${IS_SYSTEMDIR}" STREQUAL "-1")
+list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" IS_SYSTEMDIR)
+if("${IS_SYSTEMDIR}" STREQUAL "-1")
+    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+endif("${IS_SYSTEMDIR}" STREQUAL "-1")
 ################################################################
 
 IF(LLVM_FOUND AND Clang_FOUND AND LibXml2_FOUND)
@@ -69,9 +117,7 @@ IF(LLVM_FOUND AND Clang_FOUND AND LibXml2_FOUND)
       option object profiledata support core mc bitreader MCParser BinaryFormat ExecutionEngine Target MCJIT X86CodeGen X86AsmParser Interpreter Support
     )
 
-    ADD_EXECUTABLE(${PROJECT_NAME}
-        src/main.cpp
-
+    add_library(${PROJECT_NAME} SHARED
         src/transform/consumer.cpp
         src/transform/filecontext.cpp
         src/transform/extendedmatchers.cpp
@@ -89,10 +135,9 @@ IF(LLVM_FOUND AND Clang_FOUND AND LibXml2_FOUND)
         src/vapi/templates/vrtlmodapi_source.cpp
     )
 
-    TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE
+    TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC
         ${LLVM_LIBS}
         ${LIBXML2_LIBRARIES}
-        #${Boost_LIBRARIES}
         Boost::filesystem
         clangFrontend
         clangCodeGen
@@ -135,6 +180,17 @@ IF(LLVM_FOUND AND Clang_FOUND AND LibXml2_FOUND)
         ${LLVM_INCLUDE_DIRS}
         #${CLANG_INCLUDE_DIRS}
     )
+
+    add_executable(${PROJECT_NAME}-bin
+        src/main.cpp
+    )
+    target_link_libraries(${PROJECT_NAME}-bin PUBLIC
+        ${PROJECT_NAME}
+    )
+    set_target_properties(${PROJECT_NAME}-bin
+        PROPERTIES OUTPUT_NAME ${PROJECT_NAME}
+    )
+
 ENDIF()
 
 option(BUILD_DOC "Build documentation" OFF)
@@ -168,14 +224,10 @@ IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
 ENDIF()
 
 ########### INSTALL #################
-install(TARGETS ${PROJECT_NAME}
+install(TARGETS ${PROJECT_NAME}-bin ${PROJECT_NAME}
   RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}
   LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 )
 
-get_target_property(SYSTEMC_INCLUDE_DIRS SystemC::systemc INTERFACE_INCLUDE_DIRECTORIES)
-
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/vrtlmod-config.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/vrtlmod-config.cmake.intermediate @ONLY)
-#file(READ ${CMAKE_CURRENT_BINARY_DIR}/vrtlmod-config.cmake.intermediate INTERMEDIATEVAL)
-file(GENERATE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/vrtlmod-config.cmake INPUT ${CMAKE_CURRENT_BINARY_DIR}/vrtlmod-config.cmake.intermediate)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/vrtlmod-config.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/vrtlmod-config.cmake @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/vrtlmod-config.cmake DESTINATION ${CMAKE_INSTALL_PREFIX})
