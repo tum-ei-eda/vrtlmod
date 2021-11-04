@@ -117,6 +117,8 @@ IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
   set (CMAKE_CXX_STANDARD_REQUIRED ${SystemC_CXX_STANDARD_REQUIRED} CACHE BOOL
     "The CMAKE_CXX_STANDARD selected C++ standard is a requirement.")
 
+  get_target_property(SYSTEMC_INCLUDE_DIRS SystemC::systemc INTERFACE_INCLUDE_DIRECTORIES)
+
   SET(DUT_NAME fiapp)
   verilate(sc-null
     SYSTEMC
@@ -153,16 +155,14 @@ IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
     SOURCES ${CC_SOURCES}
     VARGS ${VERILATE_ARGS}
     NETLIST ${TDIR}/${DUT_NAME}/V${DUT_NAME}.xml
-    CC_INCLUDE_DIRS ${SystemC_INCLUDE_DIRS}
+    CC_INCLUDE_DIRS ${SYSTEMC_INCLUDE_DIRS}
   )
-
-  get_target_property(SYSTEMC_INCLUDE_DIR SystemC::systemc INTERFACE_INCLUDE_DIRECTORIES)
 
   add_custom_command(
     OUTPUT ${SCOUT} ${SC_SUBDIR}/vrtlmod/vrtlmodapi/V${DUT_NAME}_vrtlmodapi.cpp ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.hpp ${SC_SUBDIR}/vrtlmod/targetdictionary/V${DUT_NAME}_td.hpp
     DEPENDS sc-null ${PROJECT_NAME}-bin ${SC_REGPICK_OUT}
-    COMMAND ${PROJECT_BINARY_DIR}/${PROJECT_NAME} ARGS --systemc --regxml=${SC_REGPICK_OUT} --out=${SC_SUBDIR}/vrtlmod ${SCIN} -- clang++ -I${SC_SUBDIR}/ -I${VERILATOR_ROOT}/include -I${CLANG_INCLUDE_DIRS} -I${SYSTEMC_INCLUDE_DIR}
-    COMMENT "executing vrtlmod: .. ${PROJECT_NAME} --systemc --regxml=${SC_REGPICK_OUT} --out=${SC_SUBDIR}/vrtlmod ${SCIN} -- clang++ -I${SC_SUBDIR}/ -I${VERILATOR_ROOT}/include -I${CLANG_INCLUDE_DIRS} -I${SYSTEMC_INCLUDE_DIR}"
+    COMMAND ${PROJECT_BINARY_DIR}/${PROJECT_NAME} ARGS --systemc --regxml=${SC_REGPICK_OUT} --out=${SC_SUBDIR}/vrtlmod ${SCIN} -- clang++ -I${SC_SUBDIR}/ -I${VERILATOR_ROOT}/include -I${CLANG_INCLUDE_DIRS} -I${SYSTEMC_INCLUDE_DIRS}
+    COMMENT "executing vrtlmod: .. ${PROJECT_NAME} --systemc --regxml=${SC_REGPICK_OUT} --out=${SC_SUBDIR}/vrtlmod ${SCIN} -- clang++ -I${SC_SUBDIR}/ -I${VERILATOR_ROOT}/include -I${CLANG_INCLUDE_DIRS} -I${SYSTEMC_INCLUDE_DIRS}"
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   )
 
