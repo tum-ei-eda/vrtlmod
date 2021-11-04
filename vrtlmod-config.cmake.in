@@ -74,7 +74,7 @@ function(vrtlmod)
   else()
     set(CLANG_INCLUDE_DIRS "@CLANG_INCLUDE_DIRS@")
   endif()
-  
+
   if(VRTLMOD_SYSTEMC_INCLUDE_DIR)
     set(SYSTEMC_INCLUDE_DIRS "${VRTLMOD_SYSTEMC_INCLUDE_DIR}")
   else()
@@ -94,18 +94,12 @@ function(vrtlmod)
   endif()
 
   if(VRTLMOD_SYSTEMC)
-<<<<<<< Updated upstream
-=======
-    FIND_PACKAGE(SystemCLanguage REQUIRED)
-    get_target_property(SYSTEMC_INCLUDE_DIR SystemC::systemc INTERFACE_INCLUDE_DIRECTORIES)
-    set(VRTLMOD_INCLUDE_DIRS ${VRTLMOD_INCLUDE_DIRS} ${SYSTEMC_INCLUDE_DIR})
->>>>>>> Stashed changes
     set(SYSTEMC --systemc)
   endif()
 
   set(INCLUDE_DIRS ${SYSTEMC_INCLUDE_DIRS} ${CLANG_INCLUDE_DIRS} ${VRTLMOD_INCLUDE_DIRS})
   list(TRANSFORM INCLUDE_DIRS PREPEND "-I")
-  
+
   if(REGPICK_BYBEHAVIOR)
     set(ARG_TYPE pbb)
   endif()
