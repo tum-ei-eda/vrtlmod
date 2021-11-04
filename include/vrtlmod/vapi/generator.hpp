@@ -23,7 +23,7 @@ namespace vapi {
 class VapiGenerator: public XmlHelper {
 
 #define APIBUILDER_VERSION "0.9"
-#define API_DIRPREFIX "vrtlmod"
+#define API_DIRPREFIX "vrtlmodapi"
 #define API_TD_DIRPREFIX "vrtlfi/td"
 #define API_TD_HEADER_NAME "targetdictionary.hpp"
 #define API_HEADER_NAME "vrtlmodapi.hpp"

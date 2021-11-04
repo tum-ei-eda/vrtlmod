@@ -94,6 +94,12 @@ function(vrtlmod)
   endif()
 
   if(VRTLMOD_SYSTEMC)
+<<<<<<< Updated upstream
+=======
+    FIND_PACKAGE(SystemCLanguage REQUIRED)
+    get_target_property(SYSTEMC_INCLUDE_DIR SystemC::systemc INTERFACE_INCLUDE_DIRECTORIES)
+    set(VRTLMOD_INCLUDE_DIRS ${VRTLMOD_INCLUDE_DIRS} ${SYSTEMC_INCLUDE_DIR})
+>>>>>>> Stashed changes
     set(SYSTEMC --systemc)
   endif()
 
@@ -107,19 +113,20 @@ function(vrtlmod)
   set(VRTLMOD_ARGS ${SYSTEMC} ${REGPICKER_XML} ${SILENT} ${OVERWRITE} ${OUT_DIR} ${SOURCES} -- clang++ ${INCLUDE_DIRS} )
   set(ARGS_FILE ${CMAKE_CURRENT_BINARY_DIR}/vrtlmod-args.txt)
 
+  string(REPLACE ";" " " COMMAND_SPACES "${VRTLMOD} ${VRTLMOD_ARGS}")
+
   if (NOT EXISTS "${ARGS_FILE}")
     set(VRTLMOD_OUTDATED ON)
   else()
     file(READ "${ARGS_FILE}" PRV_VRTLMOD_ARGS )
-    if(NOT VRTLMOD_ARGS STREQUAL PRV_VRTLMOD_ARGS OR NOT EXISTS "${OUTSOURCES}")
+    if(NOT COMMAND_SPACES STREQUAL PRV_VRTLMOD_ARGS OR NOT EXISTS "${OUTSOURCES}")
       set(VRTLMOD_OUTDATED ON)
     endif()
   endif()
 
   if(VRTLMOD_OUTDATED)
-    string(REPLACE ";" " " COMMAND_SPACES "${VRTLMOD} ${VRTLMOD_ARGS}")
-    file(WRITE ${ARGS_FILE} "${VRTLMOD} ${VRTLMOD_ARGS}")
-    
+    file(WRITE ${ARGS_FILE} "${COMMAND_SPACES}")
+
     message(STATUS "executing vrtlmod .. ${COMMAND_SPACES}")
     execute_process(
       COMMAND ${VRTLMOD} ${VRTLMOD_ARGS}

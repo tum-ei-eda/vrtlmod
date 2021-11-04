@@ -4,7 +4,7 @@
 /// @author Johannes Geier (johannes.geier@tum.de)
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "vrtlmod/Vfiapp_vrtlmodapi.hpp"
+#include "vrtlmodapi/Vfiapp_vrtlmodapi.hpp"
 #include "Vfiapp.h"
 #include "verilated.h"
 
@@ -29,7 +29,7 @@ bool testinject(vrtlfi::td::TDentry& target, vrtlfi::td::TD_API& api){
 	target.arm();
 	clockspin();
 	std::vector<int> cntr_new = target.get_cntr();
-	
+
 	std::stringstream x, y;
 	std::cout << "CO:\t";
 	for(const auto& it: cntr) {
@@ -42,7 +42,7 @@ bool testinject(vrtlfi::td::TDentry& target, vrtlfi::td::TD_API& api){
 		cntrsum_new += it;
 	}
 	std::cout << y.str() << "|" << std::endl;
-	
+
 	if(cntrsum != 0) {
 		std::cout << "|-> \033[0;31mFailed\033[0m - Target dictionary in corrupt state" << std::endl;
 		return false;
@@ -55,7 +55,7 @@ bool testinject(vrtlfi::td::TDentry& target, vrtlfi::td::TD_API& api){
 		std::cout << "|-> \033[0;31mFailed\033[0m - No injection" << std::endl;
 		return false;
 	}
-	
+
 	std::cout << "|-> \033[0;32mPassed\033[0m" << std::endl;
 	return true;
 }
