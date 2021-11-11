@@ -45,7 +45,7 @@ set(CONAN_PACKAGE_LIST
 )
 set(CONAN_PACKAGE_OPTIONS ${CONAN_OPTIONS})
 
-conan_check()
+eda_conan_check()
 conan_cmake_configure(
   REQUIRES ${CONAN_PACKAGE_LIST}
   GENERATORS cmake_find_package
