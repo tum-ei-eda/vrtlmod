@@ -1,8 +1,10 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.15)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/eda-conan)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_BINARY_DIR})
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_BINARY_DIR})
+
 
 include(ConanUser)
 
@@ -30,11 +32,9 @@ if (${FORCE_COLORED_OUTPUT})
     endif ()
 endif ()
 
-set(CONAN_BOOST_OPTIONS
+set(CONAN_OPTIONS
   boost:shared=True
   boost:header_only=False
-)
-set(CONAN_SYSTEMC_OPTIONS
   systemc:shared=True
 )
 
@@ -43,7 +43,7 @@ set(CONAN_PACKAGE_LIST
   boost/[>1.70]
   systemc/2.3.3@eda/stable
 )
-set(CONAN_PACKAGE_OPTIONS ${CONAN_BOOST_OPTIONS} ${CONAN_SYSTEMC_OPTIONS})
+set(CONAN_PACKAGE_OPTIONS ${CONAN_OPTIONS})
 
 conan_check()
 conan_cmake_configure(
