@@ -8,7 +8,7 @@ Besides standard (gmake, cmake, gcc, ...)
 
 1. Verilator  - min. v4.204 (see: https://www.veripool.org/wiki/verilator and install guide)
 2. ~libxml2~ conan
-3. llvm			  - min. v9.0.1
+3. llvm			  - min. v9.0.1 (!) from cmake with `-DLLVM_ENABLE_RTTI=On -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra" -DBUILD_SHARED_LIBS=On`
 4. ~Boost      - min. v1.72.0~ conan
 5. ~(SystemC)  - ! make sure c++std is aligned with VRTL~ conan
 6. conan (pip install conan)
