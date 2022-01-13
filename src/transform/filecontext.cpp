@@ -23,31 +23,33 @@
 
 #include "vrtlmod/transform/filecontext.hpp"
 
-namespace transform {
+namespace transform
+{
 
-FileContext::FileContext(clang::Rewriter &rw, const std::string &file) : rewriter_(rw), file_(file), context_(0), changed_(false), incompatibleChange_(
-		false) {
-
+FileContext::FileContext(clang::Rewriter &rw, const std::string &file)
+    : rewriter_(rw), file_(file), context_(0), changed_(false), incompatibleChange_(false)
+{
 }
 
-FileContext::~FileContext() {
-
-}
+FileContext::~FileContext() {}
 
 bool FileContext::anyChange_ = false;
 
-bool FileContext::anyChange() {
-	return anyChange_;
+bool FileContext::anyChange()
+{
+    return anyChange_;
 }
 
 bool FileContext::fatalFailure_ = false;
 
-void FileContext::resetAnyChangeFlag() {
-	anyChange_ = false;
+void FileContext::resetAnyChangeFlag()
+{
+    anyChange_ = false;
 }
 
-bool FileContext::fatalFailure() {
-	return fatalFailure_;
+bool FileContext::fatalFailure()
+{
+    return fatalFailure_;
 }
 
 } // namespace transform

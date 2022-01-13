@@ -46,21 +46,24 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief namespace for LLVM/Clang source to source transformation
-namespace transform {
+namespace transform
+{
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief namespace for LLVM/Clang source to source transformation rewriter tooling
-namespace rewrite {
+namespace rewrite
+{
 class RewriteMacrosAction : public clang::PreprocessorFrontendAction
 {
-	public:
-		RewriteMacrosAction();
-		void ExecuteAction();
-	public:
-		static bool cleanFile(const std::string & file);
+  public:
+    RewriteMacrosAction();
+    void ExecuteAction();
+
+  public:
+    static bool cleanFile(const std::string &file);
 };
 
-} // namespace transform::rewrite
+} // namespace rewrite
 
 } // namespace transform
 

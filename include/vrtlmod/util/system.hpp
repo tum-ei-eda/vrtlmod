@@ -28,11 +28,13 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief General utility functions
-namespace util {
+namespace util
+{
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief String helper
-namespace strhelp {
+namespace strhelp
+{
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief Replace the first occurrence of a substring with another
 /// @param str In-/Out string
@@ -47,20 +49,19 @@ bool replace(std::string &str, const std::string &from, const std::string &to);
 /// @param to Replacement for to be replaced substring of str
 void replaceAll(std::string &str, const std::string &from, const std::string &to);
 
-} // namespace util::strhelp
+} // namespace strhelp
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief System (and shell helper)
-namespace system {
+namespace system
+{
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief Execute a shell command and return shell response as string
 /// @param cmd Command for shell
 std::string exec(std::string cmd);
 
-} // namespace util::system
+} // namespace system
 
 } // namespace util
-
-
 
 #endif /* __VRTLMOD_UTIL_SYSTEM_HPP__ */

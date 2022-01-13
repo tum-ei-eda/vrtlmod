@@ -23,67 +23,83 @@
 #include "vrtlmod/vxml/parser.hpp"
 #include "vrtlmod/util/logging.h"
 
-namespace vxml {
+namespace vxml
+{
 
-int VxmlParser::process_node(void) {
-	std::string name = (const char*) xmlTextReaderConstName(mReader);
+int VxmlParser::process_node(void)
+{
+    std::string name = (const char *)xmlTextReaderConstName(mReader);
 
-	if (name == "") {
-		return (0);
-	}
-	if ((xmlTextReaderNodeType(mReader) == 1) and (xmlTextReaderHasAttributes(mReader) == 1)) { // node is an element and has attributes
-		if ((name == "cell")) {
-			std::string _name = (const char*) xmlTextReaderGetAttribute(mReader, (const xmlChar*) "name");
-			std::string vHier = (const char*) xmlTextReaderGetAttribute(mReader, (const xmlChar*) "vHier");
-			if ((_name == vHier) and (_name == "TOP")) {
-				mTopTypeName = (const char*) xmlTextReaderGetAttribute(mReader, (const xmlChar*) "type");
-				mTopName = (const char*) xmlTextReaderGetAttribute(mReader, (const xmlChar*) "name");
-			}
-		} else if ((name == "var") or (name == "out") or (name == "in")) { // node is a var or out
-			get_var();
-		}
-	}
-	return (1);
+    if (name == "")
+    {
+        return (0);
+    }
+    if ((xmlTextReaderNodeType(mReader) == 1) and (xmlTextReaderHasAttributes(mReader) == 1))
+    { // node is an element and has attributes
+        if ((name == "cell"))
+        {
+            std::string _name = (const char *)xmlTextReaderGetAttribute(mReader, (const xmlChar *)"name");
+            std::string vHier = (const char *)xmlTextReaderGetAttribute(mReader, (const xmlChar *)"vHier");
+            if ((_name == vHier) and (_name == "TOP"))
+            {
+                mTopTypeName = (const char *)xmlTextReaderGetAttribute(mReader, (const xmlChar *)"type");
+                mTopName = (const char *)xmlTextReaderGetAttribute(mReader, (const xmlChar *)"name");
+            }
+        }
+        else if ((name == "var") or (name == "out") or (name == "in"))
+        { // node is a var or out
+            get_var();
+        }
+    }
+    return (1);
 }
 
-VxmlParser::VxmlParser(void) :
-	mReader(), mFilepath(), mTopName(), mTopTypeName() {
+VxmlParser::VxmlParser(void) : mReader(), mFilepath(), mTopName(), mTopTypeName() {}
+
+VxmlParser::VxmlParser(const char *pXmlFile) : mReader(), mTargets(), mFilepath(pXmlFile), mTopName()
+{
+    if (pXmlFile)
+    {
+        util::logging::log(util::logging::INFO, std::string("Register Xml-file found ") + pXmlFile);
+        std::cout << "\t ... Start parsing" << std::endl;
+        init(pXmlFile);
+    }
 }
 
-VxmlParser::VxmlParser(const char *pXmlFile) :
-	mReader(), mTargets(), mFilepath(pXmlFile), mTopName() {
-	if (pXmlFile) {
-		util::logging::log(util::logging::INFO, std::string("Register Xml-file found ") + pXmlFile);
-		std::cout << "\t ... Start parsing" << std::endl;
-		init(pXmlFile);
-	}
+VxmlParser::~VxmlParser(void)
+{
+    if (mReader)
+    {
+        xmlFreeTextReader(mReader);
+    }
 }
 
-VxmlParser::~VxmlParser(void) {
-	if (mReader) {
-		xmlFreeTextReader(mReader);
-	}
-}
-
-int VxmlParser::init(const char *pXmlFile, int pOption, const char *encoding) {
-	int ret = 1;
-	if (pXmlFile == nullptr) {
-		return (0);
-	}
-	mFilepath = pXmlFile;
-	mReader = xmlReaderForFile(pXmlFile, encoding, pOption);
-	if (mReader != NULL) {
-		ret = xmlTextReaderRead(mReader);
-		while (ret == 1) {
-			process_node();
-			ret = xmlTextReaderRead(mReader);
-		}
-		if (ret != 0) {
-			util::logging::log(util::logging::ERROR, std::string("Error (XmlHelper): Failed to parse ") + pXmlFile);
-		}
-	} else {
-		util::logging::log(util::logging::ERROR, std::string("Error (XmlHelper): Failed to open file ") + pXmlFile);
-	}
-	return ret;
+int VxmlParser::init(const char *pXmlFile, int pOption, const char *encoding)
+{
+    int ret = 1;
+    if (pXmlFile == nullptr)
+    {
+        return (0);
+    }
+    mFilepath = pXmlFile;
+    mReader = xmlReaderForFile(pXmlFile, encoding, pOption);
+    if (mReader != NULL)
+    {
+        ret = xmlTextReaderRead(mReader);
+        while (ret == 1)
+        {
+            process_node();
+            ret = xmlTextReaderRead(mReader);
+        }
+        if (ret != 0)
+        {
+            util::logging::log(util::logging::ERROR, std::string("Error (XmlHelper): Failed to parse ") + pXmlFile);
+        }
+    }
+    else
+    {
+        util::logging::log(util::logging::ERROR, std::string("Error (XmlHelper): Failed to open file ") + pXmlFile);
+    }
+    return ret;
 }
 } // namespace vxml

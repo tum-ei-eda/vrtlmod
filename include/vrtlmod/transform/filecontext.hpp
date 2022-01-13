@@ -34,14 +34,15 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief namespace for LLVM/Clang source to source transformation
-namespace transform {
+namespace transform
+{
 
 /** \brief Handles status of Files and supports clang rewriter.
-  */
+ */
 class FileContext
 {
-public:
-    FileContext(clang::Rewriter & rw,const std::string & file);
+  public:
+    FileContext(clang::Rewriter &rw, const std::string &file);
     ~FileContext();
 
     inline void signalChange()
@@ -49,41 +50,29 @@ public:
         changed_ = true;
         anyChange_ = true;
     }
-    inline bool hasChange()
-    {
-        return changed_;
-    }
+    inline bool hasChange() { return changed_; }
 
-    inline void resetIncompatibleChangeFlag()
-    {
-        incompatibleChange_ = false;
-    }
-    inline bool hasIncompatibleChange()
-    {
-        return incompatibleChange_;
-    }
+    inline void resetIncompatibleChangeFlag() { incompatibleChange_ = false; }
+    inline bool hasIncompatibleChange() { return incompatibleChange_; }
     inline void signalIncompatibleChange()
     {
         incompatibleChange_ = true;
         anyChange_ = true;
     }
-    inline void signalFatalFailure()
-    {
-        fatalFailure_ = true;
-    }
-public:
+    inline void signalFatalFailure() { fatalFailure_ = true; }
 
-    clang::Rewriter & rewriter_;
+  public:
+    clang::Rewriter &rewriter_;
     const std::string file_;
-    clang::ASTContext * context_;
+    clang::ASTContext *context_;
 
-private:
-
+  private:
     bool changed_;
     bool incompatibleChange_;
     static bool fatalFailure_;
     static bool anyChange_;
-public:
+
+  public:
     static void resetAnyChangeFlag();
     static bool anyChange();
     static bool fatalFailure();

@@ -33,82 +33,92 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief namespace for all API building functionalities
-namespace vapi {
+namespace vapi
+{
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @class TemplateFile
 /// @brief Self-contained base class for file generation without template files
 /// @author Johannes Geier (johannes.geier@tum.de)
 ////////////////////////////////////////////////////////////////////////////////
-class TemplateFile {
-	///////////////////////////////////////////////////////////////////////
-	/// \brief Specified path to output directory
-	std::string filepath_;
-	std::string filename_;
-protected:
-	std::string header_;
-	std::string body_;
+class TemplateFile
+{
+    ///////////////////////////////////////////////////////////////////////
+    /// \brief Specified path to output directory
+    std::string filepath_;
+    std::string filename_;
 
-	virtual const std::string get_brief(void){return (std::string(""));}
-	virtual const std::string get_details(void){return (std::string(""));}
-	virtual const std::string get_date(void){
-		std::time_t timestamp = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-		return (std::ctime(&timestamp));
-	}
-	virtual const std::string get_author(void){return (std::string(""));}
+  protected:
+    std::string header_;
+    std::string body_;
 
-	virtual void generate_header(void){
-		std::stringstream x;
-		header_ = "";
-		x <<
-"////////////////////////////////////////////////////////////////////////////////\n\
-/// @file " 	<< filename_ 	<< "\n\
-/// @date " 	<< get_date() << "\
-/// @author " 	<< get_author() 	<< "\n\
-/// @brief " 	<< get_brief() 	<< "\n\
-/// @details " 	<< get_details() 	<< "\n\
-////////////////////////////////////////////////////////////////////////////////\n" << std::endl;
-		header_ = x.str();
-	};
-	virtual void generate_body(void) = 0;
+    virtual const std::string get_brief(void) { return (std::string("")); }
+    virtual const std::string get_details(void) { return (std::string("")); }
+    virtual const std::string get_date(void)
+    {
+        std::time_t timestamp = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        return (std::ctime(&timestamp));
+    }
+    virtual const std::string get_author(void) { return (std::string("")); }
 
-public:
-	///////////////////////////////////////////////////////////////////////
-	/// \brief Returns output directory
-	const std::string get_filepath(void) const{
-		return (filepath_);
-	}
-	///////////////////////////////////////////////////////////////////////
-	/// \brief Returns file name
-	const std::string get_filename(void) const{
-		return (filename_);
-	}
+    virtual void generate_header(void)
+    {
+        std::stringstream x;
+        header_ = "";
+        x << "////////////////////////////////////////////////////////////////////////////////\n\
+/// @file "
+          << filename_ << "\n\
+/// @date "
+          << get_date() << "\
+/// @author "
+          << get_author() << "\n\
+/// @brief "
+          << get_brief() << "\n\
+/// @details "
+          << get_details() << "\n\
+////////////////////////////////////////////////////////////////////////////////\n"
+          << std::endl;
+        header_ = x.str();
+    };
+    virtual void generate_body(void) = 0;
 
-	///////////////////////////////////////////////////////////////////////
-	/// \brief Constructor
-	TemplateFile(void) { }
-	virtual ~TemplateFile(void){};
+  public:
+    ///////////////////////////////////////////////////////////////////////
+    /// \brief Returns output directory
+    const std::string get_filepath(void) const { return (filepath_); }
+    ///////////////////////////////////////////////////////////////////////
+    /// \brief Returns file name
+    const std::string get_filename(void) const { return (filename_); }
 
-	void write(const std::string filepath){
-		filepath_ = filepath;
-		filename_ = (filepath_.rfind("/") != std::string::npos) ?
-			 filepath_.substr(filepath_.rfind("/")+1)
-			: (filepath_.rfind("\\") != std::string::npos) ? filepath_.substr(filepath_.rfind("\\")+1) : filepath_;
+    ///////////////////////////////////////////////////////////////////////
+    /// \brief Constructor
+    TemplateFile(void) {}
+    virtual ~TemplateFile(void){};
 
-		generate_header();
-		generate_body();
+    void write(const std::string filepath)
+    {
+        filepath_ = filepath;
+        filename_ = (filepath_.rfind("/") != std::string::npos)    ? filepath_.substr(filepath_.rfind("/") + 1)
+                    : (filepath_.rfind("\\") != std::string::npos) ? filepath_.substr(filepath_.rfind("\\") + 1)
+                                                                   : filepath_;
 
-		std::ofstream out;
-		util::logging::log(util::logging::INFO, std::string("TemplateFile file path: ") + filepath_ + std::string(" open"));
-		out.open(filepath_);
-		if (out.fail()) {
-			util::logging::abort(std::string("TemplateFile file path: ") + filepath_ + std::string(" invalid."));
-		}
-		out << header_;
-		out << body_;
-		out.close();
-		util::logging::log(util::logging::INFO, std::string("TemplateFile file path: ") + filepath_ + std::string(" written"));
-	}
+        generate_header();
+        generate_body();
+
+        std::ofstream out;
+        util::logging::log(util::logging::INFO,
+                           std::string("TemplateFile file path: ") + filepath_ + std::string(" open"));
+        out.open(filepath_);
+        if (out.fail())
+        {
+            util::logging::abort(std::string("TemplateFile file path: ") + filepath_ + std::string(" invalid."));
+        }
+        out << header_;
+        out << body_;
+        out.close();
+        util::logging::log(util::logging::INFO,
+                           std::string("TemplateFile file path: ") + filepath_ + std::string(" written"));
+    }
 };
 
 } // namespace vapi
