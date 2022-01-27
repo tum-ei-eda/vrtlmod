@@ -61,7 +61,7 @@ IF(NOT LLVM_DIR) #try environment
 ENDIF()
 
 IF(NOT Clang_DIR)
-  SET(Clang_DIR ${LLVM_DIR}/../clang)
+  SET(Clang_DIR ${LLVM_DIR})
 ENDIF()
 
 SET(THISLIB "${PROJECT_NAME}_tool")
@@ -119,7 +119,7 @@ set(Boost_NO_BOOST_CMAKE ON)
 find_package(Clang REQUIRED CONFIG
   NO_DEFAULT_PATH
   NO_SYSTEM_ENVIRONMENT_PATH
-  PATHS ${LLVM_DIR}/lib/cmake/clang ${Clang_DIR})
+  PATHS ${LLVM_DIR}/lib/cmake/clang)
 
 find_package(LLVM 9 REQUIRED CONFIG
   NO_DEFAULT_PATH

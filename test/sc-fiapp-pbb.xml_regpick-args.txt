@@ -1,1 +1,0 @@
-/usr/bin/python3.9 /home/joh/repos/devenv/regpicker/regpicker/regpicker.py;pbd;-m;sc;-T;fiapp;-o;sc-fiapp-pbb.xml;-vxml;/home/joh/repos/devenv/vrtlmod-dev/test/fiapp/Vfiapp.xml sc-fiapp-pbb.xml_regpick-inputfiles.txt
