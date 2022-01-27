@@ -1,6 +1,3 @@
 [submodule "test/vrtl-fi-framework"]
 	path = test/vrtl-fi-framework
 	url = git@gitlab.lrz.de:de-tum-ei-eda-esl/fault_injection/vrtl-fi-framework.git
-[submodule "cmake/eda-conan"]
-	path = cmake/eda-conan
-	url = git@gitlab.lrz.de:de-tum-ei-eda-esl/eda-conan.git
