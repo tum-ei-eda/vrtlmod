@@ -10,6 +10,7 @@ variables:
   LLVM_DIR: "llvm"
   APT_CACHE_DIR: apt-cache
   CONAN_CACHE_DIR: conan-cache
+  VERILATOR_CACHE_DIR: verilator-cache
 
 stages:
   - .pre
@@ -21,13 +22,15 @@ cache:
     - ${CONAN_CACHE_DIR}/
     - ${APT_CACHE_DIR}/
     - ${LLVM_DIR}/
+    - ${VERILATOR_CACHE_DIR}/
 
 before_script:
   - echo "env_setup - preparing deb packages"
   - |
     sudo rm -f /etc/apt/apt.conf.d/docker-clean
     mkdir -pv ${APT_CACHE_DIR} && sudo mkdir -p /var/cache/apt/archives && sudo mount --bind ${APT_CACHE_DIR} /var/cache/apt/archives/
-    sudo apt-get update -y && sudo apt-get install -y cmake
+    sudo apt-get update -y && sudo apt-get install -y cmake perl python3 make g++ libfl2 libfl-dev zlibc zlib1g zlib1g-dev ccache libgoogle-perftools-dev numactl perl-doc autoconf flex bison
+    sudo pip3 install castxml pygccxml
     mkdir -pv ${CI_PROJECT_DIR}/${CONAN_CACHE_DIR}
     export CONAN_USER_HOME=${CI_PROJECT_DIR}/${CONAN_CACHE_DIR}
 
@@ -43,6 +46,19 @@ prepare_env:
         conan profile new default --detect
       fi
       conan profile update settings.compiler.libcxx=libstdc++11 default
+
+prepare_verilator:
+  stage: .pre
+  script: 
+    - |
+      echo "environment - preparing verilator"
+      git clone https://github.com/verilator/verilator.git ${VERILATOR_CACHE_DIR}/
+      cd ${VERILATOR_CACHE_DIR}/
+      git checkout v4.202
+      autoconf
+      ./configure
+      make -j$(nproc)
+      make test -j$(nproc)
 
 prepare_llvm:
   stage: .pre
@@ -73,7 +89,13 @@ build-install:
   script:
     - cmake --install ${BUILD_DIR} --config ${BUILD_CONFIG}
 
-build-test:
-  stage: build
+test-job:
+  stage: test
   script:
-    - cmake --build ${BUILD_DIR} --config ${BUILD_CONFIG} --parallel $(nproc) --target test
+    - |
+      git clone https://gitlab.lrz.de/de-tum-ei-eda-esl/fault_injection/regpicker.git
+      cd regpicker
+      git checkout conan
+      cd ..
+      cmake -S ${CI_PROJECT_DIR} -B ${BUILD_DIR} -DTEST_BUILD=On -DVERILATOR_ROOT=${VERILATOR_CACHE_DIR} -DREGPICKER_ROOT=`pwd`/regpicker -DCMAKE_BUILD_TYPE=${BUILD_CONFIG} -DCMAKE_CXX_STANDARD=14 -DCMAKE_INSTALL_PREFIX=${BUILD_DIR}/installed -DLLVM_DIR=${LLVM_DIR}
+      cmake --build ${BUILD_DIR} --config ${BUILD_CONFIG} --parallel $(nproc) --target test
