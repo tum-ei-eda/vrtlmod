@@ -1,3 +1,19 @@
+/*
+ * Copyright 2021 Chair of EDA, Technical University of Munich
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *	 http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 ////////////////////////////////////////////////////////////////////////////////
 /// @file vrtlmod.hpp
 /// @brief main file for llvm-based VRTL-modifer tool
@@ -42,38 +58,39 @@ using namespace clang::tooling;
 /// @class MyFrontendAction
 /// @brief Frontend action for LLVM tool executing actions on the AST tree
 /// @author unknown. modified (Johannes Geier)
-class MyFrontendAction: public ASTFrontendAction {
-public:
-	MyFrontendAction() {
-	}
-	void EndSourceFileAction() {
-		rewriter_.overwriteChangedFiles();
-	}
+class MyFrontendAction : public ASTFrontendAction
+{
+  public:
+    MyFrontendAction() {}
+    void EndSourceFileAction() { rewriter_.overwriteChangedFiles(); }
 
-	//Add own Consumer and code rewriter to it
-	std::unique_ptr<ASTConsumer> CreateASTConsumer(clang::CompilerInstance &CI, llvm::StringRef InFile) {
-		curfile = InFile.str();
-		rewriter_.setSourceMgr(CI.getSourceManager(), CI.getLangOpts());
-		transform::Consumer *cons = new transform::Consumer(rewriter_, curfile);
+    // Add own Consumer and code rewriter to it
+    std::unique_ptr<ASTConsumer> CreateASTConsumer(clang::CompilerInstance &CI, llvm::StringRef InFile)
+    {
+        curfile = InFile.str();
+        rewriter_.setSourceMgr(CI.getSourceManager(), CI.getLangOpts());
+        transform::Consumer *cons = new transform::Consumer(rewriter_, curfile);
 
-		cons->ownHandler(new transform::InjectionRewriter(*cons));
+        cons->ownHandler(new transform::InjectionRewriter(*cons));
 
-		return std::unique_ptr<ASTConsumer>(cons);
-	}
+        return std::unique_ptr<ASTConsumer>(cons);
+    }
 
-private:
-	Rewriter rewriter_;
-	std::string curfile;
+  private:
+    Rewriter rewriter_;
+    std::string curfile;
 };
 
-namespace vrtlmod {
+namespace vrtlmod
+{
 
-namespace env {
+namespace env
+{
 ///////////////////////////////////////////////////////////////////////
 /// \brief Check (Shell) environment for correct specifications
 /// \return True if ok, false if not.
 bool check_environment(void);
-}
-}
+} // namespace env
+} // namespace vrtlmod
 
 #endif /* __VRTLMOD_VRTLMOD_HPP__ */

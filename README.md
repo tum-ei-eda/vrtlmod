@@ -6,11 +6,12 @@ Verilated RTL modifier (vrtlmod) is a LLVM-based tool modifying <a href="https:/
 ## Dependencies
 Besides standard (gmake, cmake, gcc, ...)
 
-1. Verilator  - min. v4.1 (see: https://www.veripool.org/wiki/verilator and install guide)
-2. libxml2
-3. llvm			  - min. v9.0.1
-4. Boost      - min. v1.72.0
-5. (SystemC)  - ! make sure c++std is aligned with VRTL
+1. Verilator  - min. v4.204 (see: https://www.veripool.org/wiki/verilator and install guide)
+2. ~libxml2~ conan
+3. llvm			  - min. v9.0.1 (!) from cmake with `-DLLVM_ENABLE_RTTI=On -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra" -DBUILD_SHARED_LIBS=On`
+4. ~Boost      - min. v1.72.0~ conan
+5. ~(SystemC)  - ! make sure c++std is aligned with VRTL~ conan
+6. conan (pip install conan)
 
 ## Build
 
@@ -20,7 +21,6 @@ Besides standard (gmake, cmake, gcc, ...)
 	[BUILD]: export LLVM_DIR=<path/to/llvm/install/dir>/lib/cmake/llvm
 	[BUILD]: export VERILATOR_ROOT=<path/to/verilator/repository> (not tested with installed Verilator, yet)
 	[TEST]:  export REGPICKER_ROOT=<path/to/regpicker/repository>
-	[TEST]:  export SystemCLanguage_DIR=<path/to/systemc/install/dir>
 
 ```
 
@@ -28,11 +28,10 @@ Besides standard (gmake, cmake, gcc, ...)
 [BUILD]: -DLLVM_DIR=<path/to/llvm/install/dir>/lib/cmake/llvm
 [BUILD]: -DVERILATOR_ROOT=<path/to/verilator/repository> (not tested with installed Verilator, yet)
 [TEST]:  -DREGPICKER_ROOT=<path/to/regpicker/repository>
-[TEST]:  -DSystemCLanguage_DIR=<path/to/systemc/install/dir>
 
 ```
 mkdir build && cd build
-cmake .. [-DLLVM_DIR=...] [-DVERILATOR_ROOT=...] [-DREGPICKER_ROOT=...] [-DSystemCLanguage_DIR] [-DBUILD_DOC=On] [-DTEST_BUILD=On]
+cmake .. [-DLLVM_DIR=...] [-DVERILATOR_ROOT=...] [-DREGPICKER_ROOT=...] [-DBUILD_DOC=On] [-DTEST_BUILD=On]
 make
 ```
 

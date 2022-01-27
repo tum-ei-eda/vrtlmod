@@ -1,3 +1,19 @@
+/*
+ * Copyright 2021 Chair of EDA, Technical University of Munich
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *	 http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 ////////////////////////////////////////////////////////////////////////////////
 /// @file logging.hpp
 /// @brief simple misc helper
@@ -25,8 +41,9 @@
 
 #include <string>
 
-namespace transform{
-	class Consumer;
+namespace transform
+{
+class Consumer;
 }
 
 namespace util
@@ -35,54 +52,58 @@ namespace util
 namespace logging
 {
 
-enum LEVEL {
-	OBLIGAT,
-	INFO,
-	WARNING,
-	ERROR
- };
+enum LEVEL
+{
+    OBLIGAT,
+    INFO,
+    WARNING,
+    ERROR
+};
 
-const char * toString(LEVEL level);
+const char *toString(LEVEL level);
 
-void log(LEVEL level,const std::string & msg, bool silent_toggle = false);
+void log(LEVEL level, const std::string &msg, bool silent_toggle = false);
 
 template <typename T>
-std::string toLogString(const T & obj){
-	return "{UNKNOWN OBJECT}";
-}
-
-template <> inline
-std::string toLogString<std::string>(const std::string & obj){
-	return std::string("{\"") + obj + "\"}";
-}
-
-template<>
-std::string toLogString<transform::Consumer>(const transform::Consumer & cons);
-
-template<>
-std::string toLogString<std::tuple<const clang::SourceLocation &, clang::SourceManager &> >(const std::tuple<const clang::SourceLocation &, clang::SourceManager& > & cons);
-
-template<>
-std::string toLogString<std::tuple<const clang::SourceRange &, clang::SourceManager &> >(const std::tuple<const clang::SourceRange &,clang::SourceManager& > & cons);
-
-template<> inline
-std::string toLogString<std::tuple<clang::SourceManager &,const clang::SourceRange &> >(const std::tuple< clang::SourceManager &,const clang::SourceRange &> & cons);
-
-
-template <typename T,typename ... OT>
-void log(LEVEL level,const std::string & msg,const T & o,const OT & ...   objects)
+std::string toLogString(const T &obj)
 {
-	log(level,msg+"\n\t"+toLogString(o),objects...);
+    return "{UNKNOWN OBJECT}";
+}
+
+template <>
+inline std::string toLogString<std::string>(const std::string &obj)
+{
+    return std::string("{\"") + obj + "\"}";
+}
+
+template <>
+std::string toLogString<transform::Consumer>(const transform::Consumer &cons);
+
+template <>
+std::string toLogString<std::tuple<const clang::SourceLocation &, clang::SourceManager &>>(
+    const std::tuple<const clang::SourceLocation &, clang::SourceManager &> &cons);
+
+template <>
+std::string toLogString<std::tuple<const clang::SourceRange &, clang::SourceManager &>>(
+    const std::tuple<const clang::SourceRange &, clang::SourceManager &> &cons);
+
+template <>
+inline std::string toLogString<std::tuple<clang::SourceManager &, const clang::SourceRange &>>(
+    const std::tuple<clang::SourceManager &, const clang::SourceRange &> &cons);
+
+template <typename T, typename... OT>
+void log(LEVEL level, const std::string &msg, const T &o, const OT &...objects)
+{
+    log(level, msg + "\n\t" + toLogString(o), objects...);
 }
 
 void abort();
-void abort(const std::string & msg);
-template <typename T,typename ... OT>
-void abort(const std::string & msg,const T & o,const OT & ...   objects)
+void abort(const std::string &msg);
+template <typename T, typename... OT>
+void abort(const std::string &msg, const T &o, const OT &...objects)
 {
-	abort(msg+"\n\t"+toLogString(o),objects...);
+    abort(msg + "\n\t" + toLogString(o), objects...);
 }
-
 
 } // namespace logging
 

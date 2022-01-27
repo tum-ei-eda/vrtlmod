@@ -1,3 +1,19 @@
+/*
+ * Copyright 2021 Chair of EDA, Technical University of Munich
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *	 http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 ////////////////////////////////////////////////////////////////////////////////
 /// @file consumer.h
 /// @date Created on ?
@@ -34,23 +50,24 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief namespace for LLVM/Clang source to source transformation
-namespace transform {
+namespace transform
+{
 
 class Consumer;
 
 // Handler parent class to find nodes in AST (like statements or expressions).
 class Handler : public clang::ast_matchers::MatchFinder::MatchCallback
 {
-public:
-    Handler(Consumer & consumer); // Constructor sets Consumer
+  public:
+    Handler(Consumer &consumer); // Constructor sets Consumer
     virtual ~Handler();
 
-    virtual void addMatcher(clang::ast_matchers::MatchFinder & finder) = 0;
+    virtual void addMatcher(clang::ast_matchers::MatchFinder &finder) = 0;
 
     virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) = 0;
 
-    clang::Rewriter & getRewriter();     // returns rewrite of consumer
-    clang::ASTContext & getASTContext(); // returns context of consumer & aborts if context does not exist
+    clang::Rewriter &getRewriter();     // returns rewrite of consumer
+    clang::ASTContext &getASTContext(); // returns context of consumer & aborts if context does not exist
 
     // Set signals of consumer
     void signalChange();
@@ -59,47 +76,50 @@ public:
 
     bool inThisFile(clang::SourceLocation sl); // Checks if given sl is in actual file
 
-private:
-    Consumer & consumer_;
-public:
+  private:
+    Consumer &consumer_;
 
+  public:
 };
 
-class Consumer : public  clang::ASTConsumer
+class Consumer : public clang::ASTConsumer
 {
     friend class Handler;
-    template<typename T> friend std::string util::logging::toLogString(const T & cons);
-public:
+    template <typename T>
+    friend std::string util::logging::toLogString(const T &cons);
 
-    Consumer(clang::Rewriter & rw,const std::string & file); // sets File context
-    ~Consumer(); // Delete handlers
+  public:
+    Consumer(clang::Rewriter &rw, const std::string &file); // sets File context
+    ~Consumer();                                            // Delete handlers
 
-    void ownHandler(Handler * handler); // Add handler to consumer and matcher of this consumer to handler
+    void ownHandler(Handler *handler); // Add handler to consumer and matcher of this consumer to handler
 
     virtual void Initialize(clang::ASTContext &Context);
 
     virtual void HandleTranslationUnit(clang::ASTContext &Context);
 
-private:
+  private:
     FileContext fc_;
     clang::ast_matchers::MatchFinder matcher_;
-    std::list<Handler*> handlers_;
-
+    std::list<Handler *> handlers_;
 };
 
 } // namespace transform
 
-namespace util {
-namespace logging {
-//template<>
-//std::string toLogString<transform::Consumer>(const transform::Consumer & cons)
+namespace util
+{
+namespace logging
+{
+// template<>
+// std::string toLogString<transform::Consumer>(const transform::Consumer & cons)
 //;
 /*{
-	return std::string("{transform::Consumer file=") + cons.fc_.file_ + "}";
+        return std::string("{transform::Consumer file=") + cons.fc_.file_ + "}";
 }*/
 
-//template<>
-//std::string toLogString<std::tuple<const clang::SourceLocation &, clang::SourceManager &> >(const std::tuple<const clang::SourceLocation &, clang::SourceManager& > & cons)
+// template<>
+// std::string toLogString<std::tuple<const clang::SourceLocation &, clang::SourceManager &> >(const std::tuple<const
+// clang::SourceLocation &, clang::SourceManager& > & cons)
 //;
 /*{
   std::stringstream ss;
@@ -111,25 +131,29 @@ namespace logging {
   return ss.str();
 }*/
 
-//template<>
-//std::string toLogString<std::tuple<const clang::SourceRange &, clang::SourceManager &> >(const std::tuple<const clang::SourceRange &,clang::SourceManager& > & cons)
+// template<>
+// std::string toLogString<std::tuple<const clang::SourceRange &, clang::SourceManager &> >(const std::tuple<const
+// clang::SourceRange &,clang::SourceManager& > & cons)
 //;
 /*{
 return std::string("{clang::SourceRange {")
-  + toLogString(std::tie<const clang::SourceLocation&, clang::SourceManager&>(std::get<0>(cons).getBegin(), std::get<1>(cons)))
+  + toLogString(std::tie<const clang::SourceLocation&, clang::SourceManager&>(std::get<0>(cons).getBegin(),
+std::get<1>(cons)))
   + ","
-  + toLogString(std::tie<const clang::SourceLocation&, clang::SourceManager&>(std::get<0>(cons).getEnd(), std::get<1>(cons)))
+  + toLogString(std::tie<const clang::SourceLocation&, clang::SourceManager&>(std::get<0>(cons).getEnd(),
+std::get<1>(cons)))
   + "}";
 }*/
 
-//template<> inline
-//std::string toLogString<std::tuple<clang::SourceManager &,const clang::SourceRange &> >(const std::tuple< clang::SourceManager &,const clang::SourceRange &> & cons)
+// template<> inline
+// std::string toLogString<std::tuple<clang::SourceManager &,const clang::SourceRange &> >(const std::tuple<
+// clang::SourceManager &,const clang::SourceRange &> & cons)
 //{
-//	return toLogString<std::tuple<const clang::SourceRange &, clang::SourceManager &> >(std::tie(std::get<1>(cons),std::get<0>(cons)));
-//}
+//	return toLogString<std::tuple<const clang::SourceRange &, clang::SourceManager &>
+//>(std::tie(std::get<1>(cons),std::get<0>(cons)));
+// }
 
-} // namespace util::logging
+} // namespace logging
 } // namespace util
-
 
 #endif // __VRTLMOD_TRANSFORM_CONSUMER_HPP__
