@@ -78,7 +78,7 @@ prepare_llvm:
 build-configure:
   stage: build
   script:
-    - cmake -S ${CI_PROJECT_DIR} -B ${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_CONFIG} -DCMAKE_CXX_STANDARD=14 -DCMAKE_INSTALL_PREFIX=${BUILD_DIR}/installed -DLLVM_DIR=${LLVM_DIR}
+    - cmake -S ${CI_PROJECT_DIR} -B ${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_CONFIG} -DCMAKE_CXX_STANDARD=14 -DCMAKE_INSTALL_PREFIX=${BUILD_DIR}/installed -DLLVM_DIR=`pwd`/${LLVM_DIR}
 
 build-make:
   stage: build
