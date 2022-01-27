@@ -1,0 +1,79 @@
+image: conanio/gcc11
+
+variables:
+  BUILD_CONFIG: Release
+  BUILD_DIR: build
+  GIT_SUBMODULE_STRATEGY: recursive
+  LLVM_SOURCE: "https://github.com/llvm/llvm-project/releases/download/llvmorg-9.0.1"
+  LLVM_SOURCE_NAME: "clang+llvm-9.0.1-x86_64-linux-gnu-ubuntu-16.04"
+  LLVM_SOURCE_EXT: "tar.xz"
+  LLVM_DIR: "llvm"
+  APT_CACHE_DIR: apt-cache
+  CONAN_CACHE_DIR: conan-cache
+
+stages:
+  - .pre
+  - build
+  - test
+
+cache:
+  paths:
+    - ${CONAN_CACHE_DIR}/
+    - ${APT_CACHE_DIR}/
+    - ${LLVM_DIR}/
+
+before_script:
+  - echo "env_setup - preparing deb packages"
+  - |
+    sudo rm -f /etc/apt/apt.conf.d/docker-clean
+    mkdir -pv ${APT_CACHE_DIR} && sudo mkdir -p /var/cache/apt/archives && sudo mount --bind ${APT_CACHE_DIR} /var/cache/apt/archives/
+    sudo apt-get update -y && sudo apt-get install -y cmake
+    mkdir -pv ${CI_PROJECT_DIR}/${CONAN_CACHE_DIR}
+    export CONAN_USER_HOME=${CI_PROJECT_DIR}/${CONAN_CACHE_DIR}
+
+prepare_env:
+  stage: .pre
+  script:
+    - |
+      echo "environment - preparing conan"
+      sudo pip install --upgrade conan
+      conan user
+      if ! [[ $(conan profile list) = *default* ]]
+      then
+        conan profile new default --detect
+      fi
+      conan profile update settings.compiler.libcxx=libstdc++11 default
+
+prepare_llvm:
+  stage: .pre
+  script:
+    - |
+      echo "environment - preparing llvm"
+      if [ ! -d ${LLVM_DIR} ]
+      then
+        wget ${LLVM_SOURCE}/${LLVM_SOURCE_NAME}.${LLVM_SOURCE_EXT}
+        tar xf ${LLVM_SOURCE_NAME}.${LLVM_SOURCE_EXT}
+        mv ${LLVM_SOURCE_NAME} ${LLVM_DIR}
+      else
+        echo "llvm already satisfied."
+      fi
+
+build-configure:
+  stage: build
+  script:
+    - cmake -S ${CI_PROJECT_DIR} -B ${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_CONFIG} -DCMAKE_CXX_STANDARD=14 -DCMAKE_INSTALL_PREFIX=${BUILD_DIR}/installed -DLLVM_DIR=${LLVM_DIR}
+
+build-make:
+  stage: build
+  script:
+    - cmake --build ${BUILD_DIR} --config ${BUILD_CONFIG} --parallel $(nproc)
+    
+build-install:
+  stage: build
+  script:
+    - cmake --install ${BUILD_DIR} --config ${BUILD_CONFIG}
+
+build-test:
+  stage: build
+  script:
+    - cmake --build ${BUILD_DIR} --config ${BUILD_CONFIG} --parallel $(nproc) --target test
