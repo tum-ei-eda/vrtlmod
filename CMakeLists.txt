@@ -116,6 +116,7 @@ set(Boost_NO_BOOST_CMAKE ON)
 
 ####################################################################################################
 # cmake packages 
+message(STATUS "LLVM_DIR: ${LLVM_DIR}")
 find_package(Clang REQUIRED CONFIG
   NO_DEFAULT_PATH
   NO_SYSTEM_ENVIRONMENT_PATH

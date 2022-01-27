@@ -73,6 +73,7 @@ prepare_llvm:
       else
         echo "llvm already satisfied."
       fi
+      ls -la ${LLVM_DIR}
 
 build-configure:
   stage: build
