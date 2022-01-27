@@ -1,3 +1,3 @@
 [submodule "test/vrtl-fi-framework"]
 	path = test/vrtl-fi-framework
-	url = git@gitlab.lrz.de:de-tum-ei-eda-esl/fault_injection/vrtl-fi-framework.git
+	url = ../vrtl-fi-framework.git
