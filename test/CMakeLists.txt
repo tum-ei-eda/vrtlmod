@@ -77,7 +77,7 @@ IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
         TOP_MODULE ${DUT_NAME}
         SOURCES ${CC_SOURCES}
         VARGS ${VERILATE_ARGS}
-        NETLIST ${TDIR}/${DUT_NAME}/V${DUT_NAME}.xml
+        VERBOSE ${VERBOSE}
     )
 
     add_custom_command(
@@ -166,8 +166,8 @@ IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
         TOP_MODULE ${DUT_NAME}
         SOURCES ${CC_SOURCES}
         VARGS ${VERILATE_ARGS}
-        NETLIST ${TDIR}/${DUT_NAME}/V${DUT_NAME}.xml
         CC_INCLUDE_DIRS ${SYSTEMC_INCLUDE_DIRS}
+        VERBOSE ${VERBOSE}
     )
 
     add_custom_command(
