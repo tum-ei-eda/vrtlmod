@@ -7,96 +7,103 @@ variables:
   LLVM_SOURCE: "https://github.com/llvm/llvm-project/releases/download/llvmorg-9.0.1"
   LLVM_SOURCE_NAME: "clang+llvm-9.0.1-x86_64-linux-gnu-ubuntu-16.04"
   LLVM_SOURCE_EXT: "tar.xz"
-  LLVM_DIR: "llvm"
+  LLVM_DIR: ${CI_PROJECT_DIR}/llvm
+  CONAN_CACHE_DIR: ${CI_PROJECT_DIR}/conan-cache
+  VERILATOR_CACHE_DIR: ${CI_PROJECT_DIR}/verilator-cache
+  VERILATOR_ROOT: ${CI_PROJECT_DIR}/verilator-cache
+  PIP_CACHE_DIR: $CI_PROJECT_DIR/.cache/pip
   APT_CACHE_DIR: apt-cache
-  CONAN_CACHE_DIR: conan-cache
-  VERILATOR_CACHE_DIR: verilator-cache
 
 stages:
-  - .pre
   - build
   - test
 
 cache:
   paths:
-    - ${CONAN_CACHE_DIR}/
-    - ${APT_CACHE_DIR}/
-    - ${LLVM_DIR}/
-    - ${VERILATOR_CACHE_DIR}/
+    - conan-cache
+    - verilator-cache
+    - venv
+    - .cache/pip
+    - apt-cache
+    - llvm
 
 before_script:
   - echo "env_setup - preparing deb packages"
+  - sudo rm -f /etc/apt/apt.conf.d/docker-clean
+  - sudo mkdir -pv ${APT_CACHE_DIR}
+  - sudo mkdir -p /var/cache/apt/archives
+  - sudo mount --bind ${APT_CACHE_DIR} /var/cache/apt/archives/
+  - sudo DEBIAN_FRONTEND=noninteractive apt update -q 
+  - sudo DEBIAN_FRONTEND=noninteractive apt upgrade -yq
+  - sudo DEBIAN_FRONTEND=noninteractive apt install -yq cmake perl make g++ libfl2 libfl-dev zlibc zlib1g zlib1g-dev ccache libgoogle-perftools-dev numactl perl-doc autoconf flex bison
+  - mkdir -pv ${CI_PROJECT_DIR}/${CONAN_CACHE_DIR}
+  - export CONAN_USER_HOME=${CONAN_CACHE_DIR}
+  - echo "environment"
+  - pip3 install virtualenv
+  - virtualenv -p python3 venv
+  - pip install --upgrade conan castxml pygccxml
   - |
-    sudo rm -f /etc/apt/apt.conf.d/docker-clean
-    mkdir -pv ${APT_CACHE_DIR} && sudo mkdir -p /var/cache/apt/archives && sudo mount --bind ${APT_CACHE_DIR} /var/cache/apt/archives/
-    sudo apt-get update -y && sudo apt-get install -y cmake perl python3 make g++ libfl2 libfl-dev zlibc zlib1g zlib1g-dev ccache libgoogle-perftools-dev numactl perl-doc autoconf flex bison
-    sudo pip3 install castxml pygccxml
-    mkdir -pv ${CI_PROJECT_DIR}/${CONAN_CACHE_DIR}
-    export CONAN_USER_HOME=${CI_PROJECT_DIR}/${CONAN_CACHE_DIR}
-
-prepare_env:
-  stage: .pre
-  script:
-    - |
-      echo "environment - preparing conan"
-      sudo pip install --upgrade conan
-      conan user
-      if ! [[ $(conan profile list) = *default* ]]
-      then
-        conan profile new default --detect
-      fi
-      conan profile update settings.compiler.libcxx=libstdc++11 default
-
-prepare_verilator:
-  stage: .pre
-  script: 
-    - |
-      echo "environment - preparing verilator"
+    conan user
+    if ! [[ $(conan profile list) = *default* ]]
+    then
+      conan profile new default --detect
+    fi
+    conan profile update settings.compiler.libcxx=libstdc++11 default
+  - echo "environment - preparing verilator"
+  - |
+    if [ ! -d ${VERILATOR_CACHE_DIR} ]
+    then
       git clone https://github.com/verilator/verilator.git ${VERILATOR_CACHE_DIR}/
-      cd ${VERILATOR_CACHE_DIR}/
       git checkout v4.202
+      cd ${VERILATOR_CACHE_DIR}/
       autoconf
       ./configure
       make -j$(nproc)
-      make test -j$(nproc)
+      cd ${CI_PROJECT_DIR}
+    else
+      echo "verilator already satisfied."
+    fi
+  - echo "environment - preparing llvm"
+  - |
+    if [ ! -d ${LLVM_DIR} ]
+    then
+      wget -nv --show-progress ${LLVM_SOURCE}/${LLVM_SOURCE_NAME}.${LLVM_SOURCE_EXT}
+      tar xf ${LLVM_SOURCE_NAME}.${LLVM_SOURCE_EXT}
+      mv ${LLVM_SOURCE_NAME} ${LLVM_DIR}
+    else
+      echo "llvm already satisfied."
+    fi
 
-prepare_llvm:
-  stage: .pre
-  script:
-    - |
-      echo "environment - preparing llvm"
-      if [ ! -d ${LLVM_DIR} ]
-      then
-        wget ${LLVM_SOURCE}/${LLVM_SOURCE_NAME}.${LLVM_SOURCE_EXT}
-        tar xf ${LLVM_SOURCE_NAME}.${LLVM_SOURCE_EXT}
-        mv ${LLVM_SOURCE_NAME} ${LLVM_DIR}
-      else
-        echo "llvm already satisfied."
-      fi
-      ls -la ${LLVM_DIR}
-
-build-configure:
+build-job:
   stage: build
   script:
-    - cmake -S ${CI_PROJECT_DIR} -B ${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_CONFIG} -DCMAKE_CXX_STANDARD=14 -DCMAKE_INSTALL_PREFIX=${BUILD_DIR}/installed -DLLVM_DIR=`pwd`/${LLVM_DIR}
-
-build-make:
-  stage: build
-  script:
+    - cd ${CI_PROJECT_DIR}
+    - cmake -S ${CI_PROJECT_DIR} -B ${BUILD_DIR} -DVERILATOR_ROOT=${VERILATOR_CACHE_DIR} -DREGPICKER_ROOT=`pwd`/regpicker -DCMAKE_BUILD_TYPE=${BUILD_CONFIG} -DCMAKE_CXX_STANDARD=14 -DCMAKE_INSTALL_PREFIX=${BUILD_DIR}/installed -DLLVM_DIR=${LLVM_DIR}
     - cmake --build ${BUILD_DIR} --config ${BUILD_CONFIG} --parallel $(nproc)
-    
-build-install:
-  stage: build
-  script:
     - cmake --install ${BUILD_DIR} --config ${BUILD_CONFIG}
+  
+  artifacts:
+    paths:
+      - ${BUILD_DIR}/CMakeFiles/CMakeOutput.log
+      - ${BUILD_DIR}/CMakeFiles/CMakeError.log
+    when: on_failure
 
 test-job:
   stage: test
   script:
-    - |
-      git clone https://gitlab.lrz.de/de-tum-ei-eda-esl/fault_injection/regpicker.git
-      cd regpicker
-      git checkout conan
-      cd ..
-      cmake -S ${CI_PROJECT_DIR} -B ${BUILD_DIR} -DTEST_BUILD=On -DVERILATOR_ROOT=${VERILATOR_CACHE_DIR} -DREGPICKER_ROOT=`pwd`/regpicker -DCMAKE_BUILD_TYPE=${BUILD_CONFIG} -DCMAKE_CXX_STANDARD=14 -DCMAKE_INSTALL_PREFIX=${BUILD_DIR}/installed -DLLVM_DIR=${LLVM_DIR}
-      cmake --build ${BUILD_DIR} --config ${BUILD_CONFIG} --parallel $(nproc) --target test
+    - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.lrz.de/de-tum-ei-eda-esl/fault_injection/regpicker.git --branch conan
+    - cd regpicker
+    - git checkout conan
+    - echo "regpicker self test..."
+    - python regpicker/regpicker.py pbb -m cc -y regpicker/examples/dff/dff.sv -clk clk -rst reset
+    - cd ${CI_PROJECT_DIR}
+    - cmake -S ${CI_PROJECT_DIR} -B ${BUILD_DIR} -DVERBOSE=On -DTEST_BUILD=On -DVERILATOR_ROOT=${VERILATOR_CACHE_DIR} -DREGPICKER_ROOT=`pwd`/regpicker -DCMAKE_BUILD_TYPE=${BUILD_CONFIG} -DCMAKE_CXX_STANDARD=14 -DCMAKE_INSTALL_PREFIX=${BUILD_DIR}/installed -DLLVM_DIR=${LLVM_DIR}
+    - cmake --build ${BUILD_DIR} --config ${BUILD_CONFIG} --parallel $(nproc)
+    - cmake --build ${BUILD_DIR} --config ${BUILD_CONFIG} --parallel $(nproc) --target test
+  
+  artifacts:
+    paths:
+      - ${BUILD_DIR}/CMakeFiles/CMakeOutput.log
+      - ${BUILD_DIR}/CMakeFiles/CMakeError.log
+    when: on_failure
+      
