@@ -28,6 +28,7 @@ cache:
     - llvm
 
 before_script:
+  - git config --global --add safe.directory '*'
   - echo "env_setup - preparing deb packages"
   - sudo rm -f /etc/apt/apt.conf.d/docker-clean
   - sudo mkdir -pv ${APT_CACHE_DIR}
