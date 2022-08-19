@@ -17,18 +17,26 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// @file system.cpp
 /// @date Created on Mon Jan 26 18:21:20 2020
-/// @modified on Wed Dec 09 13:32:12 2020 (johannes.geier@tum.de)
-/// @author Johannes Geier (johannes.geier@tum.de)
 ////////////////////////////////////////////////////////////////////////////////
-
-#include "vrtlmod/util/system.hpp"
-#include "vrtlmod/util/logging.hpp"
 
 #include <array>
 #include <memory>
 
+#include "vrtlmod/util/utility.hpp"
+#include "vrtlmod/util/logging.hpp"
+
 namespace util
 {
+
+int check_file(const fs::path &fpath)
+{
+    if (fs::is_regular_file(fpath) == false)
+    {
+        LOG_ERROR("File [", fpath.string(), "] does not exist in file system.");
+        return 1; // not a valid file path
+    }
+    return 0;
+}
 
 namespace strhelp
 {
@@ -58,7 +66,7 @@ std::string exec(std::string cmd)
 {
     std::array<char, 128> buffer;
     std::string result;
-    logging::log(logging::INFO, std::string("Executing shell command: \n\t").append(cmd));
+    LOG_INFO("Executing shell command: \n\t", cmd);
     std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
     if (!pipe)
     {
@@ -68,7 +76,7 @@ std::string exec(std::string cmd)
     {
         result += buffer.data();
     }
-    logging::log(logging::INFO, std::string(">: ").append(result));
+    LOG_INFO(">: ", result);
     return result;
 }
 } // namespace system

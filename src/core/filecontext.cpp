@@ -16,14 +16,13 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @file filecontext.cpp
-/// @date Created on ?
-/// @modified on Wed Dec 09 13:32:12 2020 (johannes.geier@tum.de)
-/// @author ?
+/// @modified on Wed Dec 09 13:32:12 2020
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "vrtlmod/transform/filecontext.hpp"
+#include "vrtlmod/core/filecontext.hpp"
+#include "vrtlmod/util/logging.hpp"
 
-namespace transform
+namespace vrtlmod
 {
 
 FileContext::FileContext(clang::Rewriter &rw, const std::string &file)
@@ -52,4 +51,32 @@ bool FileContext::fatalFailure()
     return fatalFailure_;
 }
 
-} // namespace transform
+std::map<int, fs::path> FileLocator::file_map_;
+
+void FileLocator::foreach_relevant_file(const std::function<void(const std::pair<int, fs::path> &t)> &func)
+{
+    for (auto const &it : FileLocator::file_map_)
+        func(it);
+}
+
+FileLocator::FileLocator(fs::path fpath, int line, int column) : line_(line), column_(column)
+{
+    bool found = false;
+    id_ = -1;
+    for (const auto &it : file_map_)
+    {
+        id_ = it.first;
+        if (it.second == fpath)
+        {
+            found = true;
+            break;
+        }
+    }
+    if (!found)
+    {
+        file_map_[++id_] = fpath;
+    }
+    LOG_VERBOSE("file: [", get_id(), "]", fpath.string());
+}
+
+} // namespace vrtlmod

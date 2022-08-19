@@ -20,9 +20,19 @@ cmake_minimum_required(VERSION 3.15)
 
 enable_testing()
 set(TEST_BUILD OFF CACHE STRING "Include Tests in build")
-IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
+if(CMAKE_TESTING_ENABLED AND TEST_BUILD)
 
-    add_subdirectory(vrtl-fi-framework)
+    include(ProcessorCount)
+    ProcessorCount(NCORES)
+    if(NOT NCORES EQUAL 0)
+        set(CTEST_BUILD_FLAGS -j${NCORES})
+        set(ctest_test_args ${ctest_test_args} PARALLEL_LEVEL ${NCORES})
+        set(PARALLEL_BUILD "--parallel;${NCORES}")
+    endif()
+
+    add_test(NAME ${PROJECT_NAME}:build
+        COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} ${PARALLEL_BUILD} --target ${PROJECT_NAME}
+    )
 
     set(TDIR ${CMAKE_CURRENT_SOURCE_DIR})
     set(TBDIR ${CMAKE_CURRENT_BINARY_DIR})
@@ -43,7 +53,6 @@ IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
     set_target_properties(null sc-null PROPERTIES CXX_STANDARD ${CMAKE_CXX_STANDARD})
 
     find_package(verilator HINTS $ENV{VERILATOR_ROOT} ${VERILATOR_ROOT} REQUIRED)
-    find_package(regpicker HINTS $ENV{REGPICKER_ROOT} ${REGPICKER_ROOT} REQUIRED)
 
     # VERILATE to C++ VRTL
     set(DUT_NAME fiapp)
@@ -51,16 +60,11 @@ IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
         TOP_MODULE ${DUT_NAME}
         DIRECTORY ${CC_SUBDIR}
         SOURCES ${TDIR}/${DUT_NAME}/${DUT_NAME}.sv
-        VERILATOR_ARGS -O3
+        VERILATOR_ARGS -O0 --hierarchical
     )
 
-    set(CIN
-        ${CC_SUBDIR}/V${DUT_NAME}.cpp
-        ${CC_SUBDIR}/V${DUT_NAME}__Syms.cpp
-        ${CC_SUBDIR}/V${DUT_NAME}__Slow.cpp
-    )
-    string(REPLACE "${CC_SUBDIR}/" "${CC_SUBDIR}/vrtlmod/" COUT ${CIN})
-    string(REPLACE ".cpp" "_vrtlmod.cpp;" COUT ${COUT})
+    file(GLOB CIN ${CC_SUBDIR}/*)
+    string(REPLACE "${CC_SUBDIR}/" ";${CC_SUBDIR}/vrtlmod/" COUT ${CIN})
 
     message ("New sources: ${COUT}")
 
@@ -71,53 +75,27 @@ IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
     add_custom_target(${REGPICK_OUT}
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
-    message("Using system regpicker at ${REGPICKER_ROOT}")
-    regpick( TARGET ${CMAKE_CURRENT_BINARY_DIR}/${REGPICK_OUT}
-        BYDESIGN
-        TOP_MODULE ${DUT_NAME}
-        SOURCES ${CC_SOURCES}
-        VARGS ${VERILATE_ARGS}
-        VERBOSE ${VERBOSE}
-    )
 
     add_custom_command(
-        OUTPUT ${COUT} ${CC_SUBDIR}/vrtlmod/vrtlmodapi/V${DUT_NAME}_vrtlmodapi.cpp ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.hpp ${CC_SUBDIR}/vrtlmod/targetdictionary/V${DUT_NAME}_td.hpp
+        OUTPUT ${COUT} ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.hpp
         DEPENDS null ${PROJECT_NAME}-bin ${REGPICK_OUT}
-        COMMAND ${PROJECT_BINARY_DIR}/${PROJECT_NAME} ARGS --regxml=${REGPICK_OUT} --out=${CC_SUBDIR}/vrtlmod/ ${CIN} -- clang++ -I${CC_SUBDIR}/ -I${VERILATOR_ROOT}/include -I${CLANG_INCLUDE_DIRS}
-        COMMENT "executing vrtlmod: .. ${PROJECT_NAME} --regxml=${REGPICK_OUT} --out=${CC_SUBDIR}/vrtlmod ${CIN} -- clang++ -I${CC_SUBDIR}/ -I${VERILATOR_ROOT}/include -I${CLANG_INCLUDE_DIRS}"
+        COMMAND ${PROJECT_BINARY_DIR}/${PROJECT_NAME} ARGS --out=${CC_SUBDIR}/vrtlmod/ ${CIN} -v -- clang++ -v -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} -I${CC_SUBDIR}/vrtlmod/ -I${VERILATOR_ROOT}/include -I${VERILATOR_ROOT}/include/vltstd -I${CLANG_INCLUDE_DIRS}
+        COMMENT "executing vrtlmod: .. ${PROJECT_NAME} --out=${CC_SUBDIR}/vrtlmod ${CIN} -v -- clang++ -v -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} -I${CC_SUBDIR}/vrtlmod/ -I${VERILATOR_ROOT}/include -I${VERILATOR_ROOT}/include/vltstd -I${CLANG_INCLUDE_DIRS}"
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
 
     add_executable( ${PROJECT_NAME}-test-cc
         EXCLUDE_FROM_ALL
         ${COUT}
-        ${CC_SUBDIR}/vrtlmod/vrtlmodapi/V${DUT_NAME}_vrtlmodapi.cpp
+        ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp
         ${TDIR}/${DUT_NAME}/${DUT_NAME}_test.cpp
         ${VERILATOR_ROOT}/include/verilated.cpp
     )
     target_include_directories( ${PROJECT_NAME}-test-cc PUBLIC
-        ${CC_SUBDIR}
-        ${CC_SUBDIR}/vrtlmod/
+        ${CC_SUBDIR}/vrtlmod
         ${TBDIR}
         ${VERILATOR_ROOT}/include
-    )
-    target_link_libraries(${PROJECT_NAME}-test-cc PUBLIC
-        vrtl-fi-cc
-    )
-    add_test(NAME ${PROJECT_NAME}:build
-        COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target ${PROJECT_NAME}
-    )
-    add_test(NAME ${PROJECT_NAME}:build:test/fiapp-cc
-        COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target ${PROJECT_NAME}-test-cc
-    )
-    set_tests_properties(${PROJECT_NAME}:build:test/fiapp-cc
-        PROPERTIES DEPENDS ${PROJECT_NAME}:build
-    )
-    add_test(NAME ${PROJECT_NAME}:run:test/fiapp-cc
-        COMMAND ${PROJECT_NAME}-test-cc
-    )
-    set_tests_properties(${PROJECT_NAME}:run:test/fiapp-cc
-        PROPERTIES DEPENDS ${PROJECT_NAME}:build:test/fiapp-cc
+        ${PROJECT_SOURCE_DIR}/include
     )
 
     # VERILATE to SystemC VRTL
@@ -125,10 +103,6 @@ IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
     set(SC_SUBDIR ${CMAKE_CURRENT_BINARY_DIR}/sc_obj_dir)
 
     find_package(SystemCLanguage REQUIRED)
-    set (CMAKE_CXX_STANDARD ${SystemC_CXX_STANDARD} CACHE STRING
-        "C++ standard to build all targets. Supported values are 98, 11, and 14.")
-    set (CMAKE_CXX_STANDARD_REQUIRED ${SystemC_CXX_STANDARD_REQUIRED} CACHE BOOL
-        "The CMAKE_CXX_STANDARD selected C++ standard is a requirement.")
 
     get_target_property(SYSTEMC_INCLUDE_DIRS SystemC::systemc INTERFACE_INCLUDE_DIRECTORIES)
 
@@ -143,13 +117,8 @@ IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
     target_link_libraries(sc-null PUBLIC
         SystemC::systemc
     )
-    set(SCIN
-        ${SC_SUBDIR}/V${DUT_NAME}.cpp
-        ${SC_SUBDIR}/V${DUT_NAME}__Syms.cpp
-        ${SC_SUBDIR}/V${DUT_NAME}__Slow.cpp
-    )
-    string(REPLACE "${SC_SUBDIR}/" "${SC_SUBDIR}/vrtlmod/" SCOUT ${SCIN})
-    string(REPLACE ".cpp" "_vrtlmod.cpp;" SCOUT ${SCOUT})
+    file(GLOB SCIN ${SC_SUBDIR}/*)
+    string(REPLACE "${SC_SUBDIR}/" ";${SC_SUBDIR}/vrtlmod/" SCOUT ${SCIN})
 
     message ("New sources: ${SCOUT}")
 
@@ -159,48 +128,51 @@ IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
     add_custom_target(${SC_REGPICK_OUT}
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
-    message("Using system regpicker at ${REGPICKER_ROOT}")
-    regpick( TARGET ${CMAKE_CURRENT_BINARY_DIR}/${SC_REGPICK_OUT}
-        SYSTEMC
-        BYDESIGN
-        TOP_MODULE ${DUT_NAME}
-        SOURCES ${CC_SOURCES}
-        VARGS ${VERILATE_ARGS}
-        CC_INCLUDE_DIRS ${SYSTEMC_INCLUDE_DIRS}
-        VERBOSE ${VERBOSE}
-    )
 
     add_custom_command(
-        OUTPUT ${SCOUT} ${SC_SUBDIR}/vrtlmod/vrtlmodapi/V${DUT_NAME}_vrtlmodapi.cpp ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.hpp ${SC_SUBDIR}/vrtlmod/targetdictionary/V${DUT_NAME}_td.hpp
+        OUTPUT ${SCOUT} ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.hpp
         DEPENDS sc-null ${PROJECT_NAME}-bin ${SC_REGPICK_OUT}
-        COMMAND ${PROJECT_BINARY_DIR}/${PROJECT_NAME} ARGS --systemc --regxml=${SC_REGPICK_OUT} --out=${SC_SUBDIR}/vrtlmod ${SCIN} -- clang++ -I${SC_SUBDIR}/ -I${VERILATOR_ROOT}/include -I${CLANG_INCLUDE_DIRS} -I${SYSTEMC_INCLUDE_DIRS}
-        COMMENT "executing vrtlmod: .. ${PROJECT_NAME} --systemc --regxml=${SC_REGPICK_OUT} --out=${SC_SUBDIR}/vrtlmod ${SCIN} -- clang++ -I${SC_SUBDIR}/ -I${VERILATOR_ROOT}/include -I${CLANG_INCLUDE_DIRS} -I${SYSTEMC_INCLUDE_DIRS}"
+        COMMAND ${PROJECT_BINARY_DIR}/${PROJECT_NAME} ARGS --systemc --out=${SC_SUBDIR}/vrtlmod ${SCIN} -v -- clang++ -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} -I${SC_SUBDIR}/vrtlmod -I${VERILATOR_ROOT}/include -I${VERILATOR_ROOT}/include/vltstd -I${CLANG_INCLUDE_DIRS} -I${SYSTEMC_INCLUDE_DIRS}
+        COMMENT "executing vrtlmod: .. ${PROJECT_NAME} --systemc --out=${SC_SUBDIR}/vrtlmod ${SCIN} -v -- clang++ -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} -I${SC_SUBDIR}/vrtlmod -I${VERILATOR_ROOT}/include -I${VERILATOR_ROOT}/include/vltstd -I${CLANG_INCLUDE_DIRS} -I${SYSTEMC_INCLUDE_DIRS}"
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
 
     add_executable( ${PROJECT_NAME}-test-sc
         EXCLUDE_FROM_ALL
         ${SCOUT}
-        ${SC_SUBDIR}/vrtlmod/vrtlmodapi/V${DUT_NAME}_vrtlmodapi.cpp
+        ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp
         ${TDIR}/${DUT_NAME}/sc_${DUT_NAME}_test.cpp
         ${VERILATOR_ROOT}/include/verilated.cpp
     )
     target_include_directories( ${PROJECT_NAME}-test-sc PUBLIC
-        ${SC_SUBDIR}
-        ${SC_SUBDIR}/vrtlmod/
+        ${SC_SUBDIR}/vrtlmod
         ${TBDIR}
         ${VERILATOR_ROOT}/include
+        ${PROJECT_SOURCE_DIR}/include
     )
     target_link_libraries(${PROJECT_NAME}-test-sc PUBLIC
         SystemC::systemc
-        vrtl-fi
+    )
+
+    add_test(NAME ${PROJECT_NAME}:build:test/fiapp-cc
+        COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} ${PARALLEL_BUILD} --target ${PROJECT_NAME}-test-cc
+    )
+    set_tests_properties(${PROJECT_NAME}:build:test/fiapp-cc
+        PROPERTIES DEPENDS ${PROJECT_NAME}:build
     )
 
     add_test(NAME ${PROJECT_NAME}:build:test/fiapp-sc
-        COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target ${PROJECT_NAME}-test-sc
+        COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} ${PARALLEL_BUILD} --target ${PROJECT_NAME}-test-sc
     )
     set_tests_properties(${PROJECT_NAME}:build:test/fiapp-sc
         PROPERTIES DEPENDS ${PROJECT_NAME}:build
+    )
+
+    add_test(NAME ${PROJECT_NAME}:run:test/fiapp-cc
+        COMMAND ${PROJECT_NAME}-test-cc
+    )
+    set_tests_properties(${PROJECT_NAME}:run:test/fiapp-cc
+        PROPERTIES DEPENDS ${PROJECT_NAME}:build:test/fiapp-cc
     )
     add_test(NAME ${PROJECT_NAME}:run:test/fiapp-sc
         COMMAND ${PROJECT_NAME}-test-sc

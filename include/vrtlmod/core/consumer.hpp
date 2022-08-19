@@ -16,9 +16,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @file consumer.h
-/// @date Created on ?
-/// @modified on Wed Dec 09 13:32:12 2020 (johannes.geier@tum.de)
-/// @author ?
+/// @modified on Wed Dec 09 13:32:12 2020
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifndef __VRTLMOD_TRANSFORM_CONSUMER_HPP__
@@ -40,7 +38,7 @@
 #include "llvm/Support/raw_os_ostream.h"
 
 #include "vrtlmod/util/logging.hpp"
-#include "vrtlmod/transform/filecontext.hpp"
+#include "vrtlmod/core/filecontext.hpp"
 
 #include <string>
 #include <sstream>
@@ -49,8 +47,8 @@
 #include <initializer_list>
 
 ////////////////////////////////////////////////////////////////////////////////
-/// @brief namespace for LLVM/Clang source to source transformation
-namespace transform
+/// @brief namespace for all core vrtlmod functionalities
+namespace vrtlmod
 {
 
 class Consumer;
@@ -66,8 +64,8 @@ class Handler : public clang::ast_matchers::MatchFinder::MatchCallback
 
     virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) = 0;
 
-    clang::Rewriter &getRewriter();     // returns rewrite of consumer
-    clang::ASTContext &getASTContext(); // returns context of consumer & aborts if context does not exist
+    clang::Rewriter &getRewriter() const;           // returns rewrite of consumer
+    const clang::ASTContext &getASTContext() const; // returns context of consumer & aborts if context does not exist
 
     // Set signals of consumer
     void signalChange();
@@ -90,9 +88,10 @@ class Consumer : public clang::ASTConsumer
 
   public:
     Consumer(clang::Rewriter &rw, const std::string &file); // sets File context
-    ~Consumer();                                            // Delete handlers
+    virtual ~Consumer(){};
 
-    void ownHandler(Handler *handler); // Add handler to consumer and matcher of this consumer to handler
+    void ownHandler(
+        std::unique_ptr<Handler> handler); // Add handler to consumer and matcher of this consumer to handler
 
     virtual void Initialize(clang::ASTContext &Context);
 
@@ -101,58 +100,16 @@ class Consumer : public clang::ASTConsumer
   private:
     FileContext fc_;
     clang::ast_matchers::MatchFinder matcher_;
-    std::list<Handler *> handlers_;
+    std::list<std::unique_ptr<Handler>> handlers_;
 };
 
-} // namespace transform
-
+} // namespace vrtlmod
 namespace util
 {
 namespace logging
 {
-// template<>
-// std::string toLogString<transform::Consumer>(const transform::Consumer & cons)
-//;
-/*{
-        return std::string("{transform::Consumer file=") + cons.fc_.file_ + "}";
-}*/
-
-// template<>
-// std::string toLogString<std::tuple<const clang::SourceLocation &, clang::SourceManager &> >(const std::tuple<const
-// clang::SourceLocation &, clang::SourceManager& > & cons)
-//;
-/*{
-  std::stringstream ss;
-  {
-    llvm::raw_os_ostream rout(ss);
-    std::get<0>(cons).print(rout, std::get<1>(cons));
-    rout.flush();
-  }
-  return ss.str();
-}*/
-
-// template<>
-// std::string toLogString<std::tuple<const clang::SourceRange &, clang::SourceManager &> >(const std::tuple<const
-// clang::SourceRange &,clang::SourceManager& > & cons)
-//;
-/*{
-return std::string("{clang::SourceRange {")
-  + toLogString(std::tie<const clang::SourceLocation&, clang::SourceManager&>(std::get<0>(cons).getBegin(),
-std::get<1>(cons)))
-  + ","
-  + toLogString(std::tie<const clang::SourceLocation&, clang::SourceManager&>(std::get<0>(cons).getEnd(),
-std::get<1>(cons)))
-  + "}";
-}*/
-
-// template<> inline
-// std::string toLogString<std::tuple<clang::SourceManager &,const clang::SourceRange &> >(const std::tuple<
-// clang::SourceManager &,const clang::SourceRange &> & cons)
-//{
-//	return toLogString<std::tuple<const clang::SourceRange &, clang::SourceManager &>
-//>(std::tie(std::get<1>(cons),std::get<0>(cons)));
-// }
-
+template <>
+std::string toLogString<vrtlmod::Consumer>(const vrtlmod::Consumer &cons);
 } // namespace logging
 } // namespace util
 

@@ -16,9 +16,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @file filecontext.hpp
-/// @date Created on ?
-/// @modified on Wed Dec 09 13:32:12 2020 (johannes.geier@tum.de)
-/// @author ?
+/// @modified on Wed Dec 09 13:32:12 2020
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifndef __VRTLMOD_TRANSFORM_FILECONTEXT_HPP__
@@ -32,13 +30,16 @@
 #include "clang/AST/AST.h"
 #include "clang/Rewrite/Core/Rewriter.h"
 
+#include <boost/filesystem.hpp>
+namespace fs = boost::filesystem;
+
 ////////////////////////////////////////////////////////////////////////////////
-/// @brief namespace for LLVM/Clang source to source transformation
-namespace transform
+/// @brief namespace for all core vrtlmod functionalities
+namespace vrtlmod
 {
 
-/** \brief Handles status of Files and supports clang rewriter.
- */
+////////////////////////////////////////////////////////////////////////////////
+/// @brief Handles status of Files and supports clang rewriter.
 class FileContext
 {
   public:
@@ -78,6 +79,30 @@ class FileContext
     static bool fatalFailure();
 };
 
-} // namespace transform
+////////////////////////////////////////////////////////////////////////////////
+/// @brief Class with unique id member that is assigned by statics during construction. maps file paths to unique ids
+class FileLocator
+{
+    static std::map<int, fs::path> file_map_;
+    int id_;
+    int line_;
+    int column_;
+
+  public:
+    static void foreach_relevant_file(const std::function<void(const std::pair<int, fs::path> &t)> &func);
+
+    std::string get_id() const
+    {
+        std::string ret = "f";
+        ret += std::to_string(id_);
+        return ret;
+    }
+    int get_line() const { return line_; }
+    int get_column() const { return column_; }
+
+    FileLocator(fs::path fpath, int line, int column);
+};
+
+} // namespace vrtlmod
 
 #endif // __VRTLMOD_TRANSFORM_FILECONTEXT_HPP__

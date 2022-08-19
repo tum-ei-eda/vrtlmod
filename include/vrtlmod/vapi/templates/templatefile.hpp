@@ -17,7 +17,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// @file templatefile.hpp
 /// @date Created on Wed Dec 09 16:33:42 2020
-/// @author Johannes Geier (johannes.geier@tum.de)
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifndef __VRTLMOD_VAPI_TEMPLATE_FILES_HPP__
@@ -32,10 +31,13 @@
 #include "vrtlmod/util/logging.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////
+/// @brief namespace for all core vrtlmod functionalities
+namespace vrtlmod
+{
+////////////////////////////////////////////////////////////////////////////////
 /// @brief namespace for all API building functionalities
 namespace vapi
 {
-
 ////////////////////////////////////////////////////////////////////////////////
 /// @class TemplateFile
 /// @brief Self-contained base class for file generation without template files
@@ -43,31 +45,22 @@ namespace vapi
 ////////////////////////////////////////////////////////////////////////////////
 class TemplateFile
 {
-    ///////////////////////////////////////////////////////////////////////
-    /// \brief Specified path to output directory
-    std::string filepath_;
-    std::string filename_;
-
   protected:
-    std::string header_;
-    std::string body_;
-
-    virtual const std::string get_brief(void) { return (std::string("")); }
-    virtual const std::string get_details(void) { return (std::string("")); }
-    virtual const std::string get_date(void)
+    virtual std::string get_brief(void) const { return (std::string("")); }
+    virtual std::string get_details(void) const { return (std::string("")); }
+    virtual std::string get_date(void) const
     {
         std::time_t timestamp = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
         return (std::ctime(&timestamp));
     }
-    virtual const std::string get_author(void) { return (std::string("")); }
+    virtual std::string get_author(void) const { return (std::string("")); }
 
-    virtual void generate_header(void)
+    virtual std::string generate_header(std::string filename) const
     {
         std::stringstream x;
-        header_ = "";
         x << "////////////////////////////////////////////////////////////////////////////////\n\
 /// @file "
-          << filename_ << "\n\
+          << filename << "\n\
 /// @date "
           << get_date() << "\
 /// @author "
@@ -78,49 +71,37 @@ class TemplateFile
           << get_details() << "\n\
 ////////////////////////////////////////////////////////////////////////////////\n"
           << std::endl;
-        header_ = x.str();
+        return x.str();
     };
-    virtual void generate_body(void) = 0;
+    virtual std::string generate_body(void) const = 0;
 
   public:
-    ///////////////////////////////////////////////////////////////////////
-    /// \brief Returns output directory
-    const std::string get_filepath(void) const { return (filepath_); }
-    ///////////////////////////////////////////////////////////////////////
-    /// \brief Returns file name
-    const std::string get_filename(void) const { return (filename_); }
-
-    ///////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////
     /// \brief Constructor
     TemplateFile(void) {}
     virtual ~TemplateFile(void){};
 
-    void write(const std::string filepath)
+    void write(fs::path file_path) const
     {
-        filepath_ = filepath;
-        filename_ = (filepath_.rfind("/") != std::string::npos)    ? filepath_.substr(filepath_.rfind("/") + 1)
-                    : (filepath_.rfind("\\") != std::string::npos) ? filepath_.substr(filepath_.rfind("\\") + 1)
-                                                                   : filepath_;
-
-        generate_header();
-        generate_body();
-
+        std::string fpathstr = file_path.string();
+        auto filename = (fpathstr.rfind("/") != std::string::npos)    ? fpathstr.substr(fpathstr.rfind("/") + 1)
+                        : (fpathstr.rfind("\\") != std::string::npos) ? fpathstr.substr(fpathstr.rfind("\\") + 1)
+                                                                      : fpathstr;
         std::ofstream out;
-        util::logging::log(util::logging::INFO,
-                           std::string("TemplateFile file path: ") + filepath_ + std::string(" open"));
-        out.open(filepath_);
+        LOG_INFO("TemplateFile file path: [", fpathstr, "] open.");
+        out.open(fpathstr);
         if (out.fail())
         {
-            util::logging::abort(std::string("TemplateFile file path: ") + filepath_ + std::string(" invalid."));
+            LOG_FATAL("TemplateFile file path: [", fpathstr, "] invalid.");
         }
-        out << header_;
-        out << body_;
+        out << generate_header(filename);
+        out << generate_body();
         out.close();
-        util::logging::log(util::logging::INFO,
-                           std::string("TemplateFile file path: ") + filepath_ + std::string(" written"));
+        LOG_INFO("TemplateFile file path: [", fpathstr, "] written.");
     }
 };
 
 } // namespace vapi
+} // namespace vrtlmod
 
 #endif /* __VRTLMOD_VAPI_TEMPLATE_FILES_HPP__ */

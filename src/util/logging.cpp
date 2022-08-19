@@ -20,7 +20,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "vrtlmod/util/logging.hpp"
-#include "vrtlmod/transform/consumer.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -38,6 +37,8 @@ const char *toString(LEVEL level)
     {
     case OBLIGAT:
         return "\033[0;36m";
+    case VERBOSE:
+        return "\033[0;37m>";
     case INFO:
         return "\033[1;37mInfo ";
     case WARNING:
@@ -49,52 +50,47 @@ const char *toString(LEVEL level)
     }
 }
 
-void log(LEVEL level, const std::string &msg, bool silent_toogle)
+void toggle_silent(void)
+{
+    log(VERBOSE, "", true);
+}
+void toggle_verbose(void)
+{
+    log(VERBOSE, "", false, true);
+}
+
+void log(LEVEL level, const std::string &msg, bool silent_toggle, bool verbose_toggle)
 {
     static bool silent = false;
+    static bool verbose = false;
     std::stringstream x;
-    if (silent_toogle)
+    if (silent_toggle)
     {
         silent = !silent;
     }
-    x << toString(level);
-    switch (level)
+    if (verbose_toggle)
     {
-    case ERROR:
-        x << msg << " \033[0m" << std::endl;
-        break;
-    case WARNING:
-        x << msg << " \033[0m" << std::endl;
-        break;
-    default:
-        x << " \033[0m" << msg << std::endl;
-        break;
+        verbose = !verbose;
     }
-    if (silent == true)
+    if (level == VERBOSE && !verbose)
     {
-        if (level == ERROR or level == OBLIGAT)
-            std::cout << x.str();
+        return;
     }
-    else
-    {
-        std::cout << x.str();
-    }
-}
-void abort()
-{
-    std::abort();
-}
-void abort(const std::string &msg)
-{
-    std::cerr << msg << std::endl;
-    std::flush(std::cerr);
-    abort();
-}
 
-template <>
-std::string toLogString<transform::Consumer>(const transform::Consumer &cons)
-{
-    return std::string("{transform::Consumer file=") + cons.fc_.file_ + "}";
+    if ((silent == false) || ((silent == true) && (level == ERROR or level == OBLIGAT)))
+    {
+        switch (level)
+        {
+        case ERROR:
+            [[fallthrough]];
+        case WARNING:
+            std::cout << util::concat(toString(level), msg, " \033[0m") << std::endl;
+            break;
+        default:
+            std::cout << util::concat(toString(level), " \033[0m", msg) << std::endl;
+            break;
+        }
+    }
 }
 
 template <>

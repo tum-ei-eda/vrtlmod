@@ -15,34 +15,33 @@
  */
 
 ////////////////////////////////////////////////////////////////////////////////
-/// @file Consumer.cpp
-/// @date Created on ?
-/// @modified on Wed Dec 09 13:32:12 2020 (johannes.geier@tum.de)
-/// @author ?
+/// @file consumer.cpp
+/// @modified on Wed Dec 09 13:32:12 2020
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "vrtlmod/transform/consumer.hpp"
+#include "vrtlmod/core/consumer.hpp"
 
 using namespace clang;
 using namespace clang::ast_matchers;
 using namespace clang::driver;
 using namespace clang::tooling;
 
-namespace transform
+namespace vrtlmod
 {
 
 Handler::Handler(Consumer &consumer) : consumer_(consumer) {}
 Handler::~Handler() {}
 
-Rewriter &Handler::getRewriter()
+Rewriter &Handler::getRewriter() const
 {
     return consumer_.fc_.rewriter_;
 }
-clang::ASTContext &Handler::getASTContext()
+
+const clang::ASTContext &Handler::getASTContext() const
 {
     clang::ASTContext *ret = consumer_.fc_.context_;
     if (ret == 0)
-        util::logging::abort();
+        LOG_FATAL("Failed to retrieve Clang AST context");
     return *ret;
 }
 
@@ -65,29 +64,14 @@ bool Handler::inThisFile(clang::SourceLocation sl)
 }
 
 Consumer::Consumer(clang::Rewriter &rw, const std::string &file) : fc_(rw, file) {}
-Consumer::~Consumer()
-{
-    for (std::list<Handler *>::iterator c = handlers_.begin(); c != handlers_.end(); c++)
-    {
-        delete *c;
-    }
-}
 
-void Consumer::ownHandler(Handler *handler)
+void Consumer::ownHandler(std::unique_ptr<Handler> handler)
 {
-    if (handler == 0)
-        return;
     handler->addMatcher(matcher_);
-    handlers_.push_back(handler);
+    handlers_.push_back(std::move(handler));
 }
 
-void Consumer::Initialize(ASTContext &Context)
-{
-
-    // llvm::OwningPtr<clang::ExternalASTSource> aaor(new ftcv::ArrayAccessOperatorRewriter(fc_));
-
-    // Context.setExternalSource(aaor);
-}
+void Consumer::Initialize(ASTContext &Context) {}
 
 void Consumer::HandleTranslationUnit(ASTContext &Context)
 {
@@ -96,4 +80,16 @@ void Consumer::HandleTranslationUnit(ASTContext &Context)
     fc_.context_ = 0;
 }
 
-} // namespace transform
+} // namespace vrtlmod
+
+namespace util
+{
+namespace logging
+{
+template <>
+std::string toLogString<vrtlmod::Consumer>(const vrtlmod::Consumer &cons)
+{
+    return std::string("{vrtlmod::Consumer file=") + cons.fc_.file_ + "}";
+}
+} // namespace logging
+} // namespace util

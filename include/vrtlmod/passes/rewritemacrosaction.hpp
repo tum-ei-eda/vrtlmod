@@ -16,13 +16,10 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @file rewritemacrosaction.hpp
-/// @date Created on ?
-/// @modified on Wed Dec 09 13:32:12 2020 (johannes.geier@tum.de)
-/// @author ?
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef __VRTLMOD_TRANSFORM_REWRITE_REWRITEMACROSACTION_HPP__
-#define __VRTLMOD_TRANSFORM_REWRITE_REWRITEMACROSACTION_HPP__
+#ifndef __VRTLMOD_PASSES_REWRITEMACROSACTION_HPP__
+#define __VRTLMOD_PASSES_REWRITEMACROSACTION_HPP__
 
 #include <string>
 #include <sstream>
@@ -45,10 +42,13 @@
 #include "llvm/Support/raw_os_ostream.h"
 
 ////////////////////////////////////////////////////////////////////////////////
+/// @brief namespace for all core vrtlmod functionalities
+namespace vrtlmod
+{
+////////////////////////////////////////////////////////////////////////////////
 /// @brief namespace for LLVM/Clang source to source transformation
 namespace transform
 {
-
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief namespace for LLVM/Clang source to source transformation rewriter tooling
 namespace rewrite
@@ -58,13 +58,10 @@ class RewriteMacrosAction : public clang::PreprocessorFrontendAction
   public:
     RewriteMacrosAction();
     void ExecuteAction();
-
-  public:
-    static bool cleanFile(const std::string &file);
 };
 
 } // namespace rewrite
-
 } // namespace transform
+} // namespace vrtlmod
 
-#endif // __VRTLMOD_TRANSFORM_REWRITE_REWRITEMACROSACTION_HPP__
+#endif // __VRTLMOD_PASSES_REWRITEMACROSACTION_HPP__

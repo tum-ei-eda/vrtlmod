@@ -17,9 +17,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// @file main.cpp
 /// @brief main file for llvm-based VRTL-modifer tool
-/// @details based on ftcv frontend by ?
 /// @date Created on Mon Jan 15 12:29:21 2020
-/// @author Johannes Geier (johannes.geier@tum.de)
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <string>
@@ -27,11 +25,19 @@
 #include <fstream>
 #include <iostream>
 
+#include "llvm/Support/CommandLine.h"
+
+#include "clang/Tooling/CommonOptionsParser.h"
+#include "clang/Tooling/Tooling.h"
+
 #include "boost/filesystem.hpp"
 namespace fs = boost::filesystem;
 
 #include "vrtlmod/vrtlmod.hpp"
-#include "vrtlmod/util/system.hpp"
+#include "vrtlmod/core/core.hpp"
+
+#include "vrtlmod/util/utility.hpp"
+#include "vrtlmod/util/logging.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////
 /// \brief Frontend user option category
@@ -41,14 +47,15 @@ static llvm::cl::OptionCategory UserCat("User Options");
 static llvm::cl::opt<bool> SystemC("systemc", llvm::cl::Optional, llvm::cl::desc("Input VRTL is SystemC code"),
                                    llvm::cl::cat(UserCat));
 ////////////////////////////////////////////////////////////////////////////////
-/// \brief Frontend user option "regxml". Sets input Xml
-static llvm::cl::opt<std::string> RegisterXmlFilename("regxml", llvm::cl::Required,
-                                                      llvm::cl::desc("Specify input register xml"),
-                                                      llvm::cl::value_desc("file name"), llvm::cl::cat(UserCat));
+/// \brief Frontend user option "wl-regxml". Sets input whitelist Xml
+static llvm::cl::opt<std::string> WhiteListXmlFilename("wl-regxml", llvm::cl::Optional,
+                                                       llvm::cl::desc("Specify input whitelist register xml"),
+                                                       llvm::cl::value_desc("file name"), llvm::cl::cat(UserCat));
 ////////////////////////////////////////////////////////////////////////////////
 /// \brief Frontend user option "out". Sets output directory path
-static llvm::cl::opt<std::string> OUTdir("out", llvm::cl::Required, llvm::cl::desc("Specify output directory"),
-                                         llvm::cl::value_desc("path"), llvm::cl::cat(UserCat));
+static llvm::cl::opt<std::string> OutputDir("out", llvm::cl::Optional, llvm::cl::desc("Specify output directory"),
+                                            llvm::cl::value_desc("path"), llvm::cl::init("vrtlmod-out"),
+                                            llvm::cl::cat(UserCat));
 ////////////////////////////////////////////////////////////////////////////////
 /// \brief Frontend user option "override".
 static llvm::cl::opt<bool> Overwrite("overwrite", llvm::cl::Optional, llvm::cl::desc("Override source files"),
@@ -57,61 +64,114 @@ static llvm::cl::opt<bool> Overwrite("overwrite", llvm::cl::Optional, llvm::cl::
 /// \brief Frontend user option "silent".
 static llvm::cl::opt<bool> Silent("silent", llvm::cl::Optional, llvm::cl::desc("Execute without Warnings and Info"),
                                   llvm::cl::cat(UserCat));
+////////////////////////////////////////////////////////////////////////////////
+/// \brief Frontend user option "xml-only".
+static llvm::cl::opt<bool> XmlOnly("xml-only", llvm::cl::Optional,
+                                   llvm::cl::desc("Only Elaborate and Analyze the given VRTL"), llvm::cl::cat(UserCat));
+////////////////////////////////////////////////////////////////////////////////
+/// \brief Frontend user option "print-td".
+static llvm::cl::opt<bool> PrintTD("print-td", llvm::cl::Optional,
+                                   llvm::cl::desc("Print the common targetdictionary header file"),
+                                   llvm::cl::cat(UserCat));
+static llvm::cl::alias SilentA("s", llvm::cl::NotHidden, llvm::cl::desc("Alias for --silent"),
+                               llvm::cl::aliasopt(Silent));
+////////////////////////////////////////////////////////////////////////////////
+/// \brief Frontend user option "verbose".
+static llvm::cl::opt<bool> Verbose("verbose", llvm::cl::Optional, llvm::cl::desc("Execute with Verbose output"),
+                                   llvm::cl::cat(UserCat));
+static llvm::cl::alias VerboseA("v", llvm::cl::NotHidden, llvm::cl::desc("Alias for --verbose"),
+                                llvm::cl::aliasopt(Verbose));
 
-static llvm::cl::extrahelp CommonHelp(CommonOptionsParser::HelpMessage);
-// static llvm::cl::extrahelp MoreHelp(vrtlmod::env::get_environmenthelp().c_str());
+static llvm::cl::extrahelp CommonHelp(clang::tooling::CommonOptionsParser::HelpMessage);
 
 ////////////////////////////////////////////////////////////////////////////////
 /// \brief vrtlmod main()
 int main(int argc, const char **argv)
 {
-    // Consume arguments
+    int err = 0;
 
-    CommonOptionsParser op(argc, argv, UserCat);
+    llvm::Expected<clang::tooling::CommonOptionsParser> op =
+        clang::tooling::CommonOptionsParser::create(argc, argv, UserCat);
 
     if (bool(Silent))
     {
-        util::logging::log(util::logging::OBLIGAT, "Executing silently - Warnings and Infos disabled", true);
+        util::logging::toggle_silent();
+        LOG_OBLIGAT("Executing silently - Warnings and Infos disabled");
     }
 
-    if (!fs::exists(OUTdir.c_str()))
+    if (bool(Verbose))
     {
-        util::logging::log(util::logging::WARNING,
-                           std::string("Output directory ") + std::string(OUTdir) + " doesn't exist!");
+        util::logging::toggle_verbose();
+        LOG_VERBOSE("Executing verbosely - Verbose output active");
     }
 
-    if (!fs::exists(RegisterXmlFilename.c_str()))
+    vrtlmod::VrtlmodCore core(OutputDir.c_str(), SystemC);
+
+    if (bool(PrintTD))
     {
-        util::logging::abort(std::string("XML file ") + std::string(RegisterXmlFilename) + " doesn't exist!");
+        core.print_targetdictionary();
+        return 0;
     }
 
-    vapi::VapiGenerator &tAPI = vapi::VapiGenerator::_i();
-    if (tAPI.init(RegisterXmlFilename.c_str(), OUTdir.c_str(), SystemC) < 0)
+    if (!fs::exists(OutputDir.c_str()))
     {
-        util::logging::abort(std::string("Vrtlmod API generator initialization failed"));
+        LOG_WARNING("Output directory ", OutputDir.c_str(), " doesn't exist! Will be created during execution.");
     }
 
-    std::vector<std::string> sources = op.getSourcePathList();
+    std::vector<std::string> in_sources = op->getSourcePathList();
 
-    // prepare *_vrtlmod.cpp files: create, de-macro, clean comments.
-    sources = tAPI.prepare_sources(sources, Overwrite);
+    // prepare *.cpp /*.cc files: create, de-macro, clean comments.
+    auto sources = core.prepare_sources(in_sources, Overwrite);
 
-    // create a new Clang Tool instance
-    ClangTool ToolM(op.getCompilations(), sources);
+    // prepare *.h / *.hpp files: create, de-macro, clean comments.
+    auto headers = core.prepare_headers(in_sources, Overwrite);
 
-    // run Clang // insert macros (needed for macro code rewrite)
-    int err = ToolM.run(newFrontendActionFactory<transform::rewrite::RewriteMacrosAction>().get());
+    auto srcs_and_headers = sources;
+    srcs_and_headers.insert(srcs_and_headers.end(), headers.begin(), headers.end());
+    auto srcs_and_headers_wo_symsh = srcs_and_headers;
 
-    for (size_t i = 0; i < sources.size(); ++i)
-    {
-        transform::rewrite::RewriteMacrosAction::cleanFile(sources[i]);
-    }
+    // create a new Clang Tool instance for Macro cleanup in source and header files except Verilated Symboltable header
+    // which does not need cleanup, but breaks the MacroTool Lexer
+    // FIXME: MacroTool only breaks for large VRTL models on Symboltable
+    srcs_and_headers_wo_symsh.erase(std::remove_if(srcs_and_headers_wo_symsh.begin(), srcs_and_headers_wo_symsh.end(),
+                                                   [](const auto &x)
+                                                   { return (x.find("__Syms.h") != std::string::npos); }));
+    clang::tooling::ClangTool MacroTool(op->getCompilations(), srcs_and_headers_wo_symsh);
+    LOG_INFO("Run MacroTool on sources ...");
+    err = MacroTool.run(vrtlmod::CreateMacroRewritePass(core).get());
+    LOG_INFO("... done");
 
-    ClangTool ToolRw(op.getCompilations(), sources);
+    // create a new Clang Tool instance for Macro cleanup in source files
+    clang::tooling::ClangTool stage1_ParserTool(op->getCompilations(), srcs_and_headers);
+    LOG_INFO("Analyze VRTL sources (elaboration)...");
+    err = stage1_ParserTool.run(vrtlmod::CreateElaboratePass(core).get());
+    LOG_INFO("... done");
 
-    err = ToolRw.run(newFrontendActionFactory<MyFrontendAction>().get());
+    clang::tooling::ClangTool stage2_ParserTool(op->getCompilations(), srcs_and_headers);
+    LOG_INFO("Analyze VRTL sources for possible injection points ...");
+    err = stage2_ParserTool.run(vrtlmod::CreateAnalyzePass(core).get());
+    LOG_INFO("... done");
 
-    tAPI.build_API();
+    core.build_xml();
 
-    return (0);
+    if (bool(XmlOnly))
+        return 0;
+
+    core.initialize_injection_targets(WhiteListXmlFilename);
+
+    clang::tooling::ClangTool stage3_SigDeclRewriterTool(op->getCompilations(), headers);
+    LOG_INFO("Rewrite VRTL headers for injectable signals ...");
+    err = stage3_SigDeclRewriterTool.run(vrtlmod::CreateSignalDeclPass(core).get());
+    LOG_INFO("... done");
+
+    clang::tooling::ClangTool stage4_InjectionExprRewriterTool(op->getCompilations(), sources);
+    LOG_INFO("Rewrite VRTL sources for injection points ...");
+    err = stage4_InjectionExprRewriterTool.run(vrtlmod::CreateInjectionPass(core).get());
+    LOG_INFO("... done");
+
+    LOG_INFO("Generate API ...");
+    core.build_api();
+    LOG_INFO("... done");
+
+    return err;
 }

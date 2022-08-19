@@ -16,103 +16,102 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @file vrtlmodapi_header.cpp
-/// @date Created on Wed Dec 09 13:32:12 2020 (johannes.geier@tum.de)
-/// @author Johannes Geier (johannes.geier@tum.de)
+/// @date Created on Wed Dec 09 13:32:12 2020
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "vrtlmod/vapi/generator.hpp"
+#include "vrtlmod/core/core.hpp"
+#include "vrtlmod/core/types.hpp"
 
+namespace vrtlmod
+{
 namespace vapi
 {
 
-void VapiGenerator::VapiHeader::generate_body(void)
+std::string VapiGenerator::VapiHeader::generate_body(void) const
 {
+    const auto &core = gen_.get_core();
+    std::string top_type = core.get_top_cell().get_type();
     std::stringstream x, entries;
-    VapiGenerator &gen = VapiGenerator::_i();
 
-    x << "#ifndef __" << gen.mTopTypeName << "VRTLMODAPI_VRTLMODAPI_HPP__ \n\
+    x << "#ifndef __" << top_type << "VRTLMODAPI_VRTLMODAPI_HPP__ \n\
 #define __"
-      << gen.mTopTypeName << "VRTLMODAPI_VRTLMODAPI_HPP__ \n"
+      << top_type << "VRTLMODAPI_VRTLMODAPI_HPP__ \n"
       << std::endl
       << "#include <vector> \n\
 #include <memory> \n\
 #include \"verilated.h\" \n\
 #include \"verilated_heavy.h\" \n\n\
 #include \""
-      << gen.get_targetdictionary_relpath() << "\" \n"
+      << gen_.get_targetdictionary_relpath() << "\" \n"
       << std::endl
-      << "class " << gen.mTopTypeName << ";" << std::endl
+      << "class " << top_type << ";" << std::endl
       << std::endl
       << std::endl
-      << "class " << gen.mTopTypeName << "VRTLmodAPI : public vrtlfi::td::TD_API { \n\
-public: \n\
-	static "
-      << gen.mTopTypeName << "VRTLmodAPI& i(void) { \n\
-		static "
-      << gen.mTopTypeName << "VRTLmodAPI _instance; \n\
-		return (_instance); \n\
-	} \n\
-	private: \n\
+      << "class " << top_type << "VRTLmodAPI : public vrtlfi::td::TD_API { \n\
+  public: \n\
+    static "
+      << top_type << "VRTLmodAPI& i(void) { \n\
+        static "
+      << top_type << "VRTLmodAPI _instance; \n\
+        return (_instance); \n\
+    } \n\
+  private: \n\
+    " << top_type
+      << "VRTLmodAPI(void); \n\
 	"
-      << gen.mTopTypeName << "VRTLmodAPI(void); \n\
-	"
-      << gen.mTopTypeName << "VRTLmodAPI(" << gen.mTopTypeName << "VRTLmodAPI const&); \n\
-	void operator=("
-      << gen.mTopTypeName << "VRTLmodAPI const&); \n\
-public: \n\
-	std::shared_ptr<"
-      << gen.mTopTypeName << "> vrtl_{nullptr}; \n\
-	virtual ~"
-      << gen.mTopTypeName << "VRTLmodAPI(void);\n\n";
+      << top_type << "VRTLmodAPI(" << top_type << "VRTLmodAPI const&); \n\
+    void operator=("
+      << top_type << "VRTLmodAPI const&); \n\
+  public: \n\
+    std::shared_ptr<"
+      << top_type << "> vrtl_{nullptr}; \n\
+    virtual ~"
+      << top_type << "VRTLmodAPI(void);\n\n";
 
-    for (auto const &it : gen.mTargets)
+    auto func = [&](const types::Target &t)
     {
-        if (it->mSeqInjCnt == 0)
-            continue;
-
-        x << "	std::shared_ptr< vrtlfi::td::";
-
-        switch (it->mElData.cxxdim_.size())
+        if (t.get_seq_assignment_count() != 0)
         {
-        case 0:
-            x << "ZeroD_TDentry<decltype(\"" << it->get_hierarchyDedotted() << "\"_tstr)"
-              << ", " << it->mElData.cxxbasetype_ << "> "
-              << ">";
-            break;
-        case 1:
-            x << "OneD_TDentry<decltype(\"" << it->get_hierarchyDedotted() << "\"_tstr)"
-              << ", " << it->mElData.cxxbasetype_ << ", " << it->mElData.cxxtypedim_.back() << ", "
-              << it->mElData.cxxdim_[0] << "> "
-              << ">";
-            break;
-        case 2:
-            x << "TwoD_TDentry<decltype(\"" << it->get_hierarchyDedotted() << "\"_tstr)"
-              << ", " << it->mElData.cxxbasetype_ << ", " << it->mElData.cxxtypedim_.back() << ", "
-              << it->mElData.cxxdim_[0] << ", " << it->mElData.cxxdim_[1] << "> "
-              << ">";
-            break;
-        case 3:
-            x << "ThreeD_TDentry<decltype(\"" << it->get_hierarchyDedotted() << "\"_tstr)"
-              << ", " << it->mElData.cxxbasetype_ << ", " << it->mElData.cxxtypedim_.back() << ", "
-              << it->mElData.cxxdim_[0] << ", " << it->mElData.cxxdim_[1] << ", " << it->mElData.cxxdim_[2] << "> "
-              << ">";
-            break;
-        default:
-            util::logging::log(util::logging::ERROR,
-                               std::string("CType dimensions of injection target not supported: ") +
-                                   it->mElData.vrtlCxxType);
-            break;
+            x << "    std::shared_ptr< vrtlfi::td::";
+
+            auto cxxdim = t.get_cxx_dimension_lengths();
+            auto cxxdimtypes = t.get_cxx_dimension_types();
+
+            switch (cxxdim.size())
+            {
+            case 0:
+                x << "ZeroD_TDentry<" << t.get_cxx_type() << "> ";
+                break;
+            case 1:
+                x << "OneD_TDentry<" << t.get_cxx_type() << ", " << cxxdimtypes.back() << ", " << cxxdim[0] << "> ";
+                break;
+            case 2:
+                x << "TwoD_TDentry<" << t.get_cxx_type() << ", " << cxxdimtypes.back() << ", " << cxxdim[0] << ", "
+                  << cxxdim[1] << "> ";
+                break;
+            case 3:
+                x << "ThreeD_TDentry<" << t.get_cxx_type() << ", " << cxxdimtypes.back() << ", " << cxxdim[0] << ", "
+                  << cxxdim[1] << ", " << cxxdim[2] << "> ";
+                break;
+            default:
+                LOG_ERROR("CType dimensions of injection target not supported: ", t.get_cxx_type());
+                break;
+            }
+            x << ">";
+            x << " " << t.get_id() << "_{};\n";
         }
-        x << " " << it->get_hierarchyDedotted() << "_{};\n";
-        //"	std::shared_ptr<TDentry> " << it->get_hierarchyDedotted() << "_{};\n";
-    }
+        return true;
+    };
+    core.foreach_injectable(func);
 
     x << std::endl
       << "}; \n"
          "#endif /* __"
-      << gen.mTopTypeName << "VRTLMODAPI_VRTLMODAPI_HPP__ */";
+      << top_type << "VRTLMODAPI_VRTLMODAPI_HPP__ */";
 
-    body_ = x.str();
+    return x.str();
 }
 
 } // namespace vapi
+} // namespace vrtlmod
