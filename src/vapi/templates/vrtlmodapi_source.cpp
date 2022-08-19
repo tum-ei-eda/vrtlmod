@@ -16,105 +16,134 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @file vrtlmodapi_source.cpp
-/// @date Created on Wed Dec 09 13:32:12 2020 (johannes.geier@tum.de)
-/// @author Johannes Geier (johannes.geier@tum.de)
+/// @date Created on Wed Dec 09 13:32:12 2020
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "vrtlmod/vapi/generator.hpp"
+#include "vrtlmod/core/core.hpp"
+#include "vrtlmod/core/types.hpp"
 #include "vrtlmod/util/logging.hpp"
 
 #include <boost/algorithm/string/replace.hpp>
 
+namespace vrtlmod
+{
 namespace vapi
 {
 
-void VapiGenerator::VapiSource::generate_body(void)
+std::string VapiGenerator::VapiSource::generate_body(void) const
 {
+    const auto &core = gen_.get_core();
+    std::string top_type = core.get_top_cell().get_type();
     std::stringstream x, entries;
-    VapiGenerator &gen = VapiGenerator::_i();
 
     x << "// Vrtl-specific includes: \n\
 #include \""
-      << gen.get_vrtltopheader_filename() << "\" \n\
+      << core.get_vrtltopheader_filename() << "\" \n\
 #include \""
-      << gen.get_vrtltopsymsheader_filename() << "\" \n\
+      << core.get_vrtltopsymsheader_filename() << "\" \n\
 // General API includes: \n\
 #include <memory> \n\
 #include <iostream> \n\
 #include \"verilated.h\" \n\
 #include \""
-      << gen.get_targetdictionary_relpath() << "\" \n\
+      << gen_.get_targetdictionary_relpath() << "\" \n\
 #include \""
-      << gen.get_apiheader_filename() << "\" \n"
+      << gen_.get_apiheader_filename() << "\" \n"
       << std::endl
-      << "" << gen.mTopTypeName << "VRTLmodAPI::" << gen.mTopTypeName << "VRTLmodAPI(void) \n\
+      << "" << top_type << "VRTLmodAPI::" << top_type << "VRTLmodAPI(void) \n\
 	: vrtlfi::td::TD_API() \n\
 {\n\
-	vrtl_ = std::make_shared<"
-      << gen.mTopTypeName << ">(";
-    if (gen.is_systemc())
+    vrtl_ = std::make_shared<"
+      << top_type << ">(";
+    if (core.is_systemc())
     {
-        x << "\"" << gen.mTopTypeName << "\"";
+        x << "\"" << top_type << "\"";
     }
     x << "); \n" << std::endl;
     int i = 0;
-    for (auto const &it : gen.mTargets)
+
+    auto celliterf = [&](const types::Cell &c) -> bool
     {
-        if (it->mSeqInjCnt == 0)
-            continue;
-        x << "	" << it->get_hierarchyDedotted() << "_ = std::make_shared< vrtlfi::td::";
-        switch (it->mElData.cxxdim_.size())
+        if (const types::Module *m = core.get_module_from_cell(c))
         {
-        case 0:
-            x << "ZeroD_TDentry<decltype(\"" << it->get_hierarchyDedotted() << "\"_tstr)"
-              << ", " << it->mElData.cxxbasetype_ << "> "
-              << ">("
-              << "vrtl_->__VlSymsp->TOPp->" << boost::replace_all_copy(it->get_hierarchy(), ".", "->") << ", " << i
-              << ", " << it->mElData.nmbBits << ", " << it->mElData.nmbonedimBits << ");" << std::endl;
-            break;
-        case 1:
-            x << "OneD_TDentry<decltype(\"" << it->get_hierarchyDedotted() << "\"_tstr)"
-              << ", " << it->mElData.cxxbasetype_ << ", " << it->mElData.cxxtypedim_.back() << ", "
-              << it->mElData.cxxdim_[0] << "> "
-              << ">("
-              << "vrtl_->__VlSymsp->TOPp->" << boost::replace_all_copy(it->get_hierarchy(), ".", "->") << ", " << i
-              << ", " << it->mElData.nmbBits << ", " << it->mElData.nmbonedimBits << ");" << std::endl;
-            break;
-        case 2:
-            x << "TwoD_TDentry<decltype(\"" << it->get_hierarchyDedotted() << "\"_tstr)"
-              << ", " << it->mElData.cxxbasetype_ << ", " << it->mElData.cxxtypedim_.back() << ", "
-              << it->mElData.cxxdim_[0] << ", " << it->mElData.cxxdim_[1] << "> "
-              << ">("
-              << "vrtl_->__VlSymsp->TOPp->" << boost::replace_all_copy(it->get_hierarchy(), ".", "->") << ", " << i
-              << ", " << it->mElData.nmbBits << ", " << it->mElData.nmbonedimBits << ");" << std::endl;
-            break;
-        case 3:
-            x << "ThreeD_TDentry<decltype(\"" << it->get_hierarchyDedotted() << "\"_tstr)"
-              << ", " << it->mElData.cxxbasetype_ << ", " << it->mElData.cxxtypedim_.back() << ", "
-              << it->mElData.cxxdim_[0] << ", " << it->mElData.cxxdim_[1] << ", " << it->mElData.cxxdim_[2] << "> "
-              << ">("
-              << "vrtl_->__VlSymsp->TOPp->" << boost::replace_all_copy(it->get_hierarchy(), ".", "->") << ", " << i
-              << ", " << it->mElData.nmbBits << ", " << it->mElData.nmbonedimBits << ");" << std::endl;
-            break;
-        default:
-            util::logging::log(util::logging::ERROR,
-                               std::string("CType dimensions of injection target not supported: ") +
-                                   it->mElData.vrtlCxxType);
-            break;
+            auto targetiterf = [&](const types::Target &t) -> bool
+            {
+                if (t.get_parent() == *m)
+                {
+                    for (const auto &module_instance : t.get_parent().symboltable_instances_)
+                    {
+                        std::stringstream smart_type, initializer;
+                        std::string type_str, initializer_str;
+                        std::string prefix_str =
+                            (c == core.get_top_cell()) ? core.get_top_cell().get_id() : module_instance;
+                        std::string member_str = util::concat("vrtl_->__VlSymsp->", prefix_str,
+                                                              (c == core.get_top_cell()) ? "->" : ".", t.get_id());
+                        std::string map_key = util::concat(prefix_str, ".", t.get_id());
+
+                        smart_type << "vrtlfi::td::";
+
+                        auto cxxdim = t.get_cxx_dimension_lengths();
+                        auto one_dim_bits = t.get_one_dim_bits();
+                        auto cxxdimtypes = t.get_cxx_dimension_types();
+
+                        switch (cxxdim.size())
+                        {
+                        case 0:
+                            smart_type << "ZeroD_TDentry<" << t.get_cxx_type() << ">";
+                            initializer << "(\"" << prefix_str << "." << t.get_id() << "\", " << member_str << ", "
+                                        << t.get_bits() << ", " << one_dim_bits << ")";
+                            break;
+                        case 1:
+                            smart_type << "OneD_TDentry<" << t.get_cxx_type() << ", " << cxxdimtypes.back() << ", "
+                                       << cxxdim[0] << ">";
+                            initializer << "(\"" << prefix_str << "." << t.get_id() << "\", " << member_str << ", "
+                                        << t.get_bits() << ", " << one_dim_bits << ")";
+                            break;
+                        case 2:
+                            smart_type << "TwoD_TDentry<" << t.get_cxx_type() << ", " << cxxdimtypes.back() << ", "
+                                       << cxxdim[0] << ", " << cxxdim[1] << ">";
+                            initializer << "(\"" << prefix_str << "." << t.get_id() << "\", " << member_str << ", "
+                                        << t.get_bits() << ", " << one_dim_bits << ")";
+                            break;
+                        case 3:
+                            smart_type << "ThreeD_TDentry<" << t.get_cxx_type() << ", " << cxxdimtypes.back() << ", "
+                                       << cxxdim[0] << ", " << cxxdim[1] << ", " << cxxdim[2] << ">";
+                            initializer << "(\"" << prefix_str << "." << t.get_id() << "\", " << member_str << ", "
+                                        << t.get_bits() << ", " << one_dim_bits << ")";
+                            break;
+                        default:
+                            LOG_ERROR("CType dimensions of injection target not supported: ", t.get_cxx_type());
+                            break;
+                        }
+                        x << "    td_[ \"" << map_key << "\" ]"
+                          << " = "
+                          << "std::make_shared< " << smart_type.str() << " >" << initializer.str() << ";\n";
+                        x << "    " << member_str << "__td_"
+                          << " = std::static_pointer_cast< " << smart_type.str() << ">(td_.at(\"" << map_key
+                          << "\")).get();\n";
+                    }
+                }
+                return true;
+            };
+            core.foreach_injection_target(targetiterf);
+
+            return true;
         }
-        // x << "	td_.insert( std::make_pair(\"" << it->get_hierarchyDedotted() <<"\", std::move(x" << i << ") ) );"
-        // << std::endl;
-        x << "	td_.insert( std::make_pair(\"" << it->get_hierarchy() << "\", " << it->get_hierarchyDedotted()
-          << "_ ) );" << std::endl;
-        // entries << "\t" << "entries_.push_back(" << gen.get_targetdictionaryTargetClassDeclName(*it) << "); \n";
-        ++i;
-    }
+        else
+        {
+            LOG_FATAL("API GEN: ", "Can not find Module for Cell ", c.get_id(), "[", c.get_type(), "]");
+        }
+        return true;
+    };
+    core.foreach_cell(celliterf);
 
     x << "}" << std::endl;
-    x << gen.mTopTypeName << "VRTLmodAPI::~" << gen.mTopTypeName << "VRTLmodAPI(void) { \n\
+    x << top_type << "VRTLmodAPI::~" << top_type << "VRTLmodAPI(void) { \n\
 } \n" << std::endl;
 
-    body_ = x.str();
+    return x.str();
 }
 
 } // namespace vapi
+} // namespace vrtlmod

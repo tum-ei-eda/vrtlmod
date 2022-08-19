@@ -15,7 +15,7 @@
 ####################################################################################################
 
 ####################################################################################################
-# cmake project settings 
+# cmake project settings
 cmake_minimum_required(VERSION 3.15)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_BINARY_DIR})
@@ -25,7 +25,7 @@ project(vrtlmod)
 ####################################################################################################
 
 ####################################################################################################
-# cmake project settings 
+# cmake project settings
 option (FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." True)
 if (${FORCE_COLORED_OUTPUT})
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
@@ -37,7 +37,7 @@ endif()
 ####################################################################################################
 
 ####################################################################################################
-# cmake install settings 
+# cmake install settings
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/installed" CACHE PATH "default install path" FORCE)
 endif()
@@ -56,15 +56,11 @@ endif("${isSystemDir}" STREQUAL "-1")
 
 ####################################################################################################
 # environment ######################################################################################
-IF(NOT LLVM_DIR) #try environment
-  SET(LLVM_DIR $ENV{LLVM_DIR})
-ENDIF()
+if(NOT LLVM_DIR) #try environment
+    set(LLVM_DIR $ENV{LLVM_DIR})
+endif()
 
-IF(NOT Clang_DIR)
-  SET(Clang_DIR ${LLVM_DIR})
-ENDIF()
-
-SET(THISLIB "${PROJECT_NAME}_tool")
+set(THISLIB "${PROJECT_NAME}_tool")
 
 ####################################################################################################
 # conan package manager settings
@@ -77,20 +73,32 @@ if(NOT EXISTS ${CONAN_CMAKE_LIST_DIR}/ConanInline.cmake)
 endif()
 
 include(ConanInline)
-set(CONAN_OPTIONS
-    boost:shared=True
-    boost:header_only=False
-)
 
 set(CONAN_PACKAGE_LIST
-    libxml2/[>2.9.10]
-    boost/[>1.70]
+    pugixml/[>=1.11]
 )
+
+find_package(Boost
+    COMPONENTS filesystem
+)
+if(NOT Boost_Found) # boost not found on system add it to conan package list
+    set(CONAN_OPTIONS
+        ${CONAN_OPTIONS}
+        boost:shared=True
+        boost:header_only=False
+    )
+    set(CONAN_PACKAGE_LIST
+        ${CONAN_PACKAGE_LIST}
+        boost/[>1.70]
+    )
+endif()
 set(CONAN_PACKAGE_OPTIONS ${CONAN_OPTIONS})
 
+if(TEST_BUILD)
 if(NOT USE_CWR_SYSTEMC AND NOT USE_NCSC_SYSTEMC AND NOT DEFINED ENV{SYSTEMC_HOME})
-    set(CONAN_PACKAGE_LIST ${CONAN_PACKAGE_LIST} systemc/2.3.3 systemc-cci/1.0.0) 
+    set(CONAN_PACKAGE_LIST ${CONAN_PACKAGE_LIST} systemc/2.3.3 systemc-cci/1.0.0)
     set(CONAN_PACKAGE_OPTIONS ${CONAN_PACKAGE_OPTIONS} systemc:shared=True systemc-cci:shared=True systemc:disable_virtual_bind=False)
+endif()
 endif()
 
 conan_check(${CMAKE_CURRENT_SOURCE_DIR}/cmake/eda-conan)
@@ -101,9 +109,12 @@ conan_cmake_configure(
 )
 
 conan_cmake_autodetect(settings)
-if(CMAKE_CXX_STANDARD)
-    set(settings ${settings} compiler.cppstd=${CMAKE_CXX_STANDARD})
+if(NOT CMAKE_CXX_STANDARD)
+    set(CMAKE_CXX_STANDARD 17)
+    message(WARNING "CMAKE_CXX_STANDARD not set. Default to ${CMAKE_CXX_STANDARD}")
 endif()
+
+set(settings ${settings} compiler.cppstd=${CMAKE_CXX_STANDARD})
 
 message("Conan settings are ${settings}")
 conan_cmake_install(
@@ -115,117 +126,105 @@ set(Boost_NO_BOOST_CMAKE ON)
 ####################################################################################################
 
 ####################################################################################################
-# cmake packages 
+# cmake packages
+if(NOT Clang_DIR)
+    set(Clang_DIR_SEARCH ${LLVM_DIR}/lib/cmake/clang)
+endif()
 message(STATUS "LLVM_DIR: ${LLVM_DIR}")
+find_package(LLVM REQUIRED CONFIG
+    NO_DEFAULT_PATH
+    NO_SYSTEM_ENVIRONMENT_PATH
+    PATHS ${LLVM_DIR}/lib/cmake/llvm
+)
+message(STATUS "LLVM_DIR: ${LLVM_DIR}")
+
+if( ${LLVM_VERSION_MAJOR} LESS 13)
+    message(FATAL_ERROR "LLVM version \"${LLVM_VERSION}\" is less than required major 13" )
+endif()
+
 find_package(Clang REQUIRED CONFIG
-  NO_DEFAULT_PATH
-  NO_SYSTEM_ENVIRONMENT_PATH
-  PATHS ${LLVM_DIR}/lib/cmake/clang)
-
-find_package(LLVM 9 REQUIRED CONFIG
-  NO_DEFAULT_PATH
-  NO_SYSTEM_ENVIRONMENT_PATH
-  PATHS ${LLVM_DIR}/lib/cmake/llvm)
-
-find_package(LibXml2 REQUIRED)
-
-find_package(Boost REQUIRED
-  COMPONENTS filesystem
+    NO_DEFAULT_PATH
+    NO_SYSTEM_ENVIRONMENT_PATH
+    PATHS ${Clang_DIR_SEARCH}
 )
 
-MESSAGE("Boost Version: ${Boost_VERSION}")
-MESSAGE("Using LLVM_DIR: ${LLVM_DIR}")
-MESSAGE("LLVM Version: ${LLVM_VERSION} at ${LLVM_INSTALL_PREFIX}")
-MESSAGE("LLVM INCLUDE DIRS: ${LLVM_INCLUDE_DIRS}")
-MESSAGE("Using Clang_DIR: ${Clang_DIR}")
-MESSAGE("Clang INCLUDE DIRS: ${LLVM_INSTALL_PREFIX}/lib/clang/${LLVM_VERSION}/include")
+find_package(pugixml REQUIRED)
+
+if(NOT Boost_Found) # could have been found on system earlier
+    find_package(Boost REQUIRED
+        COMPONENTS filesystem
+    )
+endif()
+
+message("Boost Version: ${Boost_VERSION}")
+message("Using LLVM_DIR: ${LLVM_DIR}")
+message("LLVM Version: ${LLVM_VERSION} at ${LLVM_INSTALL_PREFIX}")
+message("LLVM INCLUDE DIRS: ${LLVM_INCLUDE_DIRS}")
+message("Using Clang_DIR: ${Clang_DIR}")
+message("Clang INCLUDE DIRS: ${LLVM_INSTALL_PREFIX}/lib/clang/${LLVM_VERSION}/include" "")
 ####################################################################################################
 
-if(LLVM_FOUND AND Clang_FOUND AND LibXml2_FOUND)
+if(LLVM_FOUND AND Clang_FOUND)
+    add_definitions(-DVRTLMOD_VERSION="1.0.0")
 
     set(CLANG_INCLUDE_DIRS ${LLVM_INSTALL_PREFIX}/lib/clang/${LLVM_VERSION}/include)
+    set(CLANG_LIBS clangTooling clangRewriteFrontend)
+    llvm_map_components_to_libnames(LLVM_LIBS option support Support)
 
-    llvm_map_components_to_libnames(LLVM_LIBS
-      option object profiledata support core mc bitreader MCParser BinaryFormat ExecutionEngine Target MCJIT X86CodeGen X86AsmParser Interpreter Support
-    )
-    
-    add_library(${PROJECT_NAME} INTERFACE)
-    
-    set(SRCS
-        src/transform/consumer.cpp
-        src/transform/filecontext.cpp
-        src/transform/extendedmatchers.cpp
-        src/transform/injectionrewriter.cpp
-        src/transform/rewrite/rewritemacrosaction.cpp
+    # read default target dictionary from file
+    file(READ ${CMAKE_CURRENT_SOURCE_DIR}/src/vapi/templates/targetdictionary.hpp CMAKE_TARGET_DICTIONARY_BODY)
+    # replace default boilerplate
+    string(REGEX REPLACE "^/\*.*#ifndef" "#ifndef" CMAKE_TARGET_DICTIONARY_BODY "${CMAKE_TARGET_DICTIONARY_BODY}")
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/vapi/templates/targetdictionary_header.cpp.in ${CMAKE_CURRENT_BINARY_DIR}/targetdictionary_header.cpp @ONLY)
 
+    add_library(${PROJECT_NAME}-core
         src/util/logging.cpp
-        src/util/system.cpp
+        src/util/utility.cpp
+
+        src/vrtlmod.cpp
 
         src/vapi/generator.cpp
-        src/vapi/xmlhelper.cpp
-        src/vapi/target.cpp
-
         src/vapi/templates/vrtlmodapi_header.cpp
         src/vapi/templates/vrtlmodapi_source.cpp
+        ${CMAKE_CURRENT_BINARY_DIR}/targetdictionary_header.cpp
+
+        src/core/consumer.cpp
+        src/core/filecontext.cpp
+        src/core/core.cpp
+        src/core/types.cpp
+        src/core/vrtlparse.cpp
+
+        src/passes/elaborate.cpp
+        src/passes/analyze.cpp
+        src/passes/signaldeclrewrite.cpp
+        src/passes/injectionrewrite.cpp
+        src/passes/rewritemacrosaction.cpp
     )
 
-    target_link_libraries(${PROJECT_NAME} INTERFACE
-        ${LLVM_LIBS}
-        ${LIBXML2_LIBRARIES}
+    target_link_libraries(${PROJECT_NAME}-core PRIVATE
+        pugixml::pugixml
         Boost::filesystem
-        clangFrontend
-        clangCodeGen
-        clangTooling
-        clangARCMigrate
-        clangAST
-        clangASTMatchers
-        clangAnalysis
-        clangBasic
-        clangCrossTU
-        clangDependencyScanning
-        clangDirectoryWatcher
-        clangDriver
-        clangDynamicASTMatchers
-        clangEdit
-        clangFormat
-        clangFrontendTool
-        clangHandleCXX
-        clangHandleLLVM
-        clangIndex
-        clangLex
-        clangParse
-        clangRewrite
-        clangRewriteFrontend
-        clangSema
-        clangSerialization
-        clangStaticAnalyzerCheckers
-        clangStaticAnalyzerCore
-        clangStaticAnalyzerFrontend
-        clangToolingASTDiff
-        clangToolingCore
-        clangToolingInclusions
-        clangToolingRefactoring
-        clangToolingSyntax
+        ${CLANG_LIBS}
+        ${LLVM_LIBS}
     )
-    target_include_directories(${PROJECT_NAME} INTERFACE
+    target_include_directories(${PROJECT_NAME}-core PUBLIC
         include
-        #/usr/include/libxml2
-        ${LIBXML2_INCLUDE_DIRS}
         ${LLVM_INCLUDE_DIRS}
-        #${CLANG_INCLUDE_DIRS}
     )
 
     add_executable(${PROJECT_NAME}-bin
         src/main.cpp
-        ${SRCS}
     )
+
+    target_link_libraries(${PROJECT_NAME}-bin PRIVATE
+        ${PROJECT_NAME}-core
+    )
+
     if(NOT LLVM_ENABLE_RTTI)
-        message(WARNING "LLVM built with RTTI required (-DLLVM_ENABLE_RTTI=On)... Trying to disalbe Runtime Type Information (-fno-rtti) for vrtlmod.")
+        message(WARNING "LLVM built with RTTI required (-DLLVM_ENABLE_RTTI=On)... Disable Runtime Type Information (-fno-rtti) for vrtlmod.")
+        target_compile_options(${PROJECT_NAME}-core PUBLIC -fno-rtti)
         target_compile_options(${PROJECT_NAME}-bin PUBLIC -fno-rtti)
     endif()
-    target_link_libraries(${PROJECT_NAME}-bin PUBLIC
-        ${PROJECT_NAME}
-    )
     set_target_properties(${PROJECT_NAME}-bin
         PROPERTIES OUTPUT_NAME ${PROJECT_NAME}
     )
@@ -234,39 +233,37 @@ endif()
 
 option(BUILD_DOC "Build documentation" OFF)
 find_package(Doxygen)
-
-if(BUILD_DOC)
-  if (DOXYGEN_FOUND)
+if (DOXYGEN_FOUND)
     set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/doc/doxyfile.cmake.in)
     set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/doc/doxyfile)
 
     configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
-    message("Doxygen build started")
 
-    add_custom_target( doc ALL
-      COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-      COMMENT "Generating ${PROJECT_NAME} API documentation with Doxygen"
-      VERBATIM )
+    add_custom_target( doc EXCLUDE_FROM_ALL
+        COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        COMMENT "Generating ${PROJECT_NAME} API documentation with Doxygen"
+        VERBATIM
+    )
 
-  else (DOXYGEN_FOUND)
+else (DOXYGEN_FOUND)
     message("Doxygen need to be installed to generate the doxygen documentation")
-  endif (DOXYGEN_FOUND)
-endif(BUILD_DOC)
+endif (DOXYGEN_FOUND)
 
 ########### TESTING #################
 
 ENABLE_TESTING()
 SET(TEST_BUILD OFF CACHE STRING "Include Tests in build")
-IF(CMAKE_TESTING_ENABLED AND TEST_BUILD)
-  add_subdirectory(test)
-ENDIF()
+if(CMAKE_TESTING_ENABLED AND TEST_BUILD)
+    add_subdirectory(test)
+endif()
 
-########### INSTALL #################
-install(TARGETS ${PROJECT_NAME}-bin ${PROJECT_NAME}
-  RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}
-  LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+install(TARGETS ${PROJECT_NAME}-bin
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/static
+    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/vrtlmod-config.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/vrtlmod-config.cmake @ONLY)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/vrtlmod-config.cmake DESTINATION ${CMAKE_INSTALL_PREFIX})
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/vrtlmod-config.cmake DESTINATION ${CMAKE_INSTALL_PREFIX}/cmake)

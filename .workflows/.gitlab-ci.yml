@@ -4,14 +4,13 @@ variables:
   BUILD_CONFIG: Release
   BUILD_DIR: build
   GIT_SUBMODULE_STRATEGY: recursive
-  LLVM_SOURCE: "https://github.com/llvm/llvm-project/releases/download/llvmorg-9.0.1"
-  LLVM_SOURCE_NAME: "clang+llvm-9.0.1-x86_64-linux-gnu-ubuntu-16.04"
+  LLVM_SOURCE: "https://github.com/llvm/llvm-project/releases/download/llvmorg-13.0.1"
+  LLVM_SOURCE_NAME: "clang+llvm-13.0.1-x86_64-linux-gnu-ubuntu-18.04"
   LLVM_SOURCE_EXT: "tar.xz"
   LLVM_DIR: ${CI_PROJECT_DIR}/llvm
   CONAN_CACHE_DIR: ${CI_PROJECT_DIR}/conan-cache
   VERILATOR_CACHE_DIR: ${CI_PROJECT_DIR}/verilator-cache
   VERILATOR_ROOT: ${CI_PROJECT_DIR}/verilator-cache
-  PIP_CACHE_DIR: $CI_PROJECT_DIR/.cache/pip
   APT_CACHE_DIR: apt-cache
 
 stages:
@@ -22,8 +21,6 @@ cache:
   paths:
     - conan-cache
     - verilator-cache
-    - venv
-    - .cache/pip
     - apt-cache
     - llvm
 
@@ -34,15 +31,12 @@ before_script:
   - sudo mkdir -pv ${APT_CACHE_DIR}
   - sudo mkdir -p /var/cache/apt/archives
   - sudo mount --bind ${APT_CACHE_DIR} /var/cache/apt/archives/
-  - sudo DEBIAN_FRONTEND=noninteractive apt update -q 
+  - sudo DEBIAN_FRONTEND=noninteractive apt update -q
   - sudo DEBIAN_FRONTEND=noninteractive apt upgrade -yq
-  - sudo DEBIAN_FRONTEND=noninteractive apt install -yq cmake perl make g++ libfl2 libfl-dev zlibc zlib1g zlib1g-dev ccache libgoogle-perftools-dev numactl perl-doc autoconf flex bison
+  - sudo DEBIAN_FRONTEND=noninteractive apt install -yq libboost-filesystem-dev cmake make perl g++ libfl2 libfl-dev zlibc zlib1g zlib1g-dev ccache libgoogle-perftools-dev numactl perl-doc autoconf flex bison
   - mkdir -pv ${CI_PROJECT_DIR}/${CONAN_CACHE_DIR}
   - export CONAN_USER_HOME=${CONAN_CACHE_DIR}
   - echo "environment"
-  - pip3 install virtualenv
-  - virtualenv -p python3 venv
-  - pip install --upgrade conan castxml pygccxml
   - |
     conan user
     if ! [[ $(conan profile list) = *default* ]]
@@ -55,8 +49,8 @@ before_script:
     if [ ! -d ${VERILATOR_CACHE_DIR} ]
     then
       git clone https://github.com/verilator/verilator.git ${VERILATOR_CACHE_DIR}/
-      git checkout v4.202
       cd ${VERILATOR_CACHE_DIR}/
+      git checkout v4.202
       autoconf
       ./configure
       make -j$(nproc)
@@ -79,10 +73,10 @@ build-job:
   stage: build
   script:
     - cd ${CI_PROJECT_DIR}
-    - cmake -S ${CI_PROJECT_DIR} -B ${BUILD_DIR} -DVERILATOR_ROOT=${VERILATOR_CACHE_DIR} -DREGPICKER_ROOT=`pwd`/regpicker -DCMAKE_BUILD_TYPE=${BUILD_CONFIG} -DCMAKE_CXX_STANDARD=14 -DCMAKE_INSTALL_PREFIX=${BUILD_DIR}/installed -DLLVM_DIR=${LLVM_DIR}
+    - cmake -S ${CI_PROJECT_DIR} -B ${BUILD_DIR} -DVERILATOR_ROOT=${VERILATOR_CACHE_DIR} -DCMAKE_BUILD_TYPE=${BUILD_CONFIG} -DCMAKE_INSTALL_PREFIX=${BUILD_DIR}/installed -DLLVM_DIR=${LLVM_DIR}
     - cmake --build ${BUILD_DIR} --config ${BUILD_CONFIG} --parallel $(nproc)
     - cmake --install ${BUILD_DIR} --config ${BUILD_CONFIG}
-  
+
   artifacts:
     paths:
       - ${BUILD_DIR}/CMakeFiles/CMakeOutput.log
@@ -92,19 +86,16 @@ build-job:
 test-job:
   stage: test
   script:
-    - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.lrz.de/de-tum-ei-eda-esl/fault_injection/regpicker.git --branch conan
-    - cd regpicker
-    - git checkout conan
-    - echo "regpicker self test..."
-    - python regpicker/regpicker.py pbb -m cc -y regpicker/examples/dff/dff.sv -clk clk -rst reset
     - cd ${CI_PROJECT_DIR}
-    - cmake -S ${CI_PROJECT_DIR} -B ${BUILD_DIR} -DVERBOSE=On -DTEST_BUILD=On -DVERILATOR_ROOT=${VERILATOR_CACHE_DIR} -DREGPICKER_ROOT=`pwd`/regpicker -DCMAKE_BUILD_TYPE=${BUILD_CONFIG} -DCMAKE_CXX_STANDARD=14 -DCMAKE_INSTALL_PREFIX=${BUILD_DIR}/installed -DLLVM_DIR=${LLVM_DIR}
+    - cmake -S ${CI_PROJECT_DIR} -B ${BUILD_DIR} -DVERBOSE=On -DTEST_BUILD=On -DVERILATOR_ROOT=${VERILATOR_CACHE_DIR} -DCMAKE_BUILD_TYPE=${BUILD_CONFIG} -DCMAKE_INSTALL_PREFIX=${BUILD_DIR}/installed -DLLVM_DIR=${LLVM_DIR}
     - cmake --build ${BUILD_DIR} --config ${BUILD_CONFIG} --parallel $(nproc)
     - cmake --build ${BUILD_DIR} --config ${BUILD_CONFIG} --parallel $(nproc) --target test
-  
+    - cat ${BUILD_DIR}/Testing/Temporary/LastTest.log
+    - cat ${BUILD_DIR}/Testing/Temporary/CTestCostData.txt
+
   artifacts:
     paths:
       - ${BUILD_DIR}/CMakeFiles/CMakeOutput.log
       - ${BUILD_DIR}/CMakeFiles/CMakeError.log
+      - ${BUILD_DIR}/Testing/*
     when: on_failure
-      
