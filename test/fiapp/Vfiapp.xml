@@ -1,0 +1,224 @@
+<?xml version="1.0" ?>
+<!-- DESCRIPTION: Verilator output: XML representation of netlist -->
+<verilator_xml>
+  <files>
+    <file id="a" filename="&lt;built-in&gt;" language="1800-2017"/>
+    <file id="b" filename="&lt;command-line&gt;" language="1800-2017"/>
+    <file id="c" filename="fiapp.sv" language="1800-2017"/>
+  </files>
+  <module_files>
+    <file id="c" filename="fiapp.sv" language="1800-2017"/>
+  </module_files>
+  <cells>
+    <cell fl="c1" loc="c,1,8,1,13" name="fiapp" submodname="fiapp" hier="fiapp"/>
+  </cells>
+  <netlist>
+    <module fl="c1" loc="c,1,8,1,13" name="fiapp" origName="fiapp">
+      <var fl="c3" loc="c,3,15,3,18" name="clk" dtype_id="1" dir="input" vartype="logic" origName="clk"/>
+      <var fl="c3" loc="c,3,20,3,25" name="reset" dtype_id="1" dir="input" vartype="logic" origName="reset"/>
+      <var fl="c4" loc="c,4,15,4,16" name="a" dtype_id="1" dir="input" vartype="logic" origName="a"/>
+      <var fl="c4" loc="c,4,18,4,24" name="enable" dtype_id="1" dir="input" vartype="logic" origName="enable"/>
+      <var fl="c5" loc="c,5,16,5,18" name="o1" dtype_id="1" dir="output" vartype="logic" origName="o1"/>
+      <var fl="c5" loc="c,5,20,5,22" name="o2" dtype_id="1" dir="output" vartype="logic" origName="o2"/>
+      <var fl="c5" loc="c,5,24,5,26" name="o3" dtype_id="1" dir="output" vartype="logic" origName="o3"/>
+      <var fl="c7" loc="c,7,8,7,10" name="q1" dtype_id="1" vartype="logic" origName="q1"/>
+      <var fl="c7" loc="c,7,12,7,14" name="q2" dtype_id="1" vartype="logic" origName="q2"/>
+      <var fl="c7" loc="c,7,16,7,18" name="q3" dtype_id="1" vartype="logic" origName="q3"/>
+      <var fl="c8" loc="c,8,14,8,18" name="qext" dtype_id="2" vartype="logic" origName="qext"/>
+      <var fl="c9" loc="c,9,13,9,22" name="qmultidim" dtype_id="3" vartype="" origName="qmultidim"/>
+      <var fl="c10" loc="c,10,13,10,25" name="qKLMmultidim" dtype_id="4" vartype="" origName="qKLMmultidim"/>
+      <contassign fl="c12" loc="c,12,12,12,13" dtype_id="1">
+        <varref fl="c12" loc="c,12,14,12,16" name="q1" dtype_id="1"/>
+        <varref fl="c12" loc="c,12,9,12,11" name="o1" dtype_id="1"/>
+      </contassign>
+      <contassign fl="c13" loc="c,13,12,13,13" dtype_id="1">
+        <varref fl="c13" loc="c,13,14,13,16" name="q2" dtype_id="1"/>
+        <varref fl="c13" loc="c,13,9,13,11" name="o2" dtype_id="1"/>
+      </contassign>
+      <contassign fl="c14" loc="c,14,12,14,13" dtype_id="1">
+        <and fl="c14" loc="c,14,17,14,18" dtype_id="1">
+          <varref fl="c14" loc="c,14,14,14,16" name="q3" dtype_id="1"/>
+          <sel fl="c14" loc="c,14,23,14,24" dtype_id="1">
+            <varref fl="c14" loc="c,14,19,14,23" name="qext" dtype_id="2"/>
+            <const fl="c14" loc="c,14,24,14,26" name="7&apos;h40" dtype_id="5"/>
+            <const fl="c14" loc="c,14,23,14,24" name="32&apos;h1" dtype_id="6"/>
+          </sel>
+        </and>
+        <varref fl="c14" loc="c,14,9,14,11" name="o3" dtype_id="1"/>
+      </contassign>
+      <always fl="c16" loc="c,16,2,16,11">
+        <sentree fl="c16" loc="c,16,12,16,13">
+          <senitem fl="c16" loc="c,16,14,16,21" edgeType="POS">
+            <varref fl="c16" loc="c,16,22,16,25" name="clk" dtype_id="1"/>
+          </senitem>
+          <senitem fl="c16" loc="c,16,27,16,34" edgeType="POS">
+            <varref fl="c16" loc="c,16,35,16,40" name="reset" dtype_id="1"/>
+          </senitem>
+        </sentree>
+        <if fl="c17" loc="c,17,3,17,5">
+          <varref fl="c17" loc="c,17,6,17,11" name="reset" dtype_id="1"/>
+          <begin fl="c17" loc="c,17,13,17,18">
+            <assigndly fl="c18" loc="c,18,7,18,9" dtype_id="1">
+              <const fl="c18" loc="c,18,10,18,14" name="1&apos;h0" dtype_id="1"/>
+              <varref fl="c18" loc="c,18,4,18,6" name="q1" dtype_id="1"/>
+            </assigndly>
+            <assigndly fl="c19" loc="c,19,7,19,9" dtype_id="1">
+              <const fl="c19" loc="c,19,10,19,14" name="1&apos;h0" dtype_id="1"/>
+              <varref fl="c19" loc="c,19,4,19,6" name="q2" dtype_id="1"/>
+            </assigndly>
+            <assigndly fl="c20" loc="c,20,7,20,9" dtype_id="1">
+              <const fl="c20" loc="c,20,10,20,14" name="1&apos;h0" dtype_id="1"/>
+              <varref fl="c20" loc="c,20,4,20,6" name="q3" dtype_id="1"/>
+            </assigndly>
+            <assigndly fl="c21" loc="c,21,9,21,11" dtype_id="2">
+              <const fl="c21" loc="c,21,12,21,17" name="65&apos;h0" dtype_id="2"/>
+              <varref fl="c21" loc="c,21,4,21,8" name="qext" dtype_id="2"/>
+            </assigndly>
+            <assigndly fl="c22" loc="c,22,17,22,19" dtype_id="7">
+              <const fl="c22" loc="c,22,20,22,24" name="3&apos;h0" dtype_id="7"/>
+              <arraysel fl="c22" loc="c,22,13,22,14" dtype_id="7">
+                <varref fl="c22" loc="c,22,4,22,13" name="qmultidim" dtype_id="3"/>
+                <const fl="c22" loc="c,22,14,22,15" name="1&apos;h0" dtype_id="8"/>
+              </arraysel>
+            </assigndly>
+            <assigndly fl="c23" loc="c,23,17,23,19" dtype_id="7">
+              <const fl="c23" loc="c,23,20,23,24" name="3&apos;h0" dtype_id="7"/>
+              <arraysel fl="c23" loc="c,23,13,23,14" dtype_id="7">
+                <varref fl="c23" loc="c,23,4,23,13" name="qmultidim" dtype_id="3"/>
+                <const fl="c23" loc="c,23,14,23,15" name="1&apos;h1" dtype_id="8"/>
+              </arraysel>
+            </assigndly>
+            <assigndly fl="c24" loc="c,24,24,24,26" dtype_id="7">
+              <const fl="c24" loc="c,24,27,24,31" name="3&apos;h0" dtype_id="7"/>
+              <arraysel fl="c24" loc="c,24,20,24,21" dtype_id="7">
+                <arraysel fl="c24" loc="c,24,17,24,18" dtype_id="9">
+                  <varref fl="c24" loc="c,24,4,24,16" name="qKLMmultidim" dtype_id="4"/>
+                  <const fl="c24" loc="c,24,18,24,19" name="1&apos;h0" dtype_id="8"/>
+                </arraysel>
+                <const fl="c24" loc="c,24,21,24,22" name="1&apos;h0" dtype_id="8"/>
+              </arraysel>
+            </assigndly>
+            <assigndly fl="c25" loc="c,25,24,25,26" dtype_id="7">
+              <const fl="c25" loc="c,25,27,25,31" name="3&apos;h0" dtype_id="7"/>
+              <arraysel fl="c25" loc="c,25,20,25,21" dtype_id="7">
+                <arraysel fl="c25" loc="c,25,17,25,18" dtype_id="9">
+                  <varref fl="c25" loc="c,25,4,25,16" name="qKLMmultidim" dtype_id="4"/>
+                  <const fl="c25" loc="c,25,18,25,19" name="1&apos;h0" dtype_id="8"/>
+                </arraysel>
+                <const fl="c25" loc="c,25,21,25,22" name="1&apos;h1" dtype_id="8"/>
+              </arraysel>
+            </assigndly>
+            <assigndly fl="c26" loc="c,26,24,26,26" dtype_id="7">
+              <const fl="c26" loc="c,26,27,26,31" name="3&apos;h0" dtype_id="7"/>
+              <arraysel fl="c26" loc="c,26,20,26,21" dtype_id="7">
+                <arraysel fl="c26" loc="c,26,17,26,18" dtype_id="9">
+                  <varref fl="c26" loc="c,26,4,26,16" name="qKLMmultidim" dtype_id="4"/>
+                  <const fl="c26" loc="c,26,18,26,19" name="1&apos;h1" dtype_id="8"/>
+                </arraysel>
+                <const fl="c26" loc="c,26,21,26,22" name="1&apos;h0" dtype_id="8"/>
+              </arraysel>
+            </assigndly>
+            <assigndly fl="c27" loc="c,27,24,27,26" dtype_id="7">
+              <const fl="c27" loc="c,27,27,27,31" name="3&apos;h0" dtype_id="7"/>
+              <arraysel fl="c27" loc="c,27,20,27,21" dtype_id="7">
+                <arraysel fl="c27" loc="c,27,17,27,18" dtype_id="9">
+                  <varref fl="c27" loc="c,27,4,27,16" name="qKLMmultidim" dtype_id="4"/>
+                  <const fl="c27" loc="c,27,18,27,19" name="1&apos;h1" dtype_id="8"/>
+                </arraysel>
+                <const fl="c27" loc="c,27,21,27,22" name="1&apos;h1" dtype_id="8"/>
+              </arraysel>
+            </assigndly>
+          </begin>
+          <begin fl="c33" loc="c,33,8,33,13">
+            <if fl="c34" loc="c,34,4,34,6">
+              <varref fl="c34" loc="c,34,8,34,14" name="enable" dtype_id="1"/>
+              <begin fl="c34" loc="c,34,16,34,21">
+                <assigndly fl="c35" loc="c,35,8,35,10" dtype_id="1">
+                  <varref fl="c35" loc="c,35,11,35,12" name="a" dtype_id="1"/>
+                  <varref fl="c35" loc="c,35,5,35,7" name="q1" dtype_id="1"/>
+                </assigndly>
+              </begin>
+            </if>
+            <assigndly fl="c37" loc="c,37,7,37,9" dtype_id="1">
+              <varref fl="c37" loc="c,37,10,37,12" name="q1" dtype_id="1"/>
+              <varref fl="c37" loc="c,37,4,37,6" name="q2" dtype_id="1"/>
+            </assigndly>
+            <assigndly fl="c38" loc="c,38,7,38,9" dtype_id="1">
+              <not fl="c38" loc="c,38,10,38,11" dtype_id="1">
+                <varref fl="c38" loc="c,38,11,38,13" name="q1" dtype_id="1"/>
+              </not>
+              <varref fl="c38" loc="c,38,4,38,6" name="q3" dtype_id="1"/>
+            </assigndly>
+            <assigndly fl="c39" loc="c,39,9,39,11" dtype_id="2">
+              <add fl="c39" loc="c,39,17,39,18" dtype_id="2">
+                <const fl="c39" loc="c,39,19,39,20" name="65&apos;h1" dtype_id="2"/>
+                <varref fl="c39" loc="c,39,12,39,16" name="qext" dtype_id="2"/>
+              </add>
+              <varref fl="c39" loc="c,39,4,39,8" name="qext" dtype_id="2"/>
+            </assigndly>
+            <assigndly fl="c40" loc="c,40,17,40,19" dtype_id="7">
+              <arraysel fl="c40" loc="c,40,29,40,30" dtype_id="7">
+                <varref fl="c40" loc="c,40,20,40,29" name="qmultidim" dtype_id="3"/>
+                <const fl="c40" loc="c,40,30,40,31" name="1&apos;h0" dtype_id="8"/>
+              </arraysel>
+              <arraysel fl="c40" loc="c,40,13,40,14" dtype_id="7">
+                <varref fl="c40" loc="c,40,4,40,13" name="qmultidim" dtype_id="3"/>
+                <const fl="c40" loc="c,40,14,40,15" name="1&apos;h1" dtype_id="8"/>
+              </arraysel>
+            </assigndly>
+            <assigndly fl="c41" loc="c,41,17,41,19" dtype_id="7">
+              <sel fl="c41" loc="c,41,24,41,25" dtype_id="7">
+                <varref fl="c41" loc="c,41,20,41,24" name="qext" dtype_id="2"/>
+                <const fl="c41" loc="c,41,27,41,28" name="7&apos;h0" dtype_id="5"/>
+                <const fl="c41" loc="c,41,25,41,26" name="32&apos;h3" dtype_id="6"/>
+              </sel>
+              <arraysel fl="c41" loc="c,41,13,41,14" dtype_id="7">
+                <varref fl="c41" loc="c,41,4,41,13" name="qmultidim" dtype_id="3"/>
+                <const fl="c41" loc="c,41,14,41,15" name="1&apos;h0" dtype_id="8"/>
+              </arraysel>
+            </assigndly>
+            <assigndly fl="c42" loc="c,42,24,42,26" dtype_id="7">
+              <arraysel fl="c42" loc="c,42,36,42,37" dtype_id="7">
+                <varref fl="c42" loc="c,42,27,42,36" name="qmultidim" dtype_id="3"/>
+                <const fl="c42" loc="c,42,37,42,38" name="1&apos;h0" dtype_id="8"/>
+              </arraysel>
+              <arraysel fl="c42" loc="c,42,20,42,21" dtype_id="7">
+                <arraysel fl="c42" loc="c,42,17,42,18" dtype_id="9">
+                  <varref fl="c42" loc="c,42,4,42,16" name="qKLMmultidim" dtype_id="4"/>
+                  <const fl="c42" loc="c,42,18,42,19" name="1&apos;h1" dtype_id="8"/>
+                </arraysel>
+                <const fl="c42" loc="c,42,21,42,22" name="1&apos;h1" dtype_id="8"/>
+              </arraysel>
+            </assigndly>
+          </begin>
+        </if>
+      </always>
+    </module>
+    <typetable fl="a0" loc="a,0,0,0,0">
+      <basicdtype fl="c3" loc="c,3,9,3,14" id="1" name="logic"/>
+      <basicdtype fl="c8" loc="c,8,2,8,7" id="2" name="logic" left="64" right="0"/>
+      <basicdtype fl="c9" loc="c,9,23,9,24" id="6" name="logic" left="31" right="0"/>
+      <basicdtype fl="c9" loc="c,9,2,9,7" id="7" name="logic" left="2" right="0"/>
+      <unpackarraydtype fl="c9" loc="c,9,22,9,23" id="3" sub_dtype_id="7">
+        <range fl="c9" loc="c,9,22,9,23">
+          <const fl="c9" loc="c,9,23,9,24" name="32&apos;h0" dtype_id="6"/>
+          <const fl="c9" loc="c,9,23,9,24" name="32&apos;h1" dtype_id="6"/>
+        </range>
+      </unpackarraydtype>
+      <unpackarraydtype fl="c10" loc="c,10,28,10,29" id="9" sub_dtype_id="7">
+        <range fl="c10" loc="c,10,28,10,29">
+          <const fl="c10" loc="c,10,29,10,30" name="32&apos;h0" dtype_id="6"/>
+          <const fl="c10" loc="c,10,29,10,30" name="32&apos;h1" dtype_id="6"/>
+        </range>
+      </unpackarraydtype>
+      <unpackarraydtype fl="c10" loc="c,10,25,10,26" id="4" sub_dtype_id="9">
+        <range fl="c10" loc="c,10,25,10,26">
+          <const fl="c10" loc="c,10,26,10,27" name="32&apos;h0" dtype_id="6"/>
+          <const fl="c10" loc="c,10,26,10,27" name="32&apos;h1" dtype_id="6"/>
+        </range>
+      </unpackarraydtype>
+      <basicdtype fl="c14" loc="c,14,23,14,24" id="5" name="logic" left="6" right="0"/>
+      <basicdtype fl="c22" loc="c,22,13,22,14" id="8" name="logic"/>
+    </typetable>
+  </netlist>
+</verilator_xml>

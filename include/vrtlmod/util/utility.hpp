@@ -1,0 +1,161 @@
+/*
+ * Copyright 2021 Chair of EDA, Technical University of Munich
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *	 http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+////////////////////////////////////////////////////////////////////////////////
+/// @file system.hpp
+/// @date Created on Mon Jan 10 18:21:20 2020
+////////////////////////////////////////////////////////////////////////////////
+
+#ifndef __VRTLMOD_UTIL_UTILITY_HPP__
+#define __VRTLMOD_UTIL_UTILITY_HPP__
+
+#include <string>
+#include <cstring>
+#include <boost/filesystem.hpp>
+namespace fs = boost::filesystem;
+
+////////////////////////////////////////////////////////////////////////////////
+/// @brief General utility functions
+namespace util
+{
+
+////////////////////////////////////////////////////////////////////////////////
+/// @brief String helper
+namespace strhelp
+{
+////////////////////////////////////////////////////////////////////////////////
+/// @brief Replace the first occurrence of a substring with another
+/// @param str In-/Out string
+/// @param from Substring of str to be replaced
+/// @param to Replacement for to be replaced substring of str
+/// @return True if a substring was replaced, false if not.
+bool replace(std::string &str, const std::string &from, const std::string &to);
+////////////////////////////////////////////////////////////////////////////////
+/// @brief Replace all occurrences of a substring with another
+/// @param str In-/Out string
+/// @param from Substring of str to be replaced
+/// @param to Replacement for to be replaced substring of str
+void replaceAll(std::string &str, const std::string &from, const std::string &to);
+
+} // namespace strhelp
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \brief (hiding) namespace utlitily details
+/// \details This section is based on: https://stackoverflow.com/a/18899027
+namespace detail
+{
+
+template <typename>
+struct string_size_impl;
+
+template <size_t N>
+struct string_size_impl<const char[N]>
+{
+    static constexpr size_t size(const char (&)[N]) { return N - 1; }
+};
+
+template <size_t N>
+struct string_size_impl<char[N]>
+{
+    static size_t size(char (&s)[N]) { return N ? strlen(s) : 0; }
+};
+
+template <>
+struct string_size_impl<char>
+{
+    static size_t size(char) { return 1; }
+};
+
+template <>
+struct string_size_impl<const char *>
+{
+    static size_t size(const char *s) { return s ? strlen(s) : 0; }
+};
+
+template <>
+struct string_size_impl<char *>
+{
+    static size_t size(char *s) { return s ? strlen(s) : 0; }
+};
+
+template <>
+struct string_size_impl<std::string>
+{
+    static size_t size(const std::string &s) { return s.size(); }
+};
+
+template <typename String>
+size_t string_size(String &&s)
+{
+    using noref_t = typename std::remove_reference<String>::type;
+    using string_t =
+        typename std::conditional<std::is_array<noref_t>::value, noref_t, typename std::remove_cv<noref_t>::type>::type;
+    return string_size_impl<string_t>::size(s);
+}
+
+template <typename...>
+struct concatenate_impl;
+
+template <typename String>
+struct concatenate_impl<String>
+{
+    static size_t size(String &&s) { return string_size(s); }
+    static void concatenate(std::string &result, String &&s) { result += s; }
+};
+
+template <typename String, typename... Rest>
+struct concatenate_impl<String, Rest...>
+{
+    static size_t size(String &&s, Rest &&...rest)
+    {
+        return string_size(s) + concatenate_impl<Rest...>::size(std::forward<Rest>(rest)...);
+    }
+    static void concatenate(std::string &result, String &&s, Rest &&...rest)
+    {
+        result += s;
+        concatenate_impl<Rest...>::concatenate(result, std::forward<Rest>(rest)...);
+    }
+};
+
+} // namespace detail
+
+template <typename... Strings>
+std::string concat(Strings &&...strings)
+{
+    std::string result;
+    result.reserve(detail::concatenate_impl<Strings...>::size(std::forward<Strings>(strings)...));
+    detail::concatenate_impl<Strings...>::concatenate(result, std::forward<Strings>(strings)...);
+    return result;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// @brief check whether file path exists on system (ret 0) or not (ret != 0)
+int check_file(const fs::path &fpath);
+
+////////////////////////////////////////////////////////////////////////////////
+/// @brief System (and shell helper)
+namespace system
+{
+////////////////////////////////////////////////////////////////////////////////
+/// @brief Execute a shell command and return shell response as string
+/// @param cmd Command for shell
+std::string exec(std::string cmd);
+
+} // namespace system
+
+} // namespace util
+
+#endif /* __VRTLMOD_UTIL_UTILITY_HPP__ */
