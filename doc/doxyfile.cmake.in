@@ -791,14 +791,25 @@ WARN_LOGFILE           =
 # Note: If this tag is empty the current directory is searched.
 
 INPUT                  = @CMAKE_CURRENT_SOURCE_DIR@/doc/docs/mainpage.dox \
-                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../include/APIbuild \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../include/vrtlmod/transform/rewrite/ \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../include/vrtlmod/transform/ \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../include/vrtlmod/util/ \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../include/vrtlmod/vapi/templates \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../include/vrtlmod/vapi/ \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../include/vrtlmod/core/ \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../include/vrtlmod/passes/ \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../include/vrtlmod \
                          @CMAKE_CURRENT_SOURCE_DIR@/doc/../include \
-                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../include/ftcv \
-                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../include/ftcv/rewriterHandler \
-                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../src \
-                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../src/APIbuild \
-                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../src/rewriterHandler \
-                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../vrtlmod.cpp
+                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../src/ \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../src/transform/rewrite/ \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../src/transform/ \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../src/util/ \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../src/vapi/templates \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../src/vapi/ \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../src/core/ \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../src/passes/ \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../src/main.cpp \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../src/vrtlmod.cpp
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
