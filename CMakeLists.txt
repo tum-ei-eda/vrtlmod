@@ -22,6 +22,11 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_BINARY_DIR})
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_BINARY_DIR})
 
 project(vrtlmod)
+
+if(NOT CMAKE_CXX_STANDARD)
+    set(CMAKE_CXX_STANDARD 17)
+    message(WARNING "CMAKE_CXX_STANDARD not set. Default to ${CMAKE_CXX_STANDARD}")
+endif()
 ####################################################################################################
 
 ####################################################################################################
@@ -78,10 +83,10 @@ set(CONAN_PACKAGE_LIST
     pugixml/[>=1.11]
 )
 
-find_package(Boost
+find_package(Boost 1.70
     COMPONENTS filesystem
 )
-if(NOT Boost_Found) # boost not found on system add it to conan package list
+if(NOT ${Boost_FOUND})# boost not found on system add it to conan package list
     set(CONAN_OPTIONS
         ${CONAN_OPTIONS}
         boost:shared=True
@@ -109,10 +114,6 @@ conan_cmake_configure(
 )
 
 conan_cmake_autodetect(settings)
-if(NOT CMAKE_CXX_STANDARD)
-    set(CMAKE_CXX_STANDARD 17)
-    message(WARNING "CMAKE_CXX_STANDARD not set. Default to ${CMAKE_CXX_STANDARD}")
-endif()
 
 set(settings ${settings} compiler.cppstd=${CMAKE_CXX_STANDARD})
 
@@ -150,11 +151,9 @@ find_package(Clang REQUIRED CONFIG
 
 find_package(pugixml REQUIRED)
 
-if(NOT Boost_Found) # could have been found on system earlier
-    find_package(Boost REQUIRED
-        COMPONENTS filesystem
-    )
-endif()
+find_package(Boost 1.70 REQUIRED
+    COMPONENTS filesystem
+)
 
 message("Boost Version: ${Boost_VERSION}")
 message("Using LLVM_DIR: ${LLVM_DIR}")
