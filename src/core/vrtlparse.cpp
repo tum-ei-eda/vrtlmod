@@ -56,10 +56,23 @@ void VrtlParser::run(const clang::ast_matchers::MatchFinder::MatchResult &Result
 
 void VrtlParser::addMatcher(clang::ast_matchers::MatchFinder &finder)
 {
-    const auto vrtl_internal = matchesName(
-        "::__V"); ///<  do not match any internal signal prefixes like: __Vclklast__", "__Vm_traceActivity", "__Vdly",
-                  ///<  "__Vtable","__VlSymsp", "__VinpClk__", "__Vcellinp__", "__Vchglast__", "__Vcellout__",
-                  ///<  "__Vlvbound", "__Vtableidx", "__Vfunc", "__Vilp", "__Vdpiimwrap", "__Vconst"
+    const auto vrtl_internal = anyOf(
+        matchesName("::__V"),
+        matchesName("__VinpClk__"),
+        matchesName("__Vdly__"),
+        matchesName("__Vm_traceActivity__"),
+        matchesName("__Vclklast__"),
+        matchesName("__Vtable__"),
+        matchesName("__Vcellinp__"),
+        matchesName("__Vchglast__"),
+        matchesName("__Vcellout__"),
+        matchesName("__Vlvbound__"),
+        matchesName("__Vtableidx__"),
+        matchesName("__Vfunc__"),
+        matchesName("__Vilp__"),
+        matchesName("__Vdpiimwrap__"),
+        matchesName("__Vconst__")
+    );
 
     const auto sc_module_decl =
         cxxRecordDecl(isDirectlyDerivedFrom("sc_core::sc_module"))
