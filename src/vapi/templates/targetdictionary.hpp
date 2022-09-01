@@ -43,7 +43,8 @@ typedef enum INJ_TYPE
 {
     BIASED_S,
     BIASED_R,
-    BITFLIP
+    BITFLIP,
+    ASSIGN
 } INJ_TYPE_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -91,8 +92,19 @@ class TDentry
     /// \param bit index of mask bit to be set, 0:lsb
     virtual void set_maskBit(unsigned bit) = 0;
     ////////////////////////////////////////////////////////////////////////////////////////////////
+    /// \brief set value bit
+    /// \param bit index of mask bit to be set, 0:lsb
+    virtual void set_value_bit(unsigned bit) = 0;
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    /// \brief reset value bit
+    /// \param bit index of mask bit to be set, 0:lsb
+    virtual void reset_value_bit(unsigned bit) = 0;
+    ////////////////////////////////////////////////////////////////////////////////////////////////
     /// \brief reset complete mask
     virtual void reset_mask(void) = 0;
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    /// \brief reset injection value mask (used for INJ_TYPE::ASSIGN)
+    virtual void reset_assign_value(void) = 0;
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// \brief Returns the target compressed into a bit-vector of length bits_
     virtual std::vector<bool> read_data(void) = 0;
@@ -123,12 +135,18 @@ class Named_TDentry : public TDentry
     std::string name_;
 
   public:
-    vcontainer_t &data_;  ///< Reference to VRTL signal
-    vcontainer_t mask_{}; ///< Shadow of VRTL signal holding injection bits
+    vcontainer_t &data_;          ///< Reference to VRTL signal
+    vcontainer_t mask_{};         ///< Shadow of VRTL signal holding injection bits
+    vcontainer_t assign_value_{}; ///< Shadow of VRTL signal holding injection value according to masked bits
 
   public:
     virtual void set_maskBit(unsigned bit) {}
     virtual void reset_mask(void) {}
+
+    virtual void set_value_bit(unsigned bit) {}
+    virtual void reset_value_bit(unsigned bit) {}
+    virtual void reset_assign_value(void) {}
+
     virtual std::vector<bool> read_data(void) { return (std::vector<bool>{}); }
     // virtual void inject(int word = 0){};
     virtual void inject_on_update(std::initializer_list<unsigned int> i = {}) {}
@@ -167,6 +185,11 @@ class ZeroD_TDentry final : public Named_TDentry<vcontainer_t>
     // TDentry interface methods:
     void set_maskBit(unsigned bit) override { BASE::mask_ |= (1 << bit); }
     void reset_mask(void) override { BASE::mask_ = 0; }
+
+    virtual void set_value_bit(unsigned bit) override { BASE::assign_value_ |= (1 << bit); }
+    virtual void reset_value_bit(unsigned bit) override { BASE::assign_value_ &= ~(1 << bit); }
+    virtual void reset_assign_value(void) override { BASE::assign_value_ = 0; }
+
     std::vector<bool> read_data(void) override;
     void inject_on_update(std::initializer_list<unsigned int> i = {}) override { __inject_on_update(); }
     void inject_synchronous(void) { inject(); }
@@ -205,6 +228,11 @@ class OneD_TDentry final : public Named_TDentry<vcontainer_t>
     // TDentry interface methods:
     void set_maskBit(unsigned bit) override;
     void reset_mask(void) override;
+
+    virtual void set_value_bit(unsigned bit) override;
+    virtual void reset_value_bit(unsigned bit) override;
+    virtual void reset_assign_value(void) override;
+
     std::vector<bool> read_data(void) override;
     void inject_on_update(std::initializer_list<unsigned int> i = {}) override;
     void inject_synchronous(void) override;
@@ -243,6 +271,11 @@ class TwoD_TDentry final : public Named_TDentry<vcontainer_t>
     // TDentry interface methods:
     void set_maskBit(unsigned bit) override;
     void reset_mask(void) override;
+
+    virtual void set_value_bit(unsigned bit) override;
+    virtual void reset_value_bit(unsigned bit) override;
+    virtual void reset_assign_value(void) override;
+
     std::vector<bool> read_data(void) override;
     void inject_on_update(std::initializer_list<unsigned int> i = {}) override;
     void inject_synchronous(void) override;
@@ -281,6 +314,11 @@ class ThreeD_TDentry final : public Named_TDentry<vcontainer_t>
     // TDentry interface methods:
     void set_maskBit(unsigned bit) override;
     void reset_mask(void) override;
+
+    virtual void set_value_bit(unsigned bit) override;
+    virtual void reset_value_bit(unsigned bit) override;
+    virtual void reset_assign_value(void) override;
+
     std::vector<bool> read_data(void) override;
 
     void inject_on_update(std::initializer_list<unsigned int> i = {}) override;
@@ -370,8 +408,9 @@ class TD_API
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// \brief Prepare an injection: Set bits accordingly and arm target
-    /// \param targetname string identifier name of injection target
+    /// \param target injection target
     /// \param type injection type
+    /// \param bits vector of bit numbers to be set in injection mask
     /// \return BIT_CODES
     int prep_inject(TDentry &target, const std::vector<unsigned> &bits, const INJ_TYPE_t type = BITFLIP) const
     {
@@ -389,6 +428,39 @@ class TD_API
             target.set_maskBit(bit);
         }
         target.inj_type_ = type;
+        target.reset_cntr();
+        return BIT_CODES::GENERIC_OK;
+    }
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    /// \brief Prepare an injection: Set bits for value mask accordingly and arm target
+    /// \param target injection target
+    /// \param value_map map of bit numbers (key) and value to be assigned (0-> reset keyed bit, 1->set)
+    /// \return BIT_CODES
+    int prep_value_inject(TDentry &target, const std::map<unsigned, bool> &value_map) const
+    {
+        int ret = 0;
+        target.reset_mask();
+        target.reset_assign_value();
+        for (const auto &it : value_map)
+        {
+            unsigned bit = it.first;
+            bool value = it.second;
+            if (bit > target.bits_ - 1)
+            {
+                // return BIT_CODES::ERROR_BIT_OUTOFRANGE;
+                continue; // just skip this bit that is out of range
+            }
+            target.set_maskBit(bit);
+            if (value)
+            {
+                target.set_value_bit(bit);
+            }
+            else
+            {
+                target.reset_value_bit(bit);
+            }
+        }
+        target.inj_type_ = INJ_TYPE::ASSIGN;
         target.reset_cntr();
         return BIT_CODES::GENERIC_OK;
     }
@@ -453,24 +525,25 @@ inline void ZeroD_TDentry<vcontainer_t>::inject(void)
 {
     if (__UNLIKELY(TDentry::enable_))
     {
-        if (__UNLIKELY((cntr_ <= 0) && BASE::mask_))
+        if (__UNLIKELY(cntr_ <= 0))
         {
             if (__LIKELY(TDentry::inj_type_ == INJ_TYPE::BITFLIP))
             {
                 BASE::data_ ^= BASE::mask_;
             }
-            else
+            else if (TDentry::inj_type_ == INJ_TYPE::BIASED_S)
             {
-                if (TDentry::inj_type_ == INJ_TYPE::BIASED_S)
-                {
-                    BASE::data_ |= BASE::mask_;
-                }
-                else
-                { //  == INJ_TYPE::BIASED_R
-                    BASE::data_ &= ~BASE::mask_;
-                }
+                BASE::data_ |= BASE::mask_;
             }
-            ++cntr_;
+            else if (TDentry::inj_type_ == INJ_TYPE::BIASED_R)
+            { //  == INJ_TYPE::BIASED_R
+                BASE::data_ &= ~BASE::mask_;
+            }
+            else
+            { // == ASSIGN aka data<=mask
+                BASE::data_ = BASE::mask_;
+            }
+            __incr_cntr();
         }
     }
 }
@@ -485,7 +558,6 @@ std::vector<bool> ZeroD_TDentry<vcontainer_t>::read_data(void)
     }
     return (bitstream);
 }
-
 
 // Template implmenatations:
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -511,22 +583,24 @@ inline void OneD_TDentry<vcontainer_t, vbasetype_t, M>::inject(unsigned m)
 {
     if (__UNLIKELY(TDentry::enable_))
     {
-        if (__UNLIKELY((cntr_[m] <= 0) && BASE::mask_[m]))
+        if (__UNLIKELY(cntr_[m] <= 0) && BASE::mask_[m])
         {
             if (__LIKELY(TDentry::inj_type_ == INJ_TYPE::BITFLIP))
             {
                 BASE::data_[m] ^= BASE::mask_[m];
             }
-            else
+            else if (TDentry::inj_type_ == INJ_TYPE::BIASED_S)
             {
-                if (TDentry::inj_type_ == INJ_TYPE::BIASED_S)
-                {
-                    BASE::data_[m] |= BASE::mask_[m];
-                }
-                else
-                { //  == INJ_TYPE::BIASED_R
-                    BASE::data_[m] &= ~BASE::mask_[m];
-                }
+                BASE::data_[m] |= BASE::mask_[m];
+            }
+            else if (TDentry::inj_type_ == INJ_TYPE::BIASED_R)
+            { //  == INJ_TYPE::BIASED_R
+                BASE::data_[m] &= ~BASE::mask_[m];
+            }
+            else
+            { //== ASSIGN aka data<=mask
+                BASE::data_[m] &= ~(BASE::mask_[m]);
+                BASE::data_[m] |= BASE::mask_[m] & BASE::assign_value_[m];
             }
             __incr_cntr(m);
         }
@@ -543,6 +617,24 @@ void OneD_TDentry<vcontainer_t, vbasetype_t, M>::reset_mask(void)
 {
     for (int m = 0; m < M; ++m)
         BASE::mask_[m] = 0;
+}
+template <typename vcontainer_t, typename vbasetype_t, int M>
+void OneD_TDentry<vcontainer_t, vbasetype_t, M>::set_value_bit(unsigned bit)
+{
+    auto b = map_bit(bit);
+    BASE::assign_value_[b[0]] |= 1 << b[1];
+}
+template <typename vcontainer_t, typename vbasetype_t, int M>
+void OneD_TDentry<vcontainer_t, vbasetype_t, M>::reset_value_bit(unsigned bit)
+{
+    auto b = map_bit(bit);
+    BASE::assign_value_[b[0]] &= ~(1 << b[1]);
+}
+template <typename vcontainer_t, typename vbasetype_t, int M>
+void OneD_TDentry<vcontainer_t, vbasetype_t, M>::reset_assign_value(void)
+{
+    for (int m = 0; m < M; ++m)
+        BASE::assign_value_[m] = 0;
 }
 template <typename vcontainer_t, typename vbasetype_t, int M>
 std::vector<bool> OneD_TDentry<vcontainer_t, vbasetype_t, M>::read_data(void)
@@ -653,22 +745,24 @@ inline void TwoD_TDentry<vcontainer_t, vbasetype_t, L, M>::inject(unsigned l, un
 {
     if (__UNLIKELY(TDentry::enable_))
     {
-        if (__UNLIKELY((cntr_[l][m] <= 0) && BASE::mask_[l][m]))
+        if (__UNLIKELY(cntr_[l][m] <= 0) && BASE::mask_[l][m])
         {
             if (__LIKELY(TDentry::inj_type_ == INJ_TYPE::BITFLIP))
             {
                 BASE::data_[l][m] ^= BASE::mask_[l][m];
             }
-            else
+            else if (TDentry::inj_type_ == INJ_TYPE::BIASED_S)
             {
-                if (TDentry::inj_type_ == INJ_TYPE::BIASED_S)
-                {
-                    BASE::data_[l][m] |= BASE::mask_[l][m];
-                }
-                else
-                { //  == INJ_TYPE::BIASED_R
-                    BASE::data_[l][m] &= ~BASE::mask_[l][m];
-                }
+                BASE::data_[l][m] |= BASE::mask_[l][m];
+            }
+            else if (TDentry::inj_type_ == INJ_TYPE::BIASED_R)
+            { //  == INJ_TYPE::BIASED_R
+                BASE::data_[l][m] &= ~BASE::mask_[l][m];
+            }
+            else
+            { //== ASSIGN aka data<=mask
+                BASE::data_[l][m] &= ~(BASE::mask_[l][m]);
+                BASE::data_[l][m] |= BASE::mask_[l][m] & BASE::assign_value_[l][m];
             }
             __incr_cntr(l, m);
         }
@@ -686,6 +780,25 @@ void TwoD_TDentry<vcontainer_t, vbasetype_t, L, M>::reset_mask(void)
     for (int l = 0; l < L; ++l)
         for (int m = 0; m < M; ++m)
             BASE::mask_[l][m] = 0;
+}
+template <typename vcontainer_t, typename vbasetype_t, int L, int M>
+void TwoD_TDentry<vcontainer_t, vbasetype_t, L, M>::set_value_bit(unsigned bit)
+{
+    auto b = map_bit(bit);
+    BASE::assign_value_[b[0]][b[1]] |= 1 << b[2];
+}
+template <typename vcontainer_t, typename vbasetype_t, int L, int M>
+void TwoD_TDentry<vcontainer_t, vbasetype_t, L, M>::reset_value_bit(unsigned bit)
+{
+    auto b = map_bit(bit);
+    BASE::assign_value_[b[0]][b[1]] &= ~(1 << b[2]);
+}
+template <typename vcontainer_t, typename vbasetype_t, int L, int M>
+void TwoD_TDentry<vcontainer_t, vbasetype_t, L, M>::reset_assign_value(void)
+{
+    for (int l = 0; l < L; ++l)
+        for (int m = 0; m < M; ++m)
+            BASE::assign_value_[l][m] = 0;
 }
 template <typename vcontainer_t, typename vbasetype_t, int L, int M>
 std::vector<bool> TwoD_TDentry<vcontainer_t, vbasetype_t, L, M>::read_data(void)
@@ -805,22 +918,24 @@ inline void ThreeD_TDentry<vcontainer_t, vbasetype_t, K, L, M>::inject(unsigned 
 {
     if (__UNLIKELY(TDentry::enable_))
     {
-        if (__UNLIKELY((cntr_[k][l][m] <= 0) && BASE::mask_[k][l][m]))
+        if (__UNLIKELY(cntr_[k][l][m] <= 0) && BASE::mask_)
         {
             if (__LIKELY(TDentry::inj_type_ == INJ_TYPE::BITFLIP))
             {
                 BASE::data_[k][l][m] ^= BASE::mask_[k][l][m];
             }
-            else
+            else if (TDentry::inj_type_ == INJ_TYPE::BIASED_S)
             {
-                if (TDentry::inj_type_ == INJ_TYPE::BIASED_S)
-                {
-                    BASE::data_[k][l][m] |= BASE::mask_[k][l][m];
-                }
-                else
-                { //  == INJ_TYPE::BIASED_R
-                    BASE::data_[k][l][m] &= ~BASE::mask_[k][l][m];
-                }
+                BASE::data_[k][l][m] |= BASE::mask_[k][l][m];
+            }
+            else if (TDentry::inj_type_ == INJ_TYPE::BIASED_R)
+            { //  == INJ_TYPE::BIASED_R
+                BASE::data_[k][l][m] &= ~BASE::mask_[k][l][m];
+            }
+            else
+            { //== ASSIGN aka data<=mask
+                BASE::data_[k][l][m] &= ~(BASE::mask_[k][l][m]);
+                BASE::data_[k][l][m] |= BASE::mask_[k][l][m] & BASE::assign_value_[k][l][m];
             }
             __incr_cntr(k, l, m);
         }
@@ -839,6 +954,26 @@ void ThreeD_TDentry<vcontainer_t, vbasetype_t, K, L, M>::reset_mask(void)
         for (int l = 0; l < L; ++l)
             for (int m = 0; m < M; ++m)
                 BASE::mask_[k][l][m] = 0;
+}
+template <typename vcontainer_t, typename vbasetype_t, int K, int L, int M>
+void ThreeD_TDentry<vcontainer_t, vbasetype_t, K, L, M>::set_value_bit(unsigned bit)
+{
+    auto b = map_bit(bit);
+    BASE::assign_value_[b[0]][b[1]][b[2]] |= 1 << b[3];
+}
+template <typename vcontainer_t, typename vbasetype_t, int K, int L, int M>
+void ThreeD_TDentry<vcontainer_t, vbasetype_t, K, L, M>::reset_value_bit(unsigned bit)
+{
+    auto b = map_bit(bit);
+    BASE::assign_value_[b[0]][b[1]][b[2]] &= ~(1 << b[3]);
+}
+template <typename vcontainer_t, typename vbasetype_t, int K, int L, int M>
+void ThreeD_TDentry<vcontainer_t, vbasetype_t, K, L, M>::reset_assign_value(void)
+{
+    for (int k = 0; k < K; ++k)
+        for (int l = 0; l < L; ++l)
+            for (int m = 0; m < M; ++m)
+                BASE::assign_value_[k][l][m] = 0;
 }
 template <typename vcontainer_t, typename vbasetype_t, int K, int L, int M>
 std::vector<bool> ThreeD_TDentry<vcontainer_t, vbasetype_t, K, L, M>::read_data(void)
