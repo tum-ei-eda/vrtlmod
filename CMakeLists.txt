@@ -106,7 +106,7 @@ if(NOT USE_CWR_SYSTEMC AND NOT USE_NCSC_SYSTEMC AND NOT DEFINED ENV{SYSTEMC_HOME
 endif()
 endif()
 
-conan_check(${CMAKE_CURRENT_SOURCE_DIR}/cmake/eda-conan)
+conan_check()
 conan_cmake_configure(
     REQUIRES ${CONAN_PACKAGE_LIST}
     GENERATORS cmake_find_package
@@ -164,7 +164,7 @@ message("Clang INCLUDE DIRS: ${LLVM_INSTALL_PREFIX}/lib/clang/${LLVM_VERSION}/in
 ####################################################################################################
 
 if(LLVM_FOUND AND Clang_FOUND)
-    add_definitions(-DVRTLMOD_VERSION="1.0.0")
+    add_definitions(-DVRTLMOD_VERSION="0.9.3")
 
     set(CLANG_INCLUDE_DIRS ${LLVM_INSTALL_PREFIX}/lib/clang/${LLVM_VERSION}/include)
     set(CLANG_LIBS clangTooling clangRewriteFrontend)
