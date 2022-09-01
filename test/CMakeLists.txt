@@ -68,17 +68,12 @@ if(CMAKE_TESTING_ENABLED AND TEST_BUILD)
 
     message ("New sources: ${COUT}")
 
-    set(REGPICK_OUT ${DUT_NAME}-pbb.xml)
 
     file(GLOB CC_SOURCES ${CC_SUBDIR}/*)
 
-    add_custom_target(${REGPICK_OUT}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    )
-
     add_custom_command(
         OUTPUT ${COUT} ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.hpp
-        DEPENDS null ${PROJECT_NAME}-bin ${REGPICK_OUT}
+        DEPENDS null ${PROJECT_NAME}-bin
         COMMAND ${PROJECT_BINARY_DIR}/${PROJECT_NAME} ARGS --out=${CC_SUBDIR}/vrtlmod/ ${CIN} -v -- clang++ -v -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} -I${CC_SUBDIR}/vrtlmod/ -I${VERILATOR_ROOT}/include -I${VERILATOR_ROOT}/include/vltstd -I${CLANG_INCLUDE_DIRS}
         COMMENT "executing vrtlmod: .. ${PROJECT_NAME} --out=${CC_SUBDIR}/vrtlmod ${CIN} -v -- clang++ -v -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} -I${CC_SUBDIR}/vrtlmod/ -I${VERILATOR_ROOT}/include -I${VERILATOR_ROOT}/include/vltstd -I${CLANG_INCLUDE_DIRS}"
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
@@ -124,14 +119,9 @@ if(CMAKE_TESTING_ENABLED AND TEST_BUILD)
 
     file(GLOB CC_SOURCES ${SC_SUBDIR}/*)
 
-    set(SC_REGPICK_OUT sc-${DUT_NAME}-pbb.xml)
-    add_custom_target(${SC_REGPICK_OUT}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    )
-
     add_custom_command(
         OUTPUT ${SCOUT} ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.hpp
-        DEPENDS sc-null ${PROJECT_NAME}-bin ${SC_REGPICK_OUT}
+        DEPENDS sc-null ${PROJECT_NAME}-bin
         COMMAND ${PROJECT_BINARY_DIR}/${PROJECT_NAME} ARGS --systemc --out=${SC_SUBDIR}/vrtlmod ${SCIN} -v -- clang++ -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} -I${SC_SUBDIR}/vrtlmod -I${VERILATOR_ROOT}/include -I${VERILATOR_ROOT}/include/vltstd -I${CLANG_INCLUDE_DIRS} -I${SYSTEMC_INCLUDE_DIRS}
         COMMENT "executing vrtlmod: .. ${PROJECT_NAME} --systemc --out=${SC_SUBDIR}/vrtlmod ${SCIN} -v -- clang++ -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} -I${SC_SUBDIR}/vrtlmod -I${VERILATOR_ROOT}/include -I${VERILATOR_ROOT}/include/vltstd -I${CLANG_INCLUDE_DIRS} -I${SYSTEMC_INCLUDE_DIRS}"
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
