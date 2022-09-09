@@ -89,7 +89,6 @@ find_package(Boost 1.70
 if(NOT ${Boost_FOUND})# boost not found on system add it to conan package list
     set(CONAN_OPTIONS
         ${CONAN_OPTIONS}
-        boost:shared=True
         boost:header_only=False
     )
     set(CONAN_PACKAGE_LIST

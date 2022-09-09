@@ -34,80 +34,38 @@ std::string VapiGenerator::VapiHeader::generate_body(void) const
     std::string top_type = core.get_top_cell().get_type();
     std::stringstream x, entries;
 
-    x << "#ifndef __" << top_type << "VRTLMODAPI_VRTLMODAPI_HPP__ \n\
-#define __"
-      << top_type << "VRTLMODAPI_VRTLMODAPI_HPP__ \n"
-      << std::endl
-      << "#include <vector> \n\
-#include <memory> \n\
-#include \"verilated.h\" \n\
-#include \"verilated_heavy.h\" \n\n\
-#include \""
-      << gen_.get_targetdictionary_relpath() << "\" \n"
-      << std::endl
-      << "class " << top_type << ";" << std::endl
-      << std::endl
-      << std::endl
-      << "class " << top_type << "VRTLmodAPI : public vrtlfi::td::TD_API { \n\
-  public: \n\
-    static "
-      << top_type << "VRTLmodAPI& i(void) { \n\
-        static "
-      << top_type << "VRTLmodAPI _instance; \n\
-        return (_instance); \n\
-    } \n\
-  private: \n\
-    " << top_type
-      << "VRTLmodAPI(void); \n\
-	"
-      << top_type << "VRTLmodAPI(" << top_type << "VRTLmodAPI const&); \n\
-    void operator=("
-      << top_type << "VRTLmodAPI const&); \n\
-  public: \n\
-    std::shared_ptr<"
-      << top_type << "> vrtl_{nullptr}; \n\
-    virtual ~"
-      << top_type << "VRTLmodAPI(void);\n\n";
+    std::string api_name = top_type + "VRTLmodAPI";
 
-    auto func = [&](const types::Target &t)
-    {
-        if (t.get_seq_assignment_count() != 0)
-        {
-            x << "    std::shared_ptr< vrtlfi::td::";
+    x << R"(#ifndef __)" << top_type << R"(VRTLMODAPI_VRTLMODAPI_HPP__
+#define __)"
+      << top_type << R"(VRTLMODAPI_VRTLMODAPI_HPP__
+)"    << R"(
+#include ")"
+      << gen_.get_targetdictionary_relpath() << R"("
+#include ")"
+      << top_type << R"(.h"
 
-            auto cxxdim = t.get_cxx_dimension_lengths();
-            auto cxxdimtypes = t.get_cxx_dimension_types();
 
-            switch (cxxdim.size())
-            {
-            case 0:
-                x << "ZeroD_TDentry<" << t.get_cxx_type() << "> ";
-                break;
-            case 1:
-                x << "OneD_TDentry<" << t.get_cxx_type() << ", " << cxxdimtypes.back() << ", " << cxxdim[0] << "> ";
-                break;
-            case 2:
-                x << "TwoD_TDentry<" << t.get_cxx_type() << ", " << cxxdimtypes.back() << ", " << cxxdim[0] << ", "
-                  << cxxdim[1] << "> ";
-                break;
-            case 3:
-                x << "ThreeD_TDentry<" << t.get_cxx_type() << ", " << cxxdimtypes.back() << ", " << cxxdim[0] << ", "
-                  << cxxdim[1] << ", " << cxxdim[2] << "> ";
-                break;
-            default:
-                LOG_ERROR("CType dimensions of injection target not supported: ", t.get_cxx_type());
-                break;
-            }
-            x << ">";
-            x << " " << t.get_id() << "_{};\n";
-        }
-        return true;
-    };
-    core.foreach_injectable(func);
+class )"
+      << top_type << R"(;
 
-    x << std::endl
-      << "}; \n"
-         "#endif /* __"
+struct )"
+      << api_name << R"( : public vrtlfi::td::TD_API
+{
+)"
+     << "    " << api_name << R"((const char* name =")" << top_type << R"(");
+)"
+     << "    virtual ~" << api_name << R"((void);
+)"
+     << "    " << api_name << "(" << api_name << R"( const&) = delete;
+)"
+     << "    void operator=(" << api_name << R"( const&) = delete;
+)"
+     << "    " << top_type << R"( vrtl_;
+)"
+     << R"(};
+
+#endif /*__)"
       << top_type << "VRTLMODAPI_VRTLMODAPI_HPP__ */";
 
     return x.str();

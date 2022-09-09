@@ -37,31 +37,28 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
     std::string top_type = core.get_top_cell().get_type();
     std::stringstream x, entries;
 
-    x << "// Vrtl-specific includes: \n\
-#include \""
-      << core.get_vrtltopheader_filename() << "\" \n\
-#include \""
-      << core.get_vrtltopsymsheader_filename() << "\" \n\
-// General API includes: \n\
-#include <memory> \n\
-#include <iostream> \n\
-#include \"verilated.h\" \n\
-#include \""
-      << gen_.get_targetdictionary_relpath() << "\" \n\
-#include \""
-      << gen_.get_apiheader_filename() << "\" \n"
-      << std::endl
-      << "" << top_type << "VRTLmodAPI::" << top_type << "VRTLmodAPI(void) \n\
-	: vrtlfi::td::TD_API() \n\
-{\n\
-    vrtl_ = std::make_shared<"
-      << top_type << ">(";
-    if (core.is_systemc())
-    {
-        x << "\"" << top_type << "\"";
-    }
-    x << "); \n" << std::endl;
-    int i = 0;
+    std::string api_name = top_type + "VRTLmodAPI";
+
+    x << R"(// Vrtl-specific includes:
+#include ")"
+      << core.get_vrtltopheader_filename() << R"("
+#include ")"
+      << core.get_vrtltopsymsheader_filename() << R"("
+// General API includes:
+#include <memory>
+#include <iostream>
+#include "verilated.h"
+#include ")"
+      << gen_.get_targetdictionary_relpath() << R"("
+#include ")"
+      << gen_.get_apiheader_filename() << R"("
+
+)" << api_name
+      << "::" << api_name << R"((const char* name)
+    : vrtlfi::td::TD_API()
+    , vrtl_(name)
+{
+)";
 
     auto celliterf = [&](const types::Cell &c) -> bool
     {
@@ -77,7 +74,7 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
                         std::string type_str, initializer_str;
                         std::string prefix_str =
                             (c == core.get_top_cell()) ? core.get_top_cell().get_id() : module_instance;
-                        std::string member_str = util::concat("vrtl_->__VlSymsp->", prefix_str,
+                        std::string member_str = util::concat("vrtl_.__VlSymsp->", prefix_str,
                                                               (c == core.get_top_cell()) ? "->" : ".", t.get_id());
                         std::string map_key = util::concat(prefix_str, ".", t.get_id());
 
@@ -121,7 +118,7 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
                           << "std::make_shared< " << smart_type.str() << " >" << initializer.str() << ";\n";
                         x << "    " << member_str << "__td_"
                           << " = std::static_pointer_cast< " << smart_type.str() << ">(td_.at(\"" << map_key
-                          << "\")).get();\n";
+                          << "\")).get();\n\n";
                     }
                 }
                 return true;

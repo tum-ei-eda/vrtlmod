@@ -28,8 +28,8 @@
 #include <iostream>
 #include <sstream>
 
-VfiappVRTLmodAPI &gFrame = VfiappVRTLmodAPI::i();
-#define gVtop (*(gFrame.vrtl_))
+VfiappVRTLmodAPI gFrame;
+#define gVtop gFrame.vrtl_
 
 sc_signal<bool> tb_clk{ "clk" };
 sc_signal<bool> tb_reset{ "reset" };
