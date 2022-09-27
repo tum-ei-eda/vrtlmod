@@ -58,13 +58,13 @@ std::string VapiGenerator::TDHeader::generate_header(std::string filename) const
 
     x << R"(
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// @file)";
+/// @file )";
     x << filename;
     x << R"(
-/// @date)";
+/// @date )";
     x << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d %X");
     x << R"(
-/// @version)";
+/// @version )";
     x << get_version();
     x << R"(
 ////////////////////////////////////////////////////////////////////////////////////////////////////
