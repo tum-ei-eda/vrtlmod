@@ -44,6 +44,8 @@
 #include <regex>
 #include <algorithm>
 
+#include <boost/lexical_cast.hpp>
+
 namespace vrtlmod
 {
 
@@ -572,14 +574,25 @@ const types::Variable *VrtlmodCore::add_variable(const clang::FieldDecl *variabl
             bases = util::concat(bases, ", ", pair_.first);
             dim = util::concat(dim, ", ", pair_.second);
         }
-        bits *= (pair_.second.find(":") == std::string::npos) ? std::stoi(pair_.second)
-                                                              : ((std::stoi(msb) + 1) - std::stoi(lsb));
+
+        int new_dim_bits = 0;
+        try
+        {
+            bits *= (pair_.second.find(":") == std::string::npos)
+                        ? boost::lexical_cast<int>(pair_.second)
+                        : ((boost::lexical_cast<int>(msb) + 1) - boost::lexical_cast<int>(lsb));
+        }
+        catch (boost::bad_lexical_cast)
+        {
+            bits *= 0; // force total bit length to zero to trigger invalidation.
+        }
     }
 
     if (bits <= 0)
     {
-        LOG_FATAL("Failed to extract total bit length of signal [", id, "] of module [", module_id,
+        LOG_ERROR("Failed to extract total bit length of signal [", id, "] of module [", module_id,
                   "]. Extracted value:", std::to_string(bits));
+        return nullptr;
     }
 
     auto xml_node = (*mod_iter)->append_child(var_type.c_str());
