@@ -918,7 +918,7 @@ inline void ThreeD_TDentry<vcontainer_t, vbasetype_t, K, L, M>::inject(unsigned 
 {
     if (__UNLIKELY(TDentry::enable_))
     {
-        if (__UNLIKELY(cntr_[k][l][m] <= 0) && BASE::mask_)
+        if (__UNLIKELY(cntr_[k][l][m] <= 0) && BASE::mask_[k][l][m])
         {
             if (__LIKELY(TDentry::inj_type_ == INJ_TYPE::BITFLIP))
             {
