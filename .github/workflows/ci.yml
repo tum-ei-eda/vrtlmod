@@ -92,9 +92,10 @@ jobs:
       working-directory: ${{runner.workspace}}
       run: |
         cmake --build ${BUILD_DIR} --config ${BUILD_CONFIG} --parallel $(nproc)
-        cmake --build ${BUILD_DIR} --config ${BUILD_CONFIG} --parallel $(nproc) --target test
-        cat ${BUILD_DIR}/Testing/Temporary/LastTest.log
-        cat ${BUILD_DIR}/Testing/Temporary/CTestCostData.txt
+        cd ${BUILD_DIR}
+        ctest -C ${BUILD_CONFIG} --parallel $(nproc) --rerun-failed --output-on-failure
+        cat Testing/Temporary/LastTest.log
+        cat Testing/Temporary/CTestCostData.txt
 
     - name: Compress Compiled System
       run: tar -C ${{runner.workspace}} -czvf ${{runner.workspace}}/vrtlmod.tar.gz install
