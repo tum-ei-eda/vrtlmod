@@ -67,17 +67,17 @@ jobs:
       run: |
         export VERILATOR_ROOT=${{runner.workspace}}/verilator
         export LLVM_DIR=${{runner.workspace}}/llvm
-        cmake -S ${GITHUB_WORKSPACE} -B ${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+        cmake -S ${GITHUB_WORKSPACE} -B ${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_CONFIG} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 
     - name: Build
       working-directory: ${{runner.workspace}}
       shell: bash
-      run: cmake --build ${BUILD_DIR} --config ${BUILD_TYPE} --parallel $(nproc)
+      run: cmake --build ${BUILD_DIR} --config ${BUILD_CONFIG} --parallel $(nproc)
 
     - name: Install
       working-directory: ${{runner.workspace}}
       shell: bash
-      run: cmake --install ${BUILD_DIR} --config ${BUILD_TYPE}
+      run: cmake --install ${BUILD_DIR} --config ${BUILD_CONFIG}
 
     - name: Create Test Build Environment
       shell: bash
@@ -85,7 +85,7 @@ jobs:
       run: |
         export VERILATOR_ROOT=${{runner.workspace}}/verilator
         export LLVM_DIR=${{runner.workspace}}/llvm
-        cmake -S ${GITHUB_WORKSPACE} -B ${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DVERBOSE=On -DTEST_BUILD=On
+        cmake -S ${GITHUB_WORKSPACE} -B ${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_CONFIG} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DVERBOSE=On -DTEST_BUILD=On
 
     - name: Run Test Build Environment (CTest)
       shell: bash
