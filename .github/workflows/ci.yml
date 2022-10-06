@@ -98,13 +98,11 @@ jobs:
         cat Testing/Temporary/CTestCostData.txt
 
     - name: Upload CTest Artifacts on Failure
-      shell: bash
-      run: ls -la ${{runner.workspace}}/${BUILD_DIR}/Testing/
       uses: actions/upload-artifact@v2
       if: ${{ failure() }}
       with:
         name: ctest-fail
-        path: ${{runner.workspace}}/${BUILD_DIR}/Testing/
+        path: ${{runner.workspace}}/${BUILD_DIR}/Testing/Temporary
         if-no-files-found: error
         retention-days: 15
 
