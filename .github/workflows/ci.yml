@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         config:
-          - {name: "Linux", os: ubuntu-latest, python: "3.9", cmakegen: "", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", tc: "linux-ubuntu14", tc-ext: ".tar.gz", unpack: "tar xf"}
+          - {name: "Linux", os: ubuntu-latest, python: "3.9", cmakegen: "", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", tc: "linux-ubuntu14", tc-ext: ".tar.gz", unpack: "tar xf"}
 
     runs-on: ${{ matrix.config.os }}
     name: ${{ matrix.config.name }}_build
@@ -43,7 +43,7 @@ jobs:
         VERILATOR_SOURCE="https://github.com/verilator/verilator.git"
         git clone ${VERILATOR_SOURCE} ${{runner.workspace}}/verilator
         cd ${{runner.workspace}}/verilator
-        git checkout v4.202
+        git checkout ${{ matrix.config.verilator }}
         autoconf
         ./configure
         make -j$(nproc)
@@ -98,11 +98,13 @@ jobs:
         cat Testing/Temporary/CTestCostData.txt
 
     - name: Upload CTest Artifacts on Failure
+      shell: bash
+      run: ls -la ${{runner.workspace}}/${BUILD_DIR}/Testing/
+    - uses: actions/upload-artifact@v2
       if: ${{ failure() }}
-      uses: actions/upload-artifact@v2
       with:
         name: ctest-fail
-        path: ${{runner.workspace}}/${BUILD_DIR}/Testing/*
+        path: ${{runner.workspace}}/${BUILD_DIR}/Testing/
         if-no-files-found: error
         retention-days: 15
 
