@@ -97,10 +97,10 @@ jobs:
         cat ${BUILD_DIR}/Testing/Temporary/CTestCostData.txt
 
     - name: Compress Compiled System
-      run: tar -C ${{runner.workspace}} -cvf ${{runner.workspace}}/vrtlmod.tar install
+      run: tar -C ${{runner.workspace}} -czvf ${{runner.workspace}}/vrtlmod.tar.gz install
 
     - name: Upload Compiled System
       uses: actions/upload-artifact@v2
       with:
-        name: vrtlmod-${{matrix.config.name}}.tar
-        path: ${{runner.workspace}}/vrtlmod.tar
+        name: vrtlmod-${{matrix.config.name}}.tar.gz
+        path: ${{runner.workspace}}/vrtlmod.tar.gz
