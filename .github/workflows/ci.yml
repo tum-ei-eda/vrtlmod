@@ -33,8 +33,7 @@ jobs:
         LLVM_SOURCE="https://github.com/llvm/llvm-project/releases/download/llvmorg-13.0.1"
         wget -nv --show-progress ${LLVM_SOURCE}/${LLVM_NAME}.${{ matrix.config.llvm-ext }}
         ${{ matrix.config.unpack }} ${LLVM_NAME}.${{ matrix.config.llvm-ext }}
-        export LLVM_DIR=${{runner.workspace}}/llvm
-        mv ${LLVM_NAME} ${LLVM_DIR}
+        mv ${LLVM_NAME} ${{runner.workspace}}/llvm
 
     - name: Requirements (Linux/Mac) Verilator
       if: matrix.config.name == 'Linux' || matrix.config.name == 'Mac'
@@ -48,7 +47,6 @@ jobs:
         autoconf
         ./configure
         make -j$(nproc)
-        export VERILATOR_ROOT=${{runner.workspace}}/verilator
 
     - name: Requirements (Linux/Mac) Python+Conan
       if: matrix.config.name == 'Linux' || matrix.config.name == 'Mac'
@@ -66,7 +64,10 @@ jobs:
     - name: Configure CMake
       shell: bash
       working-directory: ${{runner.workspace}}
-      run: cmake -S ${GITHUB_WORKSPACE} -B ${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+      run: |
+        export VERILATOR_ROOT=${{runner.workspace}}/verilator
+        export LLVM_DIR=${{runner.workspace}}/llvm
+        cmake -S ${GITHUB_WORKSPACE} -B ${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 
     - name: Build
       working-directory: ${{runner.workspace}}
@@ -81,7 +82,10 @@ jobs:
     - name: Create Test Build Environment
       shell: bash
       working-directory: ${{runner.workspace}}
-      run: cmake -S ${GITHUB_WORKSPACE} -B ${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DVERBOSE=On -DTEST_BUILD=On
+      run: |
+        export VERILATOR_ROOT=${{runner.workspace}}/verilator
+        export LLVM_DIR=${{runner.workspace}}/llvm
+        cmake -S ${GITHUB_WORKSPACE} -B ${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DVERBOSE=On -DTEST_BUILD=On
 
     - name: Run Test Build Environment (CTest)
       shell: bash
