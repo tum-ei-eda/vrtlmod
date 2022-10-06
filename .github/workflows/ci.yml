@@ -100,7 +100,7 @@ jobs:
     - name: Upload CTest Artifacts on Failure
       shell: bash
       run: ls -la ${{runner.workspace}}/${BUILD_DIR}/Testing/
-    - uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v2
       if: ${{ failure() }}
       with:
         name: ctest-fail
