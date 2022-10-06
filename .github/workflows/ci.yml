@@ -97,6 +97,15 @@ jobs:
         cat Testing/Temporary/LastTest.log
         cat Testing/Temporary/CTestCostData.txt
 
+    - name: Upload CTest Artifacts on Failure
+      if: ${{ failure() }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: ctest-fail
+        path: ${{runner.workspace}}/${BUILD_DIR}/Testing
+        if-no-files-found: error
+        retention-days: 15
+
     - name: Compress Compiled System
       run: tar -C ${{runner.workspace}} -czvf ${{runner.workspace}}/vrtlmod.tar.gz install
 
