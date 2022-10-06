@@ -102,7 +102,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: ctest-fail
-        path: ${{runner.workspace}}/${BUILD_DIR}/Testing
+        path: ${{runner.workspace}}/${BUILD_DIR}/Testing/*
         if-no-files-found: error
         retention-days: 15
 
