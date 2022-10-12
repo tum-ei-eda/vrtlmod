@@ -3,7 +3,6 @@ name: CI
 on: [push, pull_request]
 
 env:
-  BUILD_CONFIG: Release
   BUILD_DIR: build
   INSTALL_DIR: installed
 
@@ -12,8 +11,8 @@ jobs:
     strategy:
       matrix:
         config:
-          - {name: "Ubuntu-20.04", os: ubuntu-20.04, python: "3.9", cmakegen: "", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", tc: "linux-ubuntu14", tc-ext: ".tar.gz", unpack: "tar xf"}
-          - {name: "Ubuntu-Latest", os: ubuntu-latest, python: "3.9", cmakegen: "", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", tc: "linux-ubuntu14", tc-ext: ".tar.gz", unpack: "tar xf"}
+          - {name: "Ubuntu-Latest-Release", os: ubuntu-latest, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", tc: "linux-ubuntu14", tc-ext: ".tar.gz", unpack: "tar xf"}
+          - {name: "Ubuntu-Latest-Debug", os: ubuntu-latest, python: "3.9", cmakegen: "Debug", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", tc: "linux-ubuntu14", tc-ext: ".tar.gz", unpack: "tar xf"}
 
     runs-on: ${{ matrix.config.os }}
     name: ${{ matrix.config.name }}_build
@@ -22,13 +21,13 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Requirements (Linux)
-      if: matrix.config.name == 'Ubuntu-20.04' || matrix.config.name == 'Ubuntu-Latest'
+      if: matrix.config.name == 'Ubuntu-Latest-Release' || matrix.config.name == 'Ubuntu-Latest-Debug'
       run: |
         sudo apt-get install libboost-filesystem-dev cmake make perl g++ libfl2 libfl-dev zlibc zlib1g zlib1g-dev ccache libgoogle-perftools-dev numactl perl-doc autoconf flex bison
         cmake --version
 
     - name: Requirements (Linux/Mac) LLVM+Clang
-      if: matrix.config.name == 'Ubuntu-20.04' || matrix.config.name == 'Ubuntu-Latest' || matrix.config.name == 'Mac'
+      if: matrix.config.name == 'Ubuntu-Latest-Release' || matrix.config.name == 'Ubuntu-Latest-Debug'
       working-directory: ${{runner.workspace}}
       shell: bash
       run: |
@@ -39,7 +38,7 @@ jobs:
         mv ${LLVM_NAME} ${{runner.workspace}}/llvm
 
     - name: Requirements (Linux/Mac) Verilator
-      if: matrix.config.name == 'Ubuntu-20.04' || matrix.config.name == 'Ubuntu-Latest' || matrix.config.name == 'Mac'
+      if: matrix.config.name == 'Ubuntu-Latest-Release' || matrix.config.name == 'Ubuntu-Latest-Debug'
       working-directory: ${{runner.workspace}}
       shell: bash
       run: |
@@ -52,7 +51,7 @@ jobs:
         make -j$(nproc)
 
     - name: Requirements (Linux/Mac) Python+Conan
-      if: matrix.config.name == 'Ubuntu-20.04' || matrix.config.name == 'Ubuntu-Latest' || matrix.config.name == 'Mac'
+      if: matrix.config.name == 'Ubuntu-Latest-Release' || matrix.config.name == 'Ubuntu-Latest-Debug'
       working-directory: ${{runner.workspace}}
       shell: bash
       run: |
@@ -70,17 +69,17 @@ jobs:
       run: |
         export VERILATOR_ROOT=${{runner.workspace}}/verilator
         export LLVM_DIR=${{runner.workspace}}/llvm
-        cmake -S ${GITHUB_WORKSPACE} -B ${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_CONFIG} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+        cmake -S ${GITHUB_WORKSPACE} -B ${BUILD_DIR} -DCMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 
     - name: Build
       working-directory: ${{runner.workspace}}
       shell: bash
-      run: cmake --build ${BUILD_DIR} --config ${BUILD_CONFIG} --parallel $(nproc)
+      run: cmake --build ${BUILD_DIR} --config ${{ matrix.config.cmakegen }} --parallel $(nproc)
 
     - name: Install
       working-directory: ${{runner.workspace}}
       shell: bash
-      run: cmake --install ${BUILD_DIR} --config ${BUILD_CONFIG}
+      run: cmake --install ${BUILD_DIR} --config ${{ matrix.config.cmakegen }}
 
     - name: (CTest) Configure Build Environment
       shell: bash
@@ -88,15 +87,15 @@ jobs:
       run: |
         export VERILATOR_ROOT=${{runner.workspace}}/verilator
         export LLVM_DIR=${{runner.workspace}}/llvm
-        cmake -S ${GITHUB_WORKSPACE} -B ${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_CONFIG} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DTEST_BUILD=On
+        cmake -S ${GITHUB_WORKSPACE} -B ${BUILD_DIR} -DCMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DTEST_BUILD=On
 
     - name: (CTest) Build Environment
       shell: bash
       working-directory: ${{runner.workspace}}
       run: |
-        cmake --build ${BUILD_DIR} --config ${BUILD_CONFIG} --parallel $(nproc)
+        cmake --build ${BUILD_DIR} --config ${{ matrix.config.cmakegen }} --parallel $(nproc)
         cd ${BUILD_DIR}
-        ctest -C ${BUILD_CONFIG} --parallel $(nproc) --rerun-failed --output-on-failure
+        ctest -C ${{ matrix.config.cmakegen }} --parallel $(nproc) --rerun-failed --output-on-failure
         cat Testing/Temporary/LastTest.log
         cat Testing/Temporary/CTestCostData.txt
 
@@ -114,9 +113,11 @@ jobs:
         retention-days: 15
 
     - name: Compress Compiled System
+      if: matrix.config.name == 'Ubuntu-Latest-Release'
       run: tar -C ${{runner.workspace}} -czvf ${{runner.workspace}}/vrtlmod.tar.gz install
 
     - name: Upload Compiled System
+      if: matrix.config.name == 'Ubuntu-Latest-Release'
       uses: actions/upload-artifact@v2
       with:
         name: vrtlmod-${{matrix.config.name}}.tar.gz
