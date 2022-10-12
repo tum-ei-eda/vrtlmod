@@ -66,7 +66,7 @@ jobs:
       shell: bash
       run: cmake --install ${BUILD_DIR} --config ${BUILD_CONFIG}
 
-    - name: [CTest] Requirements (Linux/Mac) Python+Conan
+    - name: (CTest) Requirements (Linux/Mac) Python+Conan
       if: matrix.config.name == 'Linux' || matrix.config.name == 'Mac'
       working-directory: ${{runner.workspace}}
       shell: bash
@@ -79,7 +79,7 @@ jobs:
         fi
         conan profile update settings.compiler.libcxx=libstdc++11 default
 
-    - name: [CTest] Configure Build Environment
+    - name: (CTest) Configure Build Environment
       shell: bash
       working-directory: ${{runner.workspace}}
       run: |
@@ -87,7 +87,7 @@ jobs:
         export LLVM_DIR=${{runner.workspace}}/llvm
         cmake -S ${GITHUB_WORKSPACE} -B ${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_CONFIG} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DVERBOSE=On -DTEST_BUILD=On
 
-    - name: [CTest] Build Environment
+    - name: (CTest) Build Environment
       shell: bash
       working-directory: ${{runner.workspace}}
       run: |
@@ -97,7 +97,7 @@ jobs:
         cat Testing/Temporary/LastTest.log
         cat Testing/Temporary/CTestCostData.txt
 
-    - name: [CTest] Upload Artifacts on Failure
+    - name: (CTest) Upload Artifacts on Failure
       uses: actions/upload-artifact@v2
       if: ${{ failure() }}
       with:
