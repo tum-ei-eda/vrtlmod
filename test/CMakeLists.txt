@@ -77,15 +77,15 @@ if(CMAKE_TESTING_ENABLED AND TEST_BUILD)
             set(VERILATOR_INCLUDE_DIRECTORY "${VERILATOR_ROOT}/share/verilator/include")
             find_package(verilator HINTS ${VERILATOR_ROOT}/share/verilator REQUIRED)
             set(VERILATOR_ROOT "${VERILATOR_ROOT}/share/verilator") # TODO: This is a workaround to trick verilate() function
-            else()
-                # This might be pointing to <install>/share/verilator/ and is not supported
-                # VERILATOR_ROOT/
-                #               |-> bin/verilator_includer
-                #               |-> include/
-                #               \-> examples/
-                message(FATAL_ERROR "Set VERILATOR_ROOT to base <install> directory!")
-            endif()
+        else()
+            # This might be pointing to <install>/share/verilator/ and is not supported
+            # VERILATOR_ROOT/
+            #               |-> bin/verilator_includer
+            #               |-> include/
+            #               \-> examples/
+            message(FATAL_ERROR "Set VERILATOR_ROOT to base <install> directory!")
         endif()
+    endif()
 
     # VERILATE to C++ VRTL
     set(DUT_NAME fiapp)
@@ -206,10 +206,7 @@ if(CMAKE_TESTING_ENABLED AND TEST_BUILD)
     # Testing the CMake config helper scripts: ###############################################################
     set(DIR_CMAKE_TEST ${CMAKE_CURRENT_BINARY_DIR}/cmaked)
     add_test(NAME ${PROJECT_NAME}:configure:test/fiapp-cmake
-        COMMAND ${CMAKE_COMMAND} "-E env VERILATOR_ROOT=$ENV{VERILATOR_ROOT}" "-S${CMAKE_CURRENT_SOURCE_DIR}/fiapp" "-B${DIR_CMAKE_TEST}"
-        "-DVRTLMOD_ROOT=${CMAKE_BINARY_DIR}"
-        "-DSystemC_LIBRARIES=\'${SystemC_LIBRARIES}\'"
-        "-DSYSTEMC_INCLUDE_DIRS=\'${SYSTEMC_INCLUDE_DIRS}\'"
+        COMMAND ${CMAKE_COMMAND} "-E env VERILATOR_ROOT=$ENV{VERILATOR_ROOT} -S${CMAKE_CURRENT_SOURCE_DIR}/fiapp -B${DIR_CMAKE_TEST} -DVRTLMOD_ROOT=${CMAKE_BINARY_DIR} -DSystemC_LIBRARIES=\'${SystemC_LIBRARIES}\' -DSYSTEMC_INCLUDE_DIRS=\'${SYSTEMC_INCLUDE_DIRS}\'"
     )
     set_tests_properties(${PROJECT_NAME}:configure:test/fiapp-cmake
         PROPERTIES DEPENDS ${PROJECT_NAME}:build
