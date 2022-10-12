@@ -12,7 +12,8 @@ jobs:
     strategy:
       matrix:
         config:
-          - {name: "Linux", os: ubuntu-latest, python: "3.9", cmakegen: "", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", tc: "linux-ubuntu14", tc-ext: ".tar.gz", unpack: "tar xf"}
+          - {name: "Ubuntu-20.04", os: ubuntu-20.04, python: "3.9", cmakegen: "", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", tc: "linux-ubuntu14", tc-ext: ".tar.gz", unpack: "tar xf"}
+          - {name: "Ubuntu-Latest", os: ubuntu-latest, python: "3.9", cmakegen: "", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", tc: "linux-ubuntu14", tc-ext: ".tar.gz", unpack: "tar xf"}
 
     runs-on: ${{ matrix.config.os }}
     name: ${{ matrix.config.name }}_build
@@ -21,13 +22,13 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Requirements (Linux)
-      if: matrix.config.name == 'Linux'
+      if: matrix.config.name == 'Ubuntu-20.04' || matrix.config.name == 'Ubuntu-Latest'
       run: |
         sudo apt-get install libboost-filesystem-dev cmake make perl g++ libfl2 libfl-dev zlibc zlib1g zlib1g-dev ccache libgoogle-perftools-dev numactl perl-doc autoconf flex bison
         cmake --version
 
     - name: Requirements (Linux/Mac) LLVM+Clang
-      if: matrix.config.name == 'Linux' || matrix.config.name == 'Mac'
+      if: matrix.config.name == 'Ubuntu-20.04' || matrix.config.name == 'Ubuntu-Latest' || matrix.config.name == 'Mac'
       working-directory: ${{runner.workspace}}
       shell: bash
       run: |
@@ -38,7 +39,7 @@ jobs:
         mv ${LLVM_NAME} ${{runner.workspace}}/llvm
 
     - name: Requirements (Linux/Mac) Verilator
-      if: matrix.config.name == 'Linux' || matrix.config.name == 'Mac'
+      if: matrix.config.name == 'Ubuntu-20.04' || matrix.config.name == 'Ubuntu-Latest' || matrix.config.name == 'Mac'
       working-directory: ${{runner.workspace}}
       shell: bash
       run: |
@@ -51,7 +52,7 @@ jobs:
         make -j$(nproc)
 
     - name: Requirements (Linux/Mac) Python+Conan
-      if: matrix.config.name == 'Linux' || matrix.config.name == 'Mac'
+      if: matrix.config.name == 'Ubuntu-20.04' || matrix.config.name == 'Ubuntu-Latest' || matrix.config.name == 'Mac'
       working-directory: ${{runner.workspace}}
       shell: bash
       run: |
