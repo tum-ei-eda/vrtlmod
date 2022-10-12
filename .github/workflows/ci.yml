@@ -23,10 +23,10 @@ jobs:
     - name: Requirements (Linux)
       if: matrix.config.name == 'Ubuntu-Latest-Release' || matrix.config.name == 'Ubuntu-Latest-Debug'
       run: |
-        sudo apt-get install libboost-filesystem-dev cmake make perl g++ libfl2 libfl-dev zlibc zlib1g zlib1g-dev ccache libgoogle-perftools-dev numactl perl-doc autoconf flex bison
+        sudo apt-get install libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlibc zlib1g zlib1g-dev ccache libgoogle-perftools-dev numactl perl-doc autoconf flex bison
         cmake --version
 
-    - name: Requirements (Linux/Mac) LLVM+Clang
+    - name: Requirements (Linux) LLVM+Clang
       if: matrix.config.name == 'Ubuntu-Latest-Release' || matrix.config.name == 'Ubuntu-Latest-Debug'
       working-directory: ${{runner.workspace}}
       shell: bash
@@ -37,7 +37,7 @@ jobs:
         ${{ matrix.config.unpack }} ${LLVM_NAME}.${{ matrix.config.llvm-ext }}
         mv ${LLVM_NAME} ${{runner.workspace}}/llvm
 
-    - name: Requirements (Linux/Mac) Verilator
+    - name: Requirements (Linux) Verilator
       if: matrix.config.name == 'Ubuntu-Latest-Release' || matrix.config.name == 'Ubuntu-Latest-Debug'
       working-directory: ${{runner.workspace}}
       shell: bash
@@ -50,7 +50,7 @@ jobs:
         ./configure
         make -j$(nproc)
 
-    - name: Requirements (Linux/Mac) Python+Conan
+    - name: Requirements (Linux) Python+Conan
       if: matrix.config.name == 'Ubuntu-Latest-Release' || matrix.config.name == 'Ubuntu-Latest-Debug'
       working-directory: ${{runner.workspace}}
       shell: bash
