@@ -130,17 +130,24 @@ if(CMAKE_TESTING_ENABLED AND TEST_BUILD)
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
 
-    add_executable( ${PROJECT_NAME}-test-cc
+    add_library(${PROJECT_NAME}-test-cc_vrtlmod SHARED
         EXCLUDE_FROM_ALL
         ${COUT}
-        ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp
-        ${TDIR}/${DUT_NAME}/${DUT_NAME}_test.cpp
         ${VERILATOR_INCLUDE_DIRECTORY}/verilated.cpp
+        ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp
     )
-    target_include_directories( ${PROJECT_NAME}-test-cc PUBLIC
+    target_include_directories(${PROJECT_NAME}-test-cc_vrtlmod PUBLIC
         ${CC_SUBDIR}/vrtlmod
         ${VERILATOR_INCLUDE_DIRECTORY}
         ${VERILATOR_INCLUDE_DIRECTORY}/vltstd
+    )
+
+    add_executable( ${PROJECT_NAME}-test-cc
+        EXCLUDE_FROM_ALL
+        ${TDIR}/${DUT_NAME}/${DUT_NAME}_test.cpp
+    )
+    target_link_libraries(${PROJECT_NAME}-test-cc PUBLIC
+        ${PROJECT_NAME}-test-cc_vrtlmod
     )
 
     # VERILATE to SystemC VRTL
@@ -177,20 +184,28 @@ if(CMAKE_TESTING_ENABLED AND TEST_BUILD)
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
 
-    add_executable( ${PROJECT_NAME}-test-sc
+    add_library(${PROJECT_NAME}-test-sc_vrtlmod SHARED
         EXCLUDE_FROM_ALL
         ${SCOUT}
-        ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp
-        ${TDIR}/${DUT_NAME}/sc_${DUT_NAME}_test.cpp
         ${VERILATOR_INCLUDE_DIRECTORY}/verilated.cpp
+        ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp
     )
-    target_include_directories( ${PROJECT_NAME}-test-sc PUBLIC
+    target_include_directories(${PROJECT_NAME}-test-sc_vrtlmod PUBLIC
         ${SC_SUBDIR}/vrtlmod
         ${VERILATOR_INCLUDE_DIRECTORY}
         ${VERILATOR_INCLUDE_DIRECTORY}/vltstd
+        ${SYSTEMC_INCLUDE_DIRS}
+    )
+    target_link_libraries(${PROJECT_NAME}-test-sc_vrtlmod PUBLIC
+        ${SystemC_LIBRARIES}
+    )
+
+    add_executable( ${PROJECT_NAME}-test-sc
+        EXCLUDE_FROM_ALL
+        ${TDIR}/${DUT_NAME}/sc_${DUT_NAME}_test.cpp
     )
     target_link_libraries(${PROJECT_NAME}-test-sc PUBLIC
-        SystemC::systemc
+        ${PROJECT_NAME}-test-sc_vrtlmod
     )
 
     # Launch simulations in GDB to catch segmentation faults
