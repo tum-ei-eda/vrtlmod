@@ -133,7 +133,7 @@ int sc_main(int argc, char *argv[])
     gVtop.o3(tb_o3);
     gVtop.o4(tb_o4);
 
-    // VRTL warum-up
+    // VRTL warm-up
     tb_reset.write(0);
     clockspin();
     std::cout << std::endl

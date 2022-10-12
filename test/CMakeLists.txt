@@ -208,10 +208,6 @@ if(CMAKE_TESTING_ENABLED AND TEST_BUILD)
         ${PROJECT_NAME}-test-sc_vrtlmod
     )
 
-    # Launch simulations in GDB to catch segmentation faults
-    #find_program(GDB_EXE gdb REQUIRED)
-    #set(GDB_EXE_CMDS "${CMAKE_CURRENT_BINARY_DIR}/gdbexe.txt")
-    #file(WRITE ${GDB_EXE_CMDS} "run\nquit")
     ##########################################################################################################
     # Testing the CXX VRTL: ##################################################################################
     add_test(NAME ${PROJECT_NAME}:build:test/fiapp-cc
@@ -222,7 +218,6 @@ if(CMAKE_TESTING_ENABLED AND TEST_BUILD)
     )
     add_test(NAME ${PROJECT_NAME}:run:test/fiapp-cc
         COMMAND
-        #${GDB_EXE} "--batch" "-x" "${GDB_EXE_CMDS}"
         ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-test-cc
     )
     set_tests_properties(${PROJECT_NAME}:run:test/fiapp-cc
@@ -238,7 +233,6 @@ if(CMAKE_TESTING_ENABLED AND TEST_BUILD)
     )
     add_test(NAME ${PROJECT_NAME}:run:test/fiapp-sc
         COMMAND
-        #${GDB_EXE} "--batch" "-x" "${GDB_EXE_CMDS}"
         ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-test-sc
     )
     set_tests_properties(${PROJECT_NAME}:run:test/fiapp-sc
@@ -267,7 +261,6 @@ if(CMAKE_TESTING_ENABLED AND TEST_BUILD)
     )
     add_test(NAME ${PROJECT_NAME}:run:test/fiapp-cmake
         COMMAND
-        #${GDB_EXE} "--batch" "-x" "${GDB_EXE_CMDS}"
         ${DIR_CMAKE_TEST}/fiapp-cmake-test
     )
     set_tests_properties(${PROJECT_NAME}:run:test/fiapp-cmake
