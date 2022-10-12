@@ -114,7 +114,7 @@ jobs:
 
     - name: Compress Compiled System
       if: matrix.config.name == 'Ubuntu-Latest-Release'
-      run: tar -C ${{runner.workspace}} -czvf ${{runner.workspace}}/vrtlmod.tar.gz install
+      run: tar -C ${{runner.workspace}} -czvf ${{runner.workspace}}/vrtlmod.tar.gz ${INSTALL_DIR}
 
     - name: Upload Compiled System
       if: matrix.config.name == 'Ubuntu-Latest-Release'
