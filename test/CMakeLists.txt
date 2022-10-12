@@ -87,13 +87,32 @@ if(CMAKE_TESTING_ENABLED AND TEST_BUILD)
         endif()
     endif()
 
+    set(VERILATE_ARGS
+        -sv
+        --unroll-count 256
+        --pins-bv 2
+        -Werror-PINMISSING
+        -Wno-fatal
+        -Wno-PINCONNECTEMPTY
+        -Wno-ASSIGNDLY
+        -Wno-DECLFILENAME
+        -Wno-UNUSED
+        -Wno-UNOPTFLAT
+        -Wno-style
+        -Wno-CASEINCOMPLETE
+        -Wno-LITENDIAN
+        -Wno-UNOPT
+        -Wno-WIDTH
+        -Wno-BLKANDNBLK
+    )
+
     # VERILATE to C++ VRTL
     set(DUT_NAME fiapp)
     verilate(null
         TOP_MODULE ${DUT_NAME}
         DIRECTORY ${CC_SUBDIR}
         SOURCES ${TDIR}/${DUT_NAME}/${DUT_NAME}.sv
-        VERILATOR_ARGS -O0 --hierarchical
+        VERILATOR_ARGS -O0 --hierarchical ${VERILATE_ARGS}
     )
 
     file(GLOB CIN ${CC_SUBDIR}/*)
@@ -138,7 +157,7 @@ if(CMAKE_TESTING_ENABLED AND TEST_BUILD)
         TOP_MODULE ${DUT_NAME}
         DIRECTORY ${SC_SUBDIR}
         SOURCES ${TDIR}/${DUT_NAME}/${DUT_NAME}.sv
-        VERILATOR_ARGS -O3
+        VERILATOR_ARGS -O3 ${VERILATE_ARGS}
     )
     target_link_libraries(sc-null PUBLIC
         SystemC::systemc
