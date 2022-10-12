@@ -50,7 +50,42 @@ if(CMAKE_TESTING_ENABLED AND TEST_BUILD)
     )
     set_target_properties(null sc-null PROPERTIES CXX_STANDARD ${CMAKE_CXX_STANDARD})
 
-    find_package(verilator HINTS $ENV{VERILATOR_ROOT} ${VERILATOR_ROOT} REQUIRED)
+    if(NOT IS_DIRECTORY $ENV{VERILATOR_ROOT})
+        message(FATAL_ERROR "Set VERILATOR_ROOT environment variable!")
+    endif()
+    set(VERILATOR_ROOT $ENV{VERILATOR_ROOT})
+    message(STATUS "VERILATOR_ROOT: ${VERILATOR_ROOT}")
+    if(EXISTS "${VERILATOR_ROOT}/Makefile")
+        # This is a non-install Verilator, aka repository+build
+        # VERILATOR_ROOT/
+        # |-> bin/verilator_bin
+        # |-> src/
+        # |-> ...
+        # \-> include/
+        set(VERILATOR_INCLUDE_DIRECTORY "${VERILATOR_ROOT}/include")
+        find_package(verilator HINTS ${VERILATOR_ROOT} REQUIRED)
+    else()
+        # This is an installed Verilator:
+        if(IS_DIRECTORY "${VERILATOR_ROOT}/share/verilator/include")
+            # VERILATOR_ROOT/
+            # |-> bin/verilator_bin
+            # \-> share/
+            #     \-> verilator/
+            #         |-> bin/verilator_includer
+            #         |-> include/
+            #         \-> examples/
+            set(VERILATOR_INCLUDE_DIRECTORY "${VERILATOR_ROOT}/share/verilator/include")
+            find_package(verilator HINTS ${VERILATOR_ROOT}/share/verilator REQUIRED)
+            set(VERILATOR_ROOT "${VERILATOR_ROOT}/share/verilator") # TODO: This is a workaround to trick verilate() function
+            else()
+                # This might be pointing to <install>/share/verilator/ and is not supported
+                # VERILATOR_ROOT/
+                #               |-> bin/verilator_includer
+                #               |-> include/
+                #               \-> examples/
+                message(FATAL_ERROR "Set VERILATOR_ROOT to base <install> directory!")
+            endif()
+        endif()
 
     # VERILATE to C++ VRTL
     set(DUT_NAME fiapp)
@@ -64,15 +99,14 @@ if(CMAKE_TESTING_ENABLED AND TEST_BUILD)
     file(GLOB CIN ${CC_SUBDIR}/*)
     string(REPLACE "${CC_SUBDIR}/" ";${CC_SUBDIR}/vrtlmod/" COUT ${CIN})
 
-    message ("New sources: ${COUT}")
-
+    message ("${PROJECT_NAME}-test-cc vrtlmod sources: ${COUT}")
 
     file(GLOB CC_SOURCES ${CC_SUBDIR}/*)
 
     add_custom_command(
         OUTPUT ${COUT} ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.hpp
         DEPENDS null ${PROJECT_NAME}-bin
-        COMMAND ${PROJECT_BINARY_DIR}/${PROJECT_NAME} ARGS --out=${CC_SUBDIR}/vrtlmod/ ${CIN} -v -- clang++ -v -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} -I${CC_SUBDIR}/vrtlmod/ -I${VERILATOR_ROOT}/include -I${VERILATOR_ROOT}/include/vltstd -I${CLANG_INCLUDE_DIRS}
+        COMMAND ${PROJECT_BINARY_DIR}/${PROJECT_NAME} ARGS --out=${CC_SUBDIR}/vrtlmod/ ${CIN} -v -- clang++ -v -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} -I${CC_SUBDIR}/vrtlmod/ -I${VERILATOR_INCLUDE_DIRECTORY} -I${VERILATOR_INCLUDE_DIRECTORY}/vltstd -I${CLANG_INCLUDE_DIRS}
         COMMENT "executing vrtlmod: .. ${PROJECT_NAME} --out=${CC_SUBDIR}/vrtlmod ${CIN} -v -- clang++ -v -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} -I${CC_SUBDIR}/vrtlmod/ -I${VERILATOR_ROOT}/include -I${VERILATOR_ROOT}/include/vltstd -I${CLANG_INCLUDE_DIRS}"
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
@@ -82,13 +116,12 @@ if(CMAKE_TESTING_ENABLED AND TEST_BUILD)
         ${COUT}
         ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp
         ${TDIR}/${DUT_NAME}/${DUT_NAME}_test.cpp
-        ${VERILATOR_ROOT}/include/verilated.cpp
+        ${VERILATOR_INCLUDE_DIRECTORY}/verilated.cpp
     )
     target_include_directories( ${PROJECT_NAME}-test-cc PUBLIC
         ${CC_SUBDIR}/vrtlmod
-        ${TBDIR}
-        ${VERILATOR_ROOT}/include
-        ${PROJECT_SOURCE_DIR}/include
+        ${VERILATOR_INCLUDE_DIRECTORY}
+        ${VERILATOR_INCLUDE_DIRECTORY}/vltstd
     )
 
     # VERILATE to SystemC VRTL
@@ -113,14 +146,14 @@ if(CMAKE_TESTING_ENABLED AND TEST_BUILD)
     file(GLOB SCIN ${SC_SUBDIR}/*)
     string(REPLACE "${SC_SUBDIR}/" ";${SC_SUBDIR}/vrtlmod/" SCOUT ${SCIN})
 
-    message ("New sources: ${SCOUT}")
+    message ("${PROJECT_NAME}-test-sc vrtlmod sources: ${SCOUT}")
 
     file(GLOB CC_SOURCES ${SC_SUBDIR}/*)
 
     add_custom_command(
         OUTPUT ${SCOUT} ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.hpp
         DEPENDS sc-null ${PROJECT_NAME}-bin
-        COMMAND ${PROJECT_BINARY_DIR}/${PROJECT_NAME} ARGS --systemc --out=${SC_SUBDIR}/vrtlmod ${SCIN} -v -- clang++ -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} -I${SC_SUBDIR}/vrtlmod -I${VERILATOR_ROOT}/include -I${VERILATOR_ROOT}/include/vltstd -I${CLANG_INCLUDE_DIRS} -I${SYSTEMC_INCLUDE_DIRS}
+        COMMAND ${PROJECT_BINARY_DIR}/${PROJECT_NAME} ARGS --systemc --out=${SC_SUBDIR}/vrtlmod ${SCIN} -v -- clang++ -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} -I${SC_SUBDIR}/vrtlmod -I${VERILATOR_INCLUDE_DIRECTORY} -I${VERILATOR_INCLUDE_DIRECTORY}/vltstd -I${CLANG_INCLUDE_DIRS} -I${SYSTEMC_INCLUDE_DIRS}
         COMMENT "executing vrtlmod: .. ${PROJECT_NAME} --systemc --out=${SC_SUBDIR}/vrtlmod ${SCIN} -v -- clang++ -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} -I${SC_SUBDIR}/vrtlmod -I${VERILATOR_ROOT}/include -I${VERILATOR_ROOT}/include/vltstd -I${CLANG_INCLUDE_DIRS} -I${SYSTEMC_INCLUDE_DIRS}"
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
@@ -130,13 +163,12 @@ if(CMAKE_TESTING_ENABLED AND TEST_BUILD)
         ${SCOUT}
         ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp
         ${TDIR}/${DUT_NAME}/sc_${DUT_NAME}_test.cpp
-        ${VERILATOR_ROOT}/include/verilated.cpp
+        ${VERILATOR_INCLUDE_DIRECTORY}/verilated.cpp
     )
     target_include_directories( ${PROJECT_NAME}-test-sc PUBLIC
         ${SC_SUBDIR}/vrtlmod
-        ${TBDIR}
-        ${VERILATOR_ROOT}/include
-        ${PROJECT_SOURCE_DIR}/include
+        ${VERILATOR_INCLUDE_DIRECTORY}
+        ${VERILATOR_INCLUDE_DIRECTORY}/vltstd
     )
     target_link_libraries(${PROJECT_NAME}-test-sc PUBLIC
         SystemC::systemc
@@ -174,11 +206,10 @@ if(CMAKE_TESTING_ENABLED AND TEST_BUILD)
     # Testing the CMake config helper scripts: ###############################################################
     set(DIR_CMAKE_TEST ${CMAKE_CURRENT_BINARY_DIR}/cmaked)
     add_test(NAME ${PROJECT_NAME}:configure:test/fiapp-cmake
-        COMMAND ${CMAKE_COMMAND} -S${CMAKE_CURRENT_SOURCE_DIR}/fiapp -B${DIR_CMAKE_TEST}
-            "-DVRTLMOD_ROOT=${CMAKE_BINARY_DIR}"
-            "-DVERILATOR_ROOT=${VERILATOR_ROOT}"
-            "-DSystemC_LIBRARIES=\'${SystemC_LIBRARIES}\'"
-            "-DSYSTEMC_INCLUDE_DIRS=\'${SYSTEMC_INCLUDE_DIRS}\'"
+        COMMAND ${CMAKE_COMMAND} "-E env VERILATOR_ROOT=$ENV{VERILATOR_ROOT}" "-S${CMAKE_CURRENT_SOURCE_DIR}/fiapp" "-B${DIR_CMAKE_TEST}"
+        "-DVRTLMOD_ROOT=${CMAKE_BINARY_DIR}"
+        "-DSystemC_LIBRARIES=\'${SystemC_LIBRARIES}\'"
+        "-DSYSTEMC_INCLUDE_DIRS=\'${SYSTEMC_INCLUDE_DIRS}\'"
     )
     set_tests_properties(${PROJECT_NAME}:configure:test/fiapp-cmake
         PROPERTIES DEPENDS ${PROJECT_NAME}:build
