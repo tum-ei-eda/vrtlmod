@@ -113,7 +113,7 @@ bool testinject(vrtlfi::td::TDentry &target, vrtlfi::td::TD_API &api)
 int main(void)
 {
 
-    // VRTL warum-up
+    // VRTL warm-up
     gVtop.eval();
     gVtop.reset = 0;
     std::cout << std::endl

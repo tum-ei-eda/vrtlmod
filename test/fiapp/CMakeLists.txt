@@ -16,7 +16,6 @@
 
 cmake_minimum_required(VERSION 3.15 FATAL_ERROR)
 
-
 set(VRTL_NAME fiapp)
 set(TOP_NAME ${VRTL_NAME})
 project(fiapp-cmake-test)
@@ -26,11 +25,42 @@ if(NOT CMAKE_CXX_STANDARD)
     message(WARNING "CMAKE_CXX_STANDARD not set. Default to ${CMAKE_CXX_STANDARD}")
 endif()
 
-if(NOT VERILATOR_ROOT)
-    set(VERILATOR_ROOT $ENV{VERILATOR_ROOT})
-    message(STATUS "VERILATOR_ROOT not specified in CMake .. using environment VERILATOR_ROOT: $ENV{VERILATOR_ROOT}")
+if(NOT IS_DIRECTORY $ENV{VERILATOR_ROOT})
+    message(FATAL_ERROR "Set VERILATOR_ROOT environment variable!")
 endif()
-find_package(verilator HINTS ${VERILATOR_ROOT} REQUIRED)
+set(VERILATOR_ROOT $ENV{VERILATOR_ROOT})
+message(STATUS "VERILATOR_ROOT: ${VERILATOR_ROOT}")
+if(EXISTS "${VERILATOR_ROOT}/Makefile")
+    # This is a non-install Verilator, aka repository+build
+    # VERILATOR_ROOT/
+    # |-> bin/verilator_bin
+    # |-> src/
+    # |-> ...
+    # \-> include/
+    set(VERILATOR_INCLUDE_DIRECTORY "${VERILATOR_ROOT}/include")
+    find_package(verilator HINTS ${VERILATOR_ROOT} REQUIRED)
+else()
+    # This is an installed Verilator:
+    if(IS_DIRECTORY "${VERILATOR_ROOT}/share/verilator/include")
+        # VERILATOR_ROOT/
+        # |-> bin/verilator_bin
+        # \-> share/
+        #     \-> verilator/
+        #         |-> bin/verilator_includer
+        #         |-> include/
+        #         \-> examples/
+        set(VERILATOR_INCLUDE_DIRECTORY "${VERILATOR_ROOT}/share/verilator/include")
+        find_package(verilator HINTS ${VERILATOR_ROOT}/share/verilator REQUIRED)
+        set(VERILATOR_ROOT "${VERILATOR_ROOT}/share/verilator") # TODO: This is a workaround to trick verilate() function
+    else()
+        # This might be pointing to <install>/share/verilator/ and is not supported
+        # VERILATOR_ROOT/
+        #               |-> bin/verilator_includer
+        #               |-> include/
+        #               \-> examples/
+        message(FATAL_ERROR "Set VERILATOR_ROOT to base <install> directory!")
+    endif()
+endif()
 
 ####################################################################################################
 # SystemC by conan package manager settings
@@ -45,7 +75,7 @@ if(NOT SYSTEMC_INCLUDE_DIRS AND NOT SystemC_LIBRARIES)
             file(DOWNLOAD ${URL} ${CONAN_CMAKE_LIST_DIR}/ConanInline.cmake TIMEOUT 60)
             set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_BINARY_DIR})
         endif()
-
+        
         include(ConanInline)
 
         set(CONAN_PACKAGE_LIST ${CONAN_PACKAGE_LIST} systemc/2.3.3 systemc-cci/1.0.0)
@@ -166,7 +196,7 @@ if(MAKE_VRTLMOD)
         VERBOSE
         SYSTEMC
         OUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/${VRTLMOD_OUT_DIR}
-        INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/${VRTL_DIR}/ ${VERILATOR_ROOT}/include ${VERILATOR_ROOT}/include/vltstd
+        INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/${VRTL_DIR}/ ${VERILATOR_INCLUDE_DIRECTORY} ${VERILATOR_INCLUDE_DIRECTORY}/vltstd
         ${SYSTEMC_INCLUDE_DIRS}
     )
 endif()
@@ -174,12 +204,12 @@ endif()
 add_library(V${TOP_NAME}_vrtlmod SHARED
     ${CMAKE_CURRENT_BINARY_DIR}/null.cpp
     ${VRTLMOD_OUTSOURCES}
-    ${VERILATOR_ROOT}/include/verilated.cpp
+    ${VERILATOR_INCLUDE_DIRECTORY}/verilated.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/${VRTLMOD_OUT_DIR}/V${TOP_NAME}_vrtlmodapi.cpp
 )
 target_include_directories(V${TOP_NAME}_vrtlmod PUBLIC
-    ${VERILATOR_ROOT}/include
-    ${VERILATOR_ROOT}/include/vltstd
+    ${VERILATOR_INCLUDE_DIRECTORY}
+    ${VERILATOR_INCLUDE_DIRECTORY}/vltstd
     ${CMAKE_CURRENT_BINARY_DIR}/${VRTLMOD_OUT_DIR}
     ${SYSTEMC_INCLUDE_DIRS}
 )
