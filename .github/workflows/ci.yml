@@ -48,6 +48,19 @@ jobs:
         ./configure
         make -j$(nproc)
 
+    - name: Requirements (Linux/Mac) Python+Conan
+      if: matrix.config.name == 'Linux' || matrix.config.name == 'Mac'
+      working-directory: ${{runner.workspace}}
+      shell: bash
+      run: |
+        pip install conan
+        conan user
+        if ! [[ $(conan profile list) = *default* ]]
+        then
+          conan profile new default --detect
+        fi
+        conan profile update settings.compiler.libcxx=libstdc++11 default
+
     - name: Configure CMake
       shell: bash
       working-directory: ${{runner.workspace}}
@@ -65,19 +78,6 @@ jobs:
       working-directory: ${{runner.workspace}}
       shell: bash
       run: cmake --install ${BUILD_DIR} --config ${BUILD_CONFIG}
-
-    - name: (CTest) Requirements (Linux/Mac) Python+Conan
-      if: matrix.config.name == 'Linux' || matrix.config.name == 'Mac'
-      working-directory: ${{runner.workspace}}
-      shell: bash
-      run: |
-        pip install conan
-        conan user
-        if ! [[ $(conan profile list) = *default* ]]
-        then
-          conan profile new default --detect
-        fi
-        conan profile update settings.compiler.libcxx=libstdc++11 default
 
     - name: (CTest) Configure Build Environment
       shell: bash
