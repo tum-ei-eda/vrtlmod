@@ -1,7 +1,16 @@
 name: CI
 
-on: [push, pull_request]
-
+on:
+  push:
+    branches:
+      - master
+      - release
+    tags:
+      - v*
+  pull_request:
+    branches:
+      - master
+      - release
 env:
   BUILD_DIR: build
   INSTALL_DIR: installed
@@ -12,7 +21,6 @@ jobs:
       matrix:
         config:
           - {name: "Ubuntu-Latest-Release", os: ubuntu-latest, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", tc: "linux-ubuntu14", tc-ext: ".tar.gz", unpack: "tar xf"}
-          - {name: "Ubuntu-Latest-Debug", os: ubuntu-latest, python: "3.9", cmakegen: "Debug", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", tc: "linux-ubuntu14", tc-ext: ".tar.gz", unpack: "tar xf"}
 
     runs-on: ${{ matrix.config.os }}
     name: ${{ matrix.config.name }}_build
@@ -21,13 +29,13 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Requirements (Linux)
-      if: matrix.config.name == 'Ubuntu-Latest-Release' || matrix.config.name == 'Ubuntu-Latest-Debug'
+      if: matrix.config.name == 'Ubuntu-Latest-Release'
       run: |
         sudo apt-get install libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlibc zlib1g zlib1g-dev ccache libgoogle-perftools-dev numactl perl-doc autoconf flex bison
         cmake --version
 
     - name: Requirements (Linux) LLVM+Clang
-      if: matrix.config.name == 'Ubuntu-Latest-Release' || matrix.config.name == 'Ubuntu-Latest-Debug'
+      if: matrix.config.name == 'Ubuntu-Latest-Release'
       working-directory: ${{runner.workspace}}
       shell: bash
       run: |
@@ -38,7 +46,7 @@ jobs:
         mv ${LLVM_NAME} ${{runner.workspace}}/llvm
 
     - name: Requirements (Linux) Verilator
-      if: matrix.config.name == 'Ubuntu-Latest-Release' || matrix.config.name == 'Ubuntu-Latest-Debug'
+      if: matrix.config.name == 'Ubuntu-Latest-Release'
       working-directory: ${{runner.workspace}}
       shell: bash
       run: |
@@ -51,7 +59,7 @@ jobs:
         make -j$(nproc)
 
     - name: Requirements (Linux) Python+Conan
-      if: matrix.config.name == 'Ubuntu-Latest-Release' || matrix.config.name == 'Ubuntu-Latest-Debug'
+      if: matrix.config.name == 'Ubuntu-Latest-Release'
       working-directory: ${{runner.workspace}}
       shell: bash
       run: |
