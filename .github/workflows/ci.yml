@@ -31,7 +31,7 @@ jobs:
     - name: Requirements (Linux)
       if: matrix.config.name == 'Ubuntu-Latest-Release'
       run: |
-        sudo apt-get install libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlibc zlib1g zlib1g-dev ccache libgoogle-perftools-dev numactl perl-doc autoconf flex bison
+        sudo apt-get install libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache libgoogle-perftools-dev numactl perl-doc autoconf flex bison
         cmake --version
 
     - name: Requirements (Linux) LLVM+Clang
