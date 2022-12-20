@@ -68,66 +68,6 @@ if(NOT LLVM_DIR) #try environment
     set(LLVM_DIR $ENV{LLVM_DIR})
 endif()
 
-set(THISLIB "${PROJECT_NAME}_tool")
-
-####################################################################################################
-# conan package manager settings
-set(CONAN_CMAKE_LIST_DIR ${CMAKE_CURRENT_BINARY_DIR})
-if(NOT EXISTS ${CONAN_CMAKE_LIST_DIR}/ConanInline.cmake)
-    message("Downloading ConanInline to ${CONAN_CMAKE_LIST_DIR}")
-    set(URL https://raw.githubusercontent.com/VP-Vibes/SystemC-Components/main/cmake/ConanInline.cmake)
-    file(DOWNLOAD ${URL} ${CONAN_CMAKE_LIST_DIR}/ConanInline.cmake TIMEOUT 60)
-    set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_BINARY_DIR})
-endif()
-
-include(ConanInline)
-
-set(CONAN_PACKAGE_LIST
-    pugixml/[>=1.11]
-)
-
-find_package(Boost 1.70
-    COMPONENTS filesystem
-)
-if(NOT ${Boost_FOUND})# boost not found on system add it to conan package list
-    set(CONAN_OPTIONS
-        ${CONAN_OPTIONS}
-        boost:header_only=False
-    )
-    set(CONAN_PACKAGE_LIST
-        ${CONAN_PACKAGE_LIST}
-        boost/[>1.70]
-    )
-endif()
-set(CONAN_PACKAGE_OPTIONS ${CONAN_OPTIONS})
-
-if(BUILD_TESTING)
-    if(NOT USE_CWR_SYSTEMC AND NOT USE_NCSC_SYSTEMC AND NOT DEFINED ENV{SYSTEMC_HOME})
-        set(CONAN_PACKAGE_LIST ${CONAN_PACKAGE_LIST} systemc/2.3.3 systemc-cci/1.0.0)
-        set(CONAN_PACKAGE_OPTIONS ${CONAN_PACKAGE_OPTIONS} systemc:shared=True systemc-cci:shared=True systemc:disable_virtual_bind=False)
-    endif()
-endif()
-
-conan_check()
-conan_cmake_configure(
-    REQUIRES ${CONAN_PACKAGE_LIST}
-    GENERATORS cmake_find_package
-    OPTIONS ${CONAN_PACKAGE_OPTIONS}
-)
-
-conan_cmake_autodetect(settings)
-
-set(settings ${settings} compiler.cppstd=${CMAKE_CXX_STANDARD})
-
-message("Conan settings are ${settings}")
-conan_cmake_install(
-    PATH_OR_REFERENCE ${CMAKE_CURRENT_BINARY_DIR}
-    BUILD missing
-    SETTINGS ${settings}
-)
-set(Boost_NO_BOOST_CMAKE ON)
-####################################################################################################
-
 ####################################################################################################
 # cmake packages
 if(NOT Clang_DIR)
@@ -151,8 +91,6 @@ find_package(Clang REQUIRED CONFIG
     PATHS ${Clang_DIR_SEARCH}
 )
 
-find_package(pugixml REQUIRED)
-
 find_package(Boost 1.70 REQUIRED
     COMPONENTS filesystem
 )
@@ -163,6 +101,11 @@ message("LLVM Version: ${LLVM_VERSION} at ${LLVM_INSTALL_PREFIX}")
 message("LLVM INCLUDE DIRS: ${LLVM_INCLUDE_DIRS}")
 message("Using Clang_DIR: ${Clang_DIR}")
 message("Clang INCLUDE DIRS: ${LLVM_INSTALL_PREFIX}/lib/clang/${LLVM_VERSION}/include" "")
+####################################################################################################
+
+####################################################################################################
+# Third Party/ non-package Libraries ###############################################################
+add_subdirectory(third_party)
 ####################################################################################################
 
 if(LLVM_FOUND AND Clang_FOUND)
@@ -203,7 +146,7 @@ if(LLVM_FOUND AND Clang_FOUND)
     )
 
     target_link_libraries(${PROJECT_NAME}-core PRIVATE
-        pugixml::pugixml
+        pugixml
         Boost::filesystem
         ${CLANG_LIBS}
         ${LLVM_LIBS}
@@ -212,7 +155,6 @@ if(LLVM_FOUND AND Clang_FOUND)
         include
         ${LLVM_INCLUDE_DIRS}
     )
-
     add_executable(${PROJECT_NAME}-bin
         src/main.cpp
     )
