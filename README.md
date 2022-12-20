@@ -25,7 +25,7 @@ Besides standard (gmake, cmake, gcc, ...)
 
 ```
 mkdir build && cd build
-cmake .. -DLLVM_DIR=... -DVERILATOR_ROOT=... [-DTEST_BUILD=On]
+cmake .. -D LLVM_DIR=... -D VERILATOR_ROOT=... [-D BUILD_TESTING=Off]
 cmake --build build
 ```
 
@@ -48,7 +48,7 @@ The output can be found at `<outputdir>` in form of altered Cpp files (`<VRTL-Cp
 
 ## Examples
 
-The `-DTEST_BUILD=On` option in cmake enables a SystemC and C++ verilate->vrtlmod flow for the `test/fiapp/fiapp.sv` SystemVerilog example.
+The `-D BUILD_TESTING=On` option in cmake enables a SystemC and C++ verilate->vrtlmod flow for the `test/fiapp/fiapp.sv` SystemVerilog example.
 In addition, a SystemC (`test/fiapp/sc_fiapp_test.cpp`) and C++ (`test/fiapp/fiapp_test.cpp`) testbench showcases the usage of the generated fault injection API.
 
 These tests are intended, both, as a form of unit-tests for `vrtlmod` as well as an example for its integration in other fault injection projects.

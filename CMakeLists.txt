@@ -31,6 +31,9 @@ endif()
 
 ####################################################################################################
 # cmake project settings
+option(BUILD_TESTING "Enable Tests" OFF)
+include(CTest)
+
 option (FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." True)
 if (${FORCE_COLORED_OUTPUT})
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
@@ -98,7 +101,7 @@ if(NOT ${Boost_FOUND})# boost not found on system add it to conan package list
 endif()
 set(CONAN_PACKAGE_OPTIONS ${CONAN_OPTIONS})
 
-if(TEST_BUILD)
+if(BUILD_TESTING)
     if(NOT USE_CWR_SYSTEMC AND NOT USE_NCSC_SYSTEMC AND NOT DEFINED ENV{SYSTEMC_HOME})
         set(CONAN_PACKAGE_LIST ${CONAN_PACKAGE_LIST} systemc/2.3.3 systemc-cci/1.0.0)
         set(CONAN_PACKAGE_OPTIONS ${CONAN_PACKAGE_OPTIONS} systemc:shared=True systemc-cci:shared=True systemc:disable_virtual_bind=False)
@@ -249,12 +252,7 @@ else (DOXYGEN_FOUND)
 endif (DOXYGEN_FOUND)
 
 ########### TESTING #################
-
-ENABLE_TESTING()
-SET(TEST_BUILD OFF CACHE STRING "Include Tests in build")
-if(CMAKE_TESTING_ENABLED AND TEST_BUILD)
-    add_subdirectory(test)
-endif()
+add_subdirectory(test)
 
 install(TARGETS ${PROJECT_NAME}-bin
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}

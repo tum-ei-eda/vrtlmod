@@ -16,20 +16,15 @@
 
 cmake_minimum_required(VERSION 3.15)
 
-enable_testing()
-set(TEST_BUILD OFF CACHE STRING "Include Tests in build")
-if(CMAKE_TESTING_ENABLED AND TEST_BUILD)
-
+if(BUILD_TESTING)
     include(ProcessorCount)
     ProcessorCount(NCORES)
     if(NOT NCORES EQUAL 0)
-        set(CTEST_BUILD_FLAGS -j${NCORES})
-        set(ctest_test_args ${ctest_test_args} PARALLEL_LEVEL ${NCORES})
         set(PARALLEL_BUILD "--parallel;${NCORES}")
     endif()
 
     add_test(NAME ${PROJECT_NAME}:build
-        COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} ${PARALLEL_BUILD} --target ${PROJECT_NAME}
+        COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} ${PARALLEL_BUILD}
     )
 
     set(TDIR ${CMAKE_CURRENT_SOURCE_DIR})
@@ -210,33 +205,33 @@ if(CMAKE_TESTING_ENABLED AND TEST_BUILD)
 
     ##########################################################################################################
     # Testing the CXX VRTL: ##################################################################################
-    add_test(NAME ${PROJECT_NAME}:build:test/fiapp-cc
+    add_test(NAME ${PROJECT_NAME}:test/fiapp-cc
         COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} ${PARALLEL_BUILD} --target ${PROJECT_NAME}-test-cc
     )
-    set_tests_properties(${PROJECT_NAME}:build:test/fiapp-cc
+    set_tests_properties(${PROJECT_NAME}:test/fiapp-cc
         PROPERTIES DEPENDS ${PROJECT_NAME}:build
     )
-    add_test(NAME ${PROJECT_NAME}:run:test/fiapp-cc
+    add_test(NAME run:test/fiapp-cc
         COMMAND
         ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-test-cc
     )
-    set_tests_properties(${PROJECT_NAME}:run:test/fiapp-cc
-        PROPERTIES DEPENDS ${PROJECT_NAME}:build:test/fiapp-cc
+    set_tests_properties(run:test/fiapp-cc
+        PROPERTIES DEPENDS ${PROJECT_NAME}:test/fiapp-cc
     )
     ##########################################################################################################
     # Testing the SystemC VRTL: ##############################################################################
-    add_test(NAME ${PROJECT_NAME}:build:test/fiapp-sc
+    add_test(NAME ${PROJECT_NAME}:test/fiapp-sc
         COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} ${PARALLEL_BUILD} --target ${PROJECT_NAME}-test-sc
     )
-    set_tests_properties(${PROJECT_NAME}:build:test/fiapp-sc
+    set_tests_properties(${PROJECT_NAME}:test/fiapp-sc
         PROPERTIES DEPENDS ${PROJECT_NAME}:build
     )
-    add_test(NAME ${PROJECT_NAME}:run:test/fiapp-sc
+    add_test(NAME run:test/fiapp-sc
         COMMAND
         ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-test-sc
     )
-    set_tests_properties(${PROJECT_NAME}:run:test/fiapp-sc
-        PROPERTIES DEPENDS ${PROJECT_NAME}:build:test/fiapp-sc
+    set_tests_properties(run:test/fiapp-sc
+        PROPERTIES DEPENDS ${PROJECT_NAME}:test/fiapp-sc
     )
     ##########################################################################################################
     # Testing the CMake config helper scripts: ###############################################################
@@ -253,17 +248,17 @@ if(CMAKE_TESTING_ENABLED AND TEST_BUILD)
         DEPENDS ${PROJECT_NAME}:build
         ENVIRONMENT VERILATOR_ROOT=$ENV{VERILATOR_ROOT}
     )
-    add_test(NAME ${PROJECT_NAME}:build:test/fiapp-cmake
+    add_test(NAME ${PROJECT_NAME}:test/fiapp-cmake
         COMMAND ${CMAKE_COMMAND} --build ${DIR_CMAKE_TEST}
     )
-    set_tests_properties(${PROJECT_NAME}:build:test/fiapp-cmake
+    set_tests_properties(${PROJECT_NAME}:test/fiapp-cmake
         PROPERTIES DEPENDS ${PROJECT_NAME}:configure:test/fiapp-cmake
     )
-    add_test(NAME ${PROJECT_NAME}:run:test/fiapp-cmake
+    add_test(NAME run:test/fiapp-cmake
         COMMAND
         ${DIR_CMAKE_TEST}/fiapp-cmake-test
     )
-    set_tests_properties(${PROJECT_NAME}:run:test/fiapp-cmake
-        PROPERTIES DEPENDS ${PROJECT_NAME}:build:test/fiapp-cmake
+    set_tests_properties(run:test/fiapp-cmake
+        PROPERTIES DEPENDS ${PROJECT_NAME}:test/fiapp-cmake
     )
 endif()
