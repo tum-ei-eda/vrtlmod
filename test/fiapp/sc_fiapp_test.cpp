@@ -17,7 +17,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// @file test.cpp
 /// @date Created on Mon Jan 25 19:29:05 2020
-/// @author Johannes Geier (johannes.geier@tum.de)
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "Vfiapp_vrtlmodapi.hpp"
@@ -25,127 +24,120 @@
 #include "systemc.h"
 #include "Vfiapp.h"
 
+#include "testinject.hpp"
+
 #include <iostream>
 #include <sstream>
-
-VfiappVRTLmodAPI gFrame;
-#define gVtop gFrame.vrtl_
-
-sc_signal<bool> tb_clk{ "clk" };
-sc_signal<bool> tb_reset{ "reset" };
-sc_signal<bool> tb_a{ "a" };
-sc_signal<bool> tb_enable{ "enable" };
-sc_signal<bool> tb_o1{ "o1" };
-sc_signal<bool> tb_o2{ "o2" };
-sc_signal<bool> tb_o3{ "o3" };
-sc_signal<sc_bv<65>> tb_o4{ "o4" };
-
-void clockspin(void)
-{
-    static const sc_core::sc_time halfspintime{ 5.0, sc_core::SC_NS };
-    tb_clk.write(0);
-    sc_start(halfspintime);
-    tb_clk.write(1);
-    sc_start(halfspintime);
-}
-
-bool testinject(vrtlfi::td::TDentry &target, vrtlfi::td::TD_API &api)
-{
-    bool ret = true;
-    for (int i = 0; i < target.bits_; ++i)
-    {
-        std::cout << "\033[1;37mTesting Injection in:\033[0m " << target.get_name() << " bitflip [" << i << "]"
-                  << std::endl;
-        int cntrsum = 0, cntrsum_new = 0;
-        target.reset_mask();
-        if (api.prep_inject(target.get_name(), i) != 0)
-        {
-            std::cout << "|-> \033[0;31mFailed\033[0m - Target not found. Dictionary in corrupt state" << std::endl;
-            ret = false;
-            continue;
-        }
-        target.arm();
-        std::vector<int> cntr = target.get_cntr();
-        auto pre_data = target.read_data();
-        clockspin();
-        auto post_data = target.read_data();
-        std::vector<int> cntr_new = target.get_cntr();
-
-        std::cout << " data pre: ";
-        for (const auto &bit : pre_data)
-        {
-            std::cout << bit;
-        }
-        std::cout << "\ndata post: ";
-        for (const auto &bit : post_data)
-        {
-            std::cout << bit;
-        }
-        std::cout << "\n";
-
-        std::stringstream x, y;
-        std::cout << "CO:\t";
-        for (const auto &it : cntr)
-        {
-            x << "|" << it;
-            cntrsum += it;
-        }
-        std::cout << x.str() << "|" << std::endl << "CN:\t";
-        for (const auto &it : cntr_new)
-        {
-            y << "|" << it;
-            cntrsum_new += it;
-        }
-        std::cout << y.str() << "|" << std::endl;
-
-        if (cntrsum != 0)
-        {
-            std::cout << "|-> \033[0;31mFailed\033[0m - Target dictionary in corrupt state" << std::endl;
-            ret = false;
-            continue;
-        }
-        if (cntrsum_new > 1)
-        {
-            std::cout << "|-> \033[0;31mFailed\033[0m - More than one injection: " << cntrsum_new << std::endl;
-            ret = false;
-            continue;
-        }
-        if (cntrsum_new == 0)
-        {
-            std::cout << "|-> \033[0;31mFailed\033[0m - No injection" << std::endl;
-            ret = false;
-            continue;
-        }
-        std::cout << "|-> \033[0;32mPassed\033[0m" << std::endl;
-    }
-    return ret;
-}
+#include <fstream>
 
 int sc_main(int argc, char *argv[])
 {
+    std::ofstream fout("fiapp_diff.csv");
 
-    gVtop.clk(tb_clk);
-    gVtop.reset(tb_reset);
-    gVtop.a(tb_a);
-    gVtop.enable(tb_enable);
-    gVtop.o1(tb_o1);
-    gVtop.o2(tb_o2);
-    gVtop.o3(tb_o3);
-    gVtop.o4(tb_o4);
+    VfiappVRTLmodAPI gFault;
+    VfiappVRTLmodAPI gRef;
+    VfiappVRTLmodAPIDifferential gDiff(gFault, gRef);
+
+    sc_signal<bool> tb_clk{ "clk" };
+    sc_signal<bool> tb_reset{ "reset" };
+    sc_signal<bool> tb_a{ "a" };
+    sc_signal<bool> tb_enable{ "enable" };
+    sc_signal<bool> tb_o1{ "o1" }, ref_o1{ "ref_o1" };
+    sc_signal<bool> tb_o2{ "o2" }, ref_o2{ "ref_o2" };
+    sc_signal<bool> tb_o3{ "o3" }, ref_o3{ "ref_o3" };
+    sc_signal<sc_bv<65>> tb_o4{ "o4" }, ref_o4{ "ref_o4" };
+
+    bool testreturn = true;
+
+    auto clockspin = [&](int n = 1) -> void
+    {
+        static const sc_core::sc_time halfspintime{ 5.0, sc_core::SC_NS };
+        for (; n > 0; --n)
+        {
+            tb_clk.write(0);
+            sc_start(halfspintime);
+            tb_clk.write(1);
+            sc_start(halfspintime);
+        }
+    };
+
+    auto reset = [&](void) -> void
+    {
+        tb_reset.write(1);
+        clockspin(3);
+        tb_reset.write(0);
+    };
+
+    auto check_diff = [&](vrtlfi::td::TDentry const *target) -> int
+    {
+        vrtlfi::td::TDentry const *diff_target = nullptr;
+        int ret = 0;
+        if (diff_target = gDiff.compare_fast(target); target != nullptr)
+        {
+            if (diff_target == target)
+            {
+                // we pass the injection target as argument (search entry) to the compare algorithm. The compare should
+                // immediately return the same target.
+                std::cout << "|-> \033[0;32mDiff Ok\033[0m DIFF on same target as injected: " << diff_target->get_name()
+                          << std::endl;
+                ret = 0;
+            }
+            else
+            {
+                std::cout << "|-> \033[0;31mFailed\033[0m DIFF on other target than the injected: "
+                          << diff_target->get_name() << std::endl;
+                ret = 1;
+            }
+        }
+        else
+        {
+            std::cout << "|-> \033[0;31mFailed\033[0m DIFF no difference between faulty and reference RTLs: "
+                      << std::endl;
+            ret = 2;
+        }
+
+        gDiff.diff_target_dictionaries();
+        gDiff.dump_diff_csv(std::cout);
+        gDiff.dump_diff_csv_vertical(fout);
+
+        return ret;
+    };
+
+    gFault.vrtl_.clk(tb_clk);
+    gFault.vrtl_.reset(tb_reset);
+    gFault.vrtl_.a(tb_a);
+    gFault.vrtl_.enable(tb_enable);
+    gFault.vrtl_.o1(tb_o1);
+    gFault.vrtl_.o2(tb_o2);
+    gFault.vrtl_.o3(tb_o3);
+    gFault.vrtl_.o4(tb_o4);
+
+    // Bind the reference core. All Input are equal, output run into dummies
+    gRef.vrtl_.clk(tb_clk);
+    gRef.vrtl_.reset(tb_reset);
+    gRef.vrtl_.a(tb_a);
+    gRef.vrtl_.enable(tb_enable);
+    gRef.vrtl_.o1(ref_o1);
+    gRef.vrtl_.o2(ref_o2);
+    gRef.vrtl_.o3(ref_o3);
+    gRef.vrtl_.o4(ref_o4);
 
     // VRTL warm-up
     tb_reset.write(0);
     clockspin();
+
+    reset();
+
     std::cout << std::endl
               << "Running test for simple fault injection application (fiapp)"
               << "..." << std::endl;
+
     // test injections
-    bool testreturn = true;
-    for (auto &it : gFrame.td_)
+    for (auto &it : gFault.td_)
     {
-        testreturn &= testinject(*(it.second), gFrame);
+        testreturn &= testinject(*(it.second), gFault, clockspin, reset, check_diff);
     }
-    if (testreturn && gFrame.td_.size() > 0)
+    if (testreturn && gFault.td_.size() > 0)
     {
         std::cout << std::endl
                   << "..."
@@ -156,7 +148,7 @@ int sc_main(int argc, char *argv[])
         std::cout << std::endl
                   << "..."
                   << "\033[0;31mTest failed.\033[0m" << std::endl;
-        return (1);
+        return 1;
     }
-    return (0);
+    return 0;
 }

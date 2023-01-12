@@ -70,6 +70,8 @@ endif()
 
 ####################################################################################################
 # cmake packages
+find_package(VERILATOR REQUIRED)
+
 if(NOT Clang_DIR)
     set(Clang_DIR_SEARCH ${LLVM_DIR}/lib/cmake/clang)
 endif()
@@ -155,6 +157,11 @@ if(LLVM_FOUND AND Clang_FOUND)
         include
         ${LLVM_INCLUDE_DIRS}
     )
+
+    target_include_directories(${PROJECT_NAME}-core PRIVATE
+        ${VERILATOR_INCLUDE_DIRS}
+    )
+
     add_executable(${PROJECT_NAME}-bin
         src/main.cpp
     )
