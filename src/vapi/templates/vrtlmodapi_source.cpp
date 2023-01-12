@@ -237,8 +237,8 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
     diff_target2id_[get_target)"
                       << "(\"" << prefix_str << "." << t.get_id() << "\")] = " << td_nmb << R"(;
 )";
+                    ++td_nmb;
                 }
-                ++td_nmb;
             }
             return true;
         };
