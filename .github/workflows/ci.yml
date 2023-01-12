@@ -10,6 +10,7 @@ on:
   pull_request:
     branches:
       - master
+      - dev
       - release
 env:
   BUILD_DIR: build
