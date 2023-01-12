@@ -222,7 +222,7 @@ if(BUILD_TESTING)
     )
     add_test(NAME run:test/fiapp-cc
         COMMAND
-        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-test-cc
+        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-test-cc cc_diff.csv
     )
     set_tests_properties(run:test/fiapp-cc
         PROPERTIES DEPENDS ${PROJECT_NAME}:test/fiapp-cc
@@ -237,7 +237,7 @@ if(BUILD_TESTING)
     )
     add_test(NAME run:test/fiapp-sc
         COMMAND
-        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-test-sc
+        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-test-sc sc_diff.csv
     )
     set_tests_properties(run:test/fiapp-sc
         PROPERTIES DEPENDS ${PROJECT_NAME}:test/fiapp-sc
@@ -265,7 +265,7 @@ if(BUILD_TESTING)
     )
     add_test(NAME run:test/fiapp-cmake
         COMMAND
-        ${DIR_CMAKE_TEST}/fiapp-cmake-test
+        ${DIR_CMAKE_TEST}/fiapp-cmake-test cm-diff.csv
     )
     set_tests_properties(run:test/fiapp-cmake
         PROPERTIES DEPENDS ${PROJECT_NAME}:test/fiapp-cmake

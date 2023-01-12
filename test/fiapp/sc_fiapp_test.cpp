@@ -32,7 +32,11 @@
 
 int sc_main(int argc, char *argv[])
 {
-    std::ofstream fout("fiapp_diff.csv");
+    if (argc < 2)
+    {
+        return -1;
+    }
+    std::ofstream fout(argv[1]);
 
     VfiappVRTLmodAPI gFault;
     VfiappVRTLmodAPI gRef;
@@ -84,8 +88,8 @@ int sc_main(int argc, char *argv[])
             }
             else
             {
-                std::cout << "|-> \033[0;31mFailed\033[0m DIFF on other target than the injected: "
-                          << diff_target->get_name() << std::endl;
+                std::cout << "|-> \033[0;31mFailed\033[0m DIFF on other target {" << diff_target->get_name()
+                          << "} than the injected {" << target->get_name() << "}" << std::endl;
                 ret = 1;
             }
         }

@@ -46,6 +46,19 @@ jobs:
         ${{ matrix.config.unpack }} ${LLVM_NAME}.${{ matrix.config.llvm-ext }}
         mv ${LLVM_NAME} ${{runner.workspace}}/llvm
 
+    - name: Requirements (Linux) Verilator
+      if: runner.os == 'Linux'
+      working-directory: ${{runner.workspace}}
+      shell: bash
+      run: |
+        VERILATOR_SOURCE="https://github.com/verilator/verilator.git"
+        git clone ${VERILATOR_SOURCE} ${{runner.workspace}}/verilator
+        cd ${{runner.workspace}}/verilator
+        git checkout ${{ matrix.config.verilator }}
+        autoconf
+        ./configure
+        make -j $(nproc)
+
     - name: Configure CMake
       shell: bash
       working-directory: ${{runner.workspace}}
@@ -62,19 +75,6 @@ jobs:
       working-directory: ${{runner.workspace}}
       shell: bash
       run: cmake --install ${BUILD_DIR} --config ${{ matrix.config.cmakegen }}
-
-    - name: (CTest) Requirements (Linux) Verilator
-      if: runner.os == 'Linux'
-      working-directory: ${{runner.workspace}}
-      shell: bash
-      run: |
-        VERILATOR_SOURCE="https://github.com/verilator/verilator.git"
-        git clone ${VERILATOR_SOURCE} ${{runner.workspace}}/verilator
-        cd ${{runner.workspace}}/verilator
-        git checkout ${{ matrix.config.verilator }}
-        autoconf
-        ./configure
-        make -j $(nproc)
 
     - name: (CTest) Requirements (Linux) Python+Conan
       if: runner.os == 'Linux'
