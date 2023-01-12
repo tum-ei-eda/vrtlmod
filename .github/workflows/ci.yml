@@ -63,6 +63,7 @@ jobs:
       shell: bash
       working-directory: ${{runner.workspace}}
       run: |
+        export VERILATOR_ROOT=${{runner.workspace}}/verilator
         export LLVM_DIR=${{runner.workspace}}/llvm
         cmake -S ${GITHUB_WORKSPACE} -B ${BUILD_DIR} -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D CMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 
