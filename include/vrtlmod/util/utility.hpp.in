@@ -32,6 +32,14 @@ namespace fs = boost::filesystem;
 namespace util
 {
 
+/// \brief if this string is set at build, it will be passed to the compilation
+///        base and force an automatic append of the verilator and clang include
+///        directories to the include paths, e.g., for "verilated.h", "stddef.h"
+std::array<std::string const, @AUTO_INCLUDE_DIRS_SIZE@> const auto_include_dirs
+{
+    @AUTO_INCLUDE_DIRS@
+};
+
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief String helper
 namespace strhelp

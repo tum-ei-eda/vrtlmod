@@ -147,6 +147,13 @@ if(LLVM_FOUND AND Clang_FOUND)
         src/passes/rewritemacrosaction.cpp
     )
 
+    set(AUTO_INCLUDE_DIRS ${CLANG_INCLUDE_DIRS} ${VERILATOR_INCLUDE_DIRS})
+    list(LENGTH AUTO_INCLUDE_DIRS AUTO_INCLUDE_DIRS_SIZE)
+    list(TRANSFORM AUTO_INCLUDE_DIRS PREPEND "\"-I")
+    list(TRANSFORM AUTO_INCLUDE_DIRS APPEND "\"")
+    string(REPLACE ";" ",\n    " AUTO_INCLUDE_DIRS "${AUTO_INCLUDE_DIRS}")
+    configure_file(include/vrtlmod/util/utility.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/include/vrtlmod/util/utility.hpp @ONLY)
+
     target_link_libraries(${PROJECT_NAME}-core PRIVATE
         pugixml
         Boost::filesystem
@@ -155,6 +162,7 @@ if(LLVM_FOUND AND Clang_FOUND)
     )
     target_include_directories(${PROJECT_NAME}-core PUBLIC
         include
+        ${CMAKE_CURRENT_BINARY_DIR}/include
         ${LLVM_INCLUDE_DIRS}
     )
 
