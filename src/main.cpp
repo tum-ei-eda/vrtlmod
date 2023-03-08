@@ -185,13 +185,16 @@ int main(int argc, const char **argv)
 
     core.initialize_injection_targets(WhiteListXmlFilename);
 
-    clang::tooling::ClangTool stage3_SigDeclRewriterTool(op->getCompilations(), headers);
-    if (!bool(NoAutoInclude))
-    {
-        auto_argument_adjust(stage3_SigDeclRewriterTool);
-    }
     LOG_INFO("Rewrite VRTL headers for injectable signals ...");
-    err = stage3_SigDeclRewriterTool.run(vrtlmod::CreateSignalDeclPass(core).get());
+    for (auto const &header_file : headers)
+    {
+        clang::tooling::ClangTool stage3_SigDeclRewriterTool(op->getCompilations(), { header_file });
+        if (!bool(NoAutoInclude))
+        {
+            auto_argument_adjust(stage3_SigDeclRewriterTool);
+        }
+        err = stage3_SigDeclRewriterTool.run(vrtlmod::CreateSignalDeclPass(core).get());
+    }
     LOG_INFO("... done");
 
     clang::tooling::ClangTool stage3_InjectionExprRewriterTool(op->getCompilations(), sources);
