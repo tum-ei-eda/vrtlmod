@@ -87,43 +87,6 @@ if(BUILD_TESTING)
     )
     set_target_properties(null sc-null PROPERTIES CXX_STANDARD ${CMAKE_CXX_STANDARD})
 
-    if(NOT IS_DIRECTORY $ENV{VERILATOR_ROOT})
-        message(FATAL_ERROR "Set VERILATOR_ROOT environment variable!")
-    endif()
-    set(VERILATOR_ROOT $ENV{VERILATOR_ROOT})
-    message(STATUS "VERILATOR_ROOT: ${VERILATOR_ROOT}")
-    if(EXISTS "${VERILATOR_ROOT}/Makefile")
-        # This is a non-install Verilator, aka repository+build
-        # VERILATOR_ROOT/
-        # |-> bin/verilator_bin
-        # |-> src/
-        # |-> ...
-        # \-> include/
-        set(VERILATOR_INCLUDE_DIRECTORY "${VERILATOR_ROOT}/include")
-        find_package(verilator HINTS ${VERILATOR_ROOT} REQUIRED)
-    else()
-        # This is an installed Verilator:
-        if(IS_DIRECTORY "${VERILATOR_ROOT}/share/verilator/include")
-            # VERILATOR_ROOT/
-            # |-> bin/verilator_bin
-            # \-> share/
-            #     \-> verilator/
-            #         |-> bin/verilator_includer
-            #         |-> include/
-            #         \-> examples/
-            set(VERILATOR_INCLUDE_DIRECTORY "${VERILATOR_ROOT}/share/verilator/include")
-            find_package(verilator HINTS ${VERILATOR_ROOT}/share/verilator REQUIRED)
-            set(VERILATOR_ROOT "${VERILATOR_ROOT}/share/verilator") # TODO: This is a workaround to trick verilate() function
-        else()
-            # This might be pointing to <install>/share/verilator/ and is not supported
-            # VERILATOR_ROOT/
-            #               |-> bin/verilator_includer
-            #               |-> include/
-            #               \-> examples/
-            message(FATAL_ERROR "Set VERILATOR_ROOT to base <install> directory!")
-        endif()
-    endif()
-
     set(VERILATE_ARGS
         -sv
         --unroll-count 256
@@ -177,11 +140,13 @@ if(BUILD_TESTING)
         ${CC_SUBDIR}/vrtlmod
         ${VERILATOR_INCLUDE_DIRECTORY}
         ${VERILATOR_INCLUDE_DIRECTORY}/vltstd
+        ${TDIR}
     )
 
     add_executable( ${PROJECT_NAME}-test-cc
         EXCLUDE_FROM_ALL
         ${TDIR}/${DUT_NAME}/${DUT_NAME}_test.cpp
+        ${TDIR}/testinject.cpp
     )
     target_link_libraries(${PROJECT_NAME}-test-cc PUBLIC
         ${PROJECT_NAME}-test-cc_vrtlmod
@@ -232,6 +197,7 @@ if(BUILD_TESTING)
         ${VERILATOR_INCLUDE_DIRECTORY}
         ${VERILATOR_INCLUDE_DIRECTORY}/vltstd
         ${SYSTEMC_INCLUDE_DIRS}
+        ${TDIR}
     )
     target_link_libraries(${PROJECT_NAME}-test-sc_vrtlmod PUBLIC
         ${SystemC_LIBRARIES}
@@ -240,6 +206,7 @@ if(BUILD_TESTING)
     add_executable( ${PROJECT_NAME}-test-sc
         EXCLUDE_FROM_ALL
         ${TDIR}/${DUT_NAME}/sc_${DUT_NAME}_test.cpp
+        ${TDIR}/testinject.cpp
     )
     target_link_libraries(${PROJECT_NAME}-test-sc PUBLIC
         ${PROJECT_NAME}-test-sc_vrtlmod
@@ -255,7 +222,7 @@ if(BUILD_TESTING)
     )
     add_test(NAME run:test/fiapp-cc
         COMMAND
-        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-test-cc
+        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-test-cc cc_diff.csv
     )
     set_tests_properties(run:test/fiapp-cc
         PROPERTIES DEPENDS ${PROJECT_NAME}:test/fiapp-cc
@@ -270,7 +237,7 @@ if(BUILD_TESTING)
     )
     add_test(NAME run:test/fiapp-sc
         COMMAND
-        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-test-sc
+        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-test-sc sc_diff.csv
     )
     set_tests_properties(run:test/fiapp-sc
         PROPERTIES DEPENDS ${PROJECT_NAME}:test/fiapp-sc
@@ -298,7 +265,7 @@ if(BUILD_TESTING)
     )
     add_test(NAME run:test/fiapp-cmake
         COMMAND
-        ${DIR_CMAKE_TEST}/fiapp-cmake-test
+        ${DIR_CMAKE_TEST}/fiapp-cmake-test cm-diff.csv
     )
     set_tests_properties(run:test/fiapp-cmake
         PROPERTIES DEPENDS ${PROJECT_NAME}:test/fiapp-cmake

@@ -75,7 +75,7 @@ if(NOT SYSTEMC_INCLUDE_DIRS AND NOT SystemC_LIBRARIES)
             file(DOWNLOAD ${URL} ${CONAN_CMAKE_LIST_DIR}/ConanInline.cmake TIMEOUT 60)
             set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_BINARY_DIR})
         endif()
-        
+
         include(ConanInline)
 
         set(CONAN_PACKAGE_LIST ${CONAN_PACKAGE_LIST} systemc/2.3.3 systemc-cci/1.0.0)
@@ -216,6 +216,7 @@ target_include_directories(V${TOP_NAME}_vrtlmod PUBLIC
 
 add_executable(${PROJECT_NAME}
     sc_fiapp_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../testinject.cpp
 )
 target_link_libraries(${PROJECT_NAME} PUBLIC
     V${TOP_NAME}_vrtlmod
@@ -223,6 +224,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 )
 target_include_directories(${PROJECT_NAME} PUBLIC
     ${SYSTEMC_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../
 )
 
 message("VRTL_SRCS after vrtlmod: ${VRTLMOD_OUTSOURCES}")
