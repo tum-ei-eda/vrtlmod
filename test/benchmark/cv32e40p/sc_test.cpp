@@ -52,17 +52,6 @@ sc_core::sc_clock clk("clk", 10, SC_NS);
 
 #define ADDR_WIDTH__ 32
 
-tlm::tlm_generic_payload *prepare_trans(size_t len)
-{
-    static int id = 0;
-    auto trans = tlm::scc::tlm_mm<>::get().allocate(); // new tlm::tlm_generic_payload;
-    tlm::scc::setId(*trans, id++);
-    trans->set_data_length(len);
-    trans->set_streaming_width(len);
-    trans->set_data_ptr(new uint8_t[len]);
-    return trans;
-}
-
 // argv[0] this executable
 // argv[1] the target binary
 // argv[2] the scc log level {e.g.: 7=verbose}
@@ -88,7 +77,7 @@ int sc_main(int argc, char *argv[])
     core = &(gFrame->vrtl_);
 
     long long nmb_bits = 0;
-    for(const auto& target : gFrame->td_)
+    for (const auto &target : gFrame->td_)
     {
         nmb_bits += target.second->bits_;
     }

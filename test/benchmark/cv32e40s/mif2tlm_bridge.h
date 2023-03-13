@@ -28,6 +28,7 @@
 #include <systemc>
 #include "tlm_utils/simple_initiator_socket.h"
 #include <list>
+#include "transaction_commons.h"
 
 template <int ADDR_WIDTH, int DATA_WIDTH, int BYTE_EN_WIDTH, int ACHK_WIDTH = 12, int MEMTYPE_WIDTH = 2,
           int PROT_WIDTH = 3, int RCHK_WIDTH = 5>
@@ -263,62 +264,24 @@ class mif2tlm_bridge : public sc_core::sc_module, public mif_common
       public:
         uint64_t align(uint64_t addr, uint64_t alignTo) { return ((addr / alignTo) * alignTo); }
 
-        Transaction(tlm::tlm_command cmd, uint64_t address, uint8_t numberBytes, uint32_t transaction_id,
-                    uint64_t be_flags)
-            : gp_(new tlm::tlm_generic_payload())
+        Transaction(tlm::tlm_command cmd, uint64_t address, uint8_t numberBytes, uint32_t transaction_id, int be_flags)
+            : gp_(prepare_trans(numberBytes, !BYTE_EN ? -1 : be_flags))
             , alignedAddress_(address)
             , dataIdx_(0)
             , transaction_id_(transaction_id)
             , tlm_ongoing_(false)
             , delay_(SC_ZERO_TIME)
         {
-
-            uint32_t dataLen = get_data_len(address, alignedAddress_, numberBytes);
-            uint8_t *data;
-
+            auto len = get_data_len(address, alignedAddress_, numberBytes);
             assert(numberBytes > 0);
-            assert(dataLen > 0);
-            data = new uint8_t[dataLen];
+            assert(len > 0);
 
             gp_->set_command(cmd);
             // align the address to 4-byte word - offsets are resolved through byte enable in ri5cy lsu
             address &= ~((uint64_t)(0x3));
             gp_->set_address(address);
-            gp_->set_data_length(dataLen);
-            gp_->set_data_ptr(reinterpret_cast<unsigned char *>(data));
-
-            sc_bv<BYTE_EN_WIDTH> all_en = -1;
-            if (!BYTE_EN || be_flags == all_en.to_uint())
-            {
-                gp_->set_byte_enable_ptr(NULL);
-                gp_->set_byte_enable_length(0);
-            }
-            else
-            {
-                // std::cout << "be_flags: " << be_flags << " == " << all_en.to_uint() <<  std::endl;
-                uint8_t *be = new uint8_t[dataLen];
-                for (int byte_i = 0; byte_i < dataLen; ++byte_i)
-                {
-                    be[byte_i] = ((be_flags >> byte_i) & 0x1) ? TLM_BYTE_ENABLED : TLM_BYTE_DISABLED;
-                    // std::cout << "be[" << byte_i << "]:" << (int)(be[byte_i]);
-                }
-                gp_->set_byte_enable_ptr(reinterpret_cast<unsigned char *>(be));
-                // std::cout << "@" << (long)(gp_->get_byte_enable_ptr());
-                gp_->set_byte_enable_length(dataLen);
-            }
-            gp_->set_streaming_width(dataLen); // required otherwise SCC target throws generic error
             gp_->set_dmi_allowed(false);
             gp_->set_response_status(tlm::TLM_INCOMPLETE_RESPONSE);
-        }
-
-        ~Transaction(void)
-        {
-            delete[] gp_->get_data_ptr();
-            if (gp_->get_byte_enable_ptr())
-            {
-                delete[] gp_->get_byte_enable_ptr();
-            }
-            delete gp_;
         }
 
         uint32_t get_data_len(uint64_t address, uint64_t alignedAddress, uint8_t numberBytes)

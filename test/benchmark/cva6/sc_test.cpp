@@ -46,6 +46,8 @@
 #include "tlm-bridges/axi2tlm-bridge.h"
 #include "test-modules/signals-axi.h"
 
+#include "transaction_commons.h"
+
 #define ADDR_WIDTH__ 64
 #define DATA_WIDTH__ 64
 #define BRIDGE_TYPE axi2tlm_bridge<ADDR_WIDTH__, DATA_WIDTH__, 4, 8, 1, 1, 1, 1, 1, 1, 0, DATA_WIDTH__>
@@ -56,16 +58,6 @@ sc_core::sc_signal<sc_bv<4>> wid_dummy{ "wid" }; // d.c.
 
 sc_core::sc_clock clk("clk", 10, SC_NS);
 
-tlm::tlm_generic_payload *prepare_trans(size_t len)
-{
-    static int id = 0;
-    auto trans = tlm::scc::tlm_mm<>::get().allocate(); // new tlm::tlm_generic_payload;
-    tlm::scc::setId(*trans, id++);
-    trans->set_data_length(len);
-    trans->set_streaming_width(len);
-    trans->set_data_ptr(new uint8_t[len]);
-    return trans;
-}
 
 // argv[0] this executable
 // argv[1] the target binary

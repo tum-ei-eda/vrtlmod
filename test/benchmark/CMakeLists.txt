@@ -267,6 +267,9 @@ target_link_libraries(SC_TEST
     elfio::elfio
     ${TGT_SPECIFIC_LIBS}
 )
+target_include_directories(SC_TEST PUBLIC 
+    common
+)
 add_executable(SC_TEST_VRTLMOD
     ${VRTL_NAME}/sc_test.cpp
 )
@@ -276,4 +279,7 @@ target_link_libraries(SC_TEST_VRTLMOD
     scc
     elfio::elfio
     ${TGT_SPECIFIC_LIBS}
+)
+target_include_directories(SC_TEST_VRTLMOD PUBLIC
+    common
 )
