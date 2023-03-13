@@ -213,7 +213,7 @@ FetchContent_Declare(
     axitlm
     GIT_REPOSITORY https://github.com/Xilinx/libsystemctlm-soc.git
     GIT_TAG        f655e5e
-    PATCH_COMMAND git apply --ignore-space-change --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/addrwidth.patch
+    PATCH_COMMAND git apply --ignore-space-change --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/../patches/axitlm-addrwidth.patch
 )
 
 FetchContent_GetProperties(axitlm)

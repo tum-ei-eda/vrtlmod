@@ -75,6 +75,7 @@ if(NOT TARGET scc) # etiss-sc is standalone, i.e. not embedded alongside scc in 
         scc
         GIT_REPOSITORY https://github.com/VP-Vibes/SystemC-Components.git
         GIT_TAG 8785c03
+        PATCH_COMMAND git apply --ignore-space-change --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patches/scc-byteenabletransactions.patch
     )
     FetchContent_GetProperties(scc)
     if(NOT scc_POPULATED)

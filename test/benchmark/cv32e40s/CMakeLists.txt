@@ -23,7 +23,7 @@ FetchContent_Declare(
     cv32e40s_rtl
     GIT_REPOSITORY https://github.com/openhwgroup/cv32e40s.git
     GIT_TAG        b8d1efba11d878caa0e78021b37f67d960d82af8
-    PATCH_COMMAND git apply --ignore-space-change --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/rvfi-remove.patch
+    PATCH_COMMAND git apply --ignore-space-change --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/../patches/rvfi-remove.patch
 )
 
 FetchContent_GetProperties(cv32e40s_rtl)
