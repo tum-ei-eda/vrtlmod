@@ -16,6 +16,12 @@
 
 cmake_minimum_required(VERSION 3.15 FATAL_ERROR)
 project(V${VP})
+
+if(NOT CMAKE_CXX_STANDARD)
+    set(CMAKE_CXX_STANDARD 17)
+    message(WARNING "CMAKE_CXX_STANDARD not set. Default to ${CMAKE_CXX_STANDARD}")
+endif()
+
 set(VRTL_NAME ${VP}) #set(TOP_NAME ...) #from PARENT_SCOPE
 
 if(NOT VERILATOR_ROOT)
@@ -134,7 +140,25 @@ if(NOT TARGET scc) # etiss-sc is standalone, i.e. not embedded alongside scc in 
     list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_BINARY_DIR} PARENT_SCOPE)
     find_package(fmt REQUIRED)
 
-    add_subdirectory(${scc_SOURCE_DIR} ${scc_BINARY_DIR})
+    ####################################################################################################
+    # cmake install settings
+    set(CMAKE_INSTALL_LIBDIR "${CMAKE_INSTALL_PREFIX}/lib")
+    set(CMAKE_INSTALL_DATADIR "${CMAKE_INSTALL_PREFIX}/share")
+    set(CMAKE_INSTALL_INCLUDEDIR "${CMAKE_INSTALL_PREFIX}/include")
+    set(CMAKE_INSTALL_BINDIR "${CMAKE_INSTALL_PREFIX}/bin")
+    set(CMAKE_SKIP_BUILD_RPATH FALSE)
+    set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+    set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+    list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
+    if("${isSystemDir}" STREQUAL "-1")
+        set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+    endif("${isSystemDir}" STREQUAL "-1")
+    ####################################################################################################
+    #if(NOT CMAKE_INSTALL_PREFIX)
+    #    set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR}/installed)
+    #    message(WARNING "CMAKE_INSTALL_PREFIX not set. Default to ${CMAKE_CURRENT_BINARY_DIR}/installed")
+    #endif()
+    add_subdirectory(${scc_SOURCE_DIR} ${scc_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
 ####################################################################################################
 
@@ -149,7 +173,7 @@ set(TOP_NAME ${TOP_NAME})
 
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/null.cpp "")
 
-add_library(${PROJECT_NAME} SHARED
+add_library(${PROJECT_NAME} OBJECT
     ${CMAKE_CURRENT_BINARY_DIR}/null.cpp
 )
 
@@ -216,7 +240,7 @@ if(MAKE_VRTLMOD)
     )
 endif()
 
-add_library(${PROJECT_NAME}_vrtlmod SHARED
+add_library(${PROJECT_NAME}_vrtlmod OBJECT
     ${CMAKE_CURRENT_BINARY_DIR}/null.cpp
     ${VRTLMOD_OUTSOURCES}
     ${VERILATOR_ROOT}/include/verilated.cpp
