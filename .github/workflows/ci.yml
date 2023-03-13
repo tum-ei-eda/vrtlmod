@@ -136,3 +136,80 @@ jobs:
       with:
         name: vrtlmod-${{matrix.config.name}}.tar.gz
         path: ${{runner.workspace}}/vrtlmod.tar.gz
+
+  benchmark:
+    strategy:
+      matrix:
+        config:
+          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", tc: "linux-ubuntu14", tc-ext: ".tar.gz", unpack: "tar xf"}
+        duts: ["foo", "cv32e40p", "cv32e40s", "cva6"]
+
+    needs: build
+    runs-on: ${{ matrix.config.os }}
+    name: ${{ matrix.config.name }}_test
+
+    steps:
+    - name: Fetch Compiled System
+      uses: actions/download-artifact@v2
+      with:
+        name: vrtlmod-${{matrix.config.name}}.tar.gz
+        path: ${{runner.workspace}}
+
+    - name: Unpack Compiled System
+      working-directory: ${{runner.workspace}}
+      run: tar -xf vrtlmod-${{matrix.config.name}}.tar.gz
+
+    - name: Requirements (Linux)
+      run: |
+        sudo apt-get install libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison
+
+    - name: Requirements (Linux) Verilator
+      working-directory: ${{runner.workspace}}
+      shell: bash
+      run: |
+        VERILATOR_SOURCE="https://github.com/verilator/verilator.git"
+        git clone ${VERILATOR_SOURCE} ${{runner.workspace}}/verilator
+        cd ${{runner.workspace}}/verilator
+        git checkout ${{ matrix.config.verilator }}
+        autoconf
+        ./configure
+        make -j $(nproc)
+
+    - name: (CTest) Requirements (Linux) Python+Conan
+      working-directory: ${{runner.workspace}}
+      shell: bash
+      run: |
+        pip install conan
+        if [[ $(conan --version | grep 'version 2.') ]]
+        then
+            conan profile detect
+        else
+            conan user
+            if ! [[ $(conan profile list) = *default* ]]
+            then
+              conan profile new default --detect
+            fi
+            conan profile update settings.compiler.libcxx=libstdc++11 default
+        fi
+
+    - name: Configure Benchmarks
+      working-directory: ${GITHUB_WORKSPACE}/test/benchmark
+      run: |
+        cmake -S ${{matrix.duts}} -B build-${{matrix.duts}} -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D VRTLMOD_ROOT=${{runner.workspace}}/installed
+
+    - name: Compile Benchmarks
+      working-directory: ${GITHUB_WORKSPACE}/test/benchmark
+      run: |
+        cmake --build build-${{matrix.duts}}
+
+    - name: Run Benchmarks
+      working-directory: ${GITHUB_WORKSPACE}/test/benchmark
+      run: |
+        build-${{matrix.duts}}/SC_TEST_VRTLMOD ${{matrix.duts}}/dhry.elf 5 10 > ${{matrix.duts}}-log.txt
+        cat ${{matrix.duts}}-log.txt
+
+    - name: Save Benchmark Results
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{matrix.duts}}-log.txt
+        path: ${GITHUB_WORKSPACE}/test/benchmark/${{matrix.duts}}-log.txt
