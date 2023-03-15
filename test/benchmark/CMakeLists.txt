@@ -231,7 +231,7 @@ if(MAKE_VRTLMOD)
     vrtlmod(
         SOURCES ${CC_SOURCES}
         OUTPUT ${VRTLMOD_OUTSOURCES} ${CMAKE_CURRENT_BINARY_DIR}/${VRTLMOD_OUT_DIR}/${PROJECT_NAME}_vrtlmodapi.cpp
-        VERBOSE
+#        VERBOSE
         SYSTEMC
         OUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/${VRTLMOD_OUT_DIR}
         WHITELIST_XML ${WHITELIST_XML}
@@ -267,7 +267,7 @@ target_link_libraries(SC_TEST
     elfio::elfio
     ${TGT_SPECIFIC_LIBS}
 )
-target_include_directories(SC_TEST PUBLIC 
+target_include_directories(SC_TEST PUBLIC
     common
 )
 add_executable(SC_TEST_VRTLMOD
