@@ -149,6 +149,8 @@ jobs:
     name: ${{ matrix.config.name }}_benchmark_${{ matrix.duts }}
 
     steps:
+    - uses: actions/checkout@v2
+
     - name: Fetch Compiled System
       uses: actions/download-artifact@v2
       with:
