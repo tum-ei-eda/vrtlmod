@@ -115,27 +115,27 @@ jobs:
 
     - name: (CTest) Pack Test Artifacts on Failure
       if: ${{ failure() }}
-      run: tar -C ${{runner.workspace}} -cvf ${{runner.workspace}}/vrtlmod-failed-test.tar ${{runner.workspace}}/${BUILD_DIR}/Testing
+      run: tar -C ${{runner.workspace}} -czvf ${{runner.workspace}}/vrtlmod-failed-test.tar.gz ${{runner.workspace}}/${BUILD_DIR}/Testing
 
     - name: (CTest) Upload Artifacts on Failure
       uses: actions/upload-artifact@v2
       if: ${{ failure() }}
       with:
-        name: vrtlmod-failed-test-${{matrix.config.name}}.tar
-        path: ${{runner.workspace}}/vrtlmod-failed-test.tar
+        name: vrtlmod-failed-test-${{matrix.config.name}}.tar.gz
+        path: ${{runner.workspace}}/vrtlmod-failed-test.tar.gz
         if-no-files-found: error
         retention-days: 15
 
     - name: Compress Compiled System
       if: runner.os == 'Linux'
-      run: tar -C ${{runner.workspace}} -cvf ${{runner.workspace}}/vrtlmod.tar ${INSTALL_DIR}
+      run: tar -C ${{runner.workspace}} -czvf ${{runner.workspace}}/vrtlmod.tar.gz ${INSTALL_DIR}
 
     - name: Upload Compiled System
       if: runner.os == 'Linux'
       uses: actions/upload-artifact@v2
       with:
-        name: vrtlmod-${{matrix.config.name}}.tar
-        path: ${{runner.workspace}}/vrtlmod.tar
+        name: vrtlmod-${{matrix.config.name}}.tar.gz
+        path: ${{runner.workspace}}/vrtlmod.tar.gz
 
   benchmark:
     strategy:
@@ -152,12 +152,12 @@ jobs:
     - name: Fetch Compiled System
       uses: actions/download-artifact@v2
       with:
-        name: vrtlmod-${{matrix.config.name}}.tar
+        name: vrtlmod-${{matrix.config.name}}.tar.gz
         path: ${{runner.workspace}}
 
     - name: Unpack Compiled System
       working-directory: ${{runner.workspace}}
-      run: tar -xf vrtlmod-${{matrix.config.name}}.tar
+      run: tar -xf vrtlmod.tar.gz
 
     - name: Requirements (Linux)
       run: |
