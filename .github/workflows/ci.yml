@@ -310,7 +310,7 @@ jobs:
       shell: bash
       working-directory: ${{runner.workspace}}
       run: |
-        cmake --build build-${{matrix.duts}}
+        cmake --build build-${{matrix.duts}} --parallel $(nproc)
 
     - name: Run Benchmarks
       shell: bash
