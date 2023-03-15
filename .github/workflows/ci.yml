@@ -146,7 +146,7 @@ jobs:
 
     needs: build
     runs-on: ${{ matrix.config.os }}
-    name: ${{ matrix.config.name }}_test
+    name: ${{ matrix.config.name }}_benchmark_${{ matrix.duts }}
 
     steps:
     - name: Fetch Compiled System
@@ -157,7 +157,7 @@ jobs:
 
     - name: Unpack Compiled System
       working-directory: ${{runner.workspace}}
-      run: tar -xf vrtlmod-${{matrix.config.name}}.tar.gz
+      run: tar -xf ${{runner.workspace}}/vrtlmod-${{matrix.config.name}}.tar.gz
 
     - name: Requirements (Linux)
       run: |
