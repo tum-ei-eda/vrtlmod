@@ -89,7 +89,7 @@ jobs:
     strategy:
       matrix:
         config:
-          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", unpack: "tar xf"}
+          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0"}
 
     needs: requirements
     runs-on: ${{ matrix.config.os }}
@@ -113,6 +113,14 @@ jobs:
         key: ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator }}
         restore-keys: |
           ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator }}
+
+    - uses: actions/cache@v3
+      id: cache-conan
+      with:
+        path: ${{runner.workspace}}/.conan
+        key: ${{ matrix.config.name }}-conan_${{ matrix.config.conan }}
+        restore-keys: |
+          ${{ matrix.config.name }}-conan_${{ matrix.config.conan }}
 
     - name: Requirements (Linux)
       if: runner.os == 'Linux'
@@ -154,7 +162,7 @@ jobs:
       working-directory: ${{runner.workspace}}
       shell: bash
       run: |
-        pip install --force-reinstall "conan==1.59.0"
+        pip install --force-reinstall "conan==${{ matrix.config.conan }}"
         if [[ $(conan --version | grep 'version 2.') ]]
         then
             conan profile detect
@@ -213,7 +221,7 @@ jobs:
     strategy:
       matrix:
         config:
-          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", unpack: "tar xf"}
+          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0"}
         duts: ["foo", "cv32e40p", "cv32e40s", "cva6"]
 
     needs: build
@@ -238,6 +246,14 @@ jobs:
         key: ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator }}
         restore-keys: |
           ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator }}
+
+    - uses: actions/cache@v3
+      id: cache-conan
+      with:
+        path: ${{runner.workspace}}/.conan
+        key: ${{ matrix.config.name }}-conan_${{ matrix.config.conan }}
+        restore-keys: |
+          ${{ matrix.config.name }}-conan_${{ matrix.config.conan }}
 
     - name: Fetch Compiled System
       uses: actions/download-artifact@v2
@@ -269,7 +285,7 @@ jobs:
       working-directory: ${{runner.workspace}}
       shell: bash
       run: |
-        pip install --force-reinstall "conan==1.59.0"
+        pip install --force-reinstall "conan==${{ matrix.config.conan }}"
         if [[ $(conan --version | grep 'version 2.') ]]
         then
             conan profile detect
