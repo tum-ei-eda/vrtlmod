@@ -44,14 +44,14 @@ jobs:
         restore-keys: |
           ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator }}
 
-    - if: ${{ steps.cache-llvm.outputs.cache-hit != 'true' }}
+    - if: ${{ steps.cache-llvm.outputs.cache-hit == 'true' }}
       name: Check Cached Clang
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
       run: llvm/clang --version
 
-    - if: ${{ steps.cache-llvm.outputs.cache-hit == 'true' }}
+    - if: ${{ steps.cache-llvm.outputs.cache-hit != 'true' }}
       name: Requirements LLVM+Clang
       working-directory: ${{runner.workspace}}
       shell: bash
@@ -62,14 +62,14 @@ jobs:
         ${{ matrix.config.unpack }} ${LLVM_NAME}.${{ matrix.config.llvm-ext }}
         mv ${LLVM_NAME} ${{runner.workspace}}/llvm
 
-    - if: ${{ steps.cache-verilator.outputs.cache-hit != 'true' }}
+    - if: ${{ steps.cache-verilator.outputs.cache-hit == 'true' }}
       name: Check Cached Verilator
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
       run: verilator/bin/verilator --version
 
-    - if: ${{ steps.cache-verilator.outputs.cache-hit == 'true' }}
+    - if: ${{ steps.cache-verilator.outputs.cache-hit != 'true' }}
       name: Requirements Verilator
       working-directory: ${{runner.workspace}}
       shell: bash
@@ -117,14 +117,14 @@ jobs:
         sudo apt-get install libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison
         cmake --version
 
-    - if: ${{ steps.cache-verilator.outputs.cache-hit != 'true' }}
+    - if: ${{ steps.cache-verilator.outputs.cache-hit == 'true' }}
       name: Check Cached Verilator
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
       run: verilator/bin/verilator --version
 
-    - if: ${{ steps.cache-llvm.outputs.cache-hit != 'true' }}
+    - if: ${{ steps.cache-llvm.outputs.cache-hit == 'true' }}
       name: Check Cached Clang
       continue-on-error: false
       shell: bash
@@ -253,14 +253,14 @@ jobs:
       run: |
         sudo apt-get install libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison
 
-    - if: ${{ steps.cache-verilator.outputs.cache-hit != 'true' }}
+    - if: ${{ steps.cache-verilator.outputs.cache-hit == 'true' }}
       name: Check Cached Verilator
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
       run: verilator/bin/verilator --version
 
-    - if: ${{ steps.cache-llvm.outputs.cache-hit != 'true' }}
+    - if: ${{ steps.cache-llvm.outputs.cache-hit == 'true' }}
       name: Check Cached Clang
       continue-on-error: false
       shell: bash
