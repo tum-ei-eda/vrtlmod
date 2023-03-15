@@ -44,11 +44,6 @@ jobs:
         restore-keys: |
           ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator }}
 
-    - name: Requirements (Linux)
-      if: runner.os == 'Linux'
-      run: |
-        sudo apt-get install libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison
-
     - if: ${{ steps.cache-llvm.outputs.cache-hit != 'true' }}
       name: Requirements LLVM+Clang
       working-directory: ${{runner.workspace}}
@@ -71,6 +66,7 @@ jobs:
       working-directory: ${{runner.workspace}}
       shell: bash
       run: |
+        sudo apt-get install libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison
         VERILATOR_SOURCE="https://github.com/verilator/verilator.git"
         git clone ${VERILATOR_SOURCE} ${{runner.workspace}}/verilator
         cd ${{runner.workspace}}/verilator
@@ -117,7 +113,7 @@ jobs:
     - uses: actions/cache@v3
       id: cache-conan
       with:
-        path: ${{runner.workspace}}/.conan
+        path: ${{runner.home}}/.conan
         key: ${{ matrix.config.name }}-conan_${{ matrix.config.conan }}
         restore-keys: |
           ${{ matrix.config.name }}-conan_${{ matrix.config.conan }}
@@ -250,7 +246,7 @@ jobs:
     - uses: actions/cache@v3
       id: cache-conan
       with:
-        path: ${{runner.workspace}}/.conan
+        path: ${{runner.home}}/.conan
         key: ${{ matrix.config.name }}-conan_${{ matrix.config.conan }}
         restore-keys: |
           ${{ matrix.config.name }}-conan_${{ matrix.config.conan }}
