@@ -193,23 +193,23 @@ jobs:
         fi
 
     - name: Configure Benchmarks
-      working-directory: ${GITHUB_WORKSPACE}/test/benchmark
+      working-directory: ${{runner.workspace}}
       run: |
-        cmake -S ${{matrix.duts}} -B build-${{matrix.duts}} -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D VRTLMOD_ROOT=${{runner.workspace}}/installed
+        cmake -S test/benchmark -B build-${{matrix.duts}} -D VP=${{matrix.duts}} -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D VRTLMOD_ROOT=${{runner.workspace}}/installed
 
     - name: Compile Benchmarks
-      working-directory: ${GITHUB_WORKSPACE}/test/benchmark
+      working-directory: ${{runner.workspace}}
       run: |
         cmake --build build-${{matrix.duts}}
 
     - name: Run Benchmarks
-      working-directory: ${GITHUB_WORKSPACE}/test/benchmark
+      working-directory: ${{runner.workspace}}
       run: |
-        build-${{matrix.duts}}/SC_TEST_VRTLMOD ${{matrix.duts}}/dhry.elf 5 10 > ${{matrix.duts}}-log.txt
+        build-${{matrix.duts}}/SC_TEST_VRTLMOD test/benchmark/${{matrix.duts}}/dhry.elf 5 10 > ${{matrix.duts}}-log.txt
         cat ${{matrix.duts}}-log.txt
 
     - name: Save Benchmark Results
       uses: actions/upload-artifact@v2
       with:
         name: ${{matrix.duts}}-log.txt
-        path: ${GITHUB_WORKSPACE}/test/benchmark/${{matrix.duts}}-log.txt
+        path: ${{matrix.duts}}-log.txt
