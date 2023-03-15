@@ -17,25 +17,43 @@ env:
   INSTALL_DIR: installed
 
 jobs:
-  build:
+
+  requirements:
     strategy:
       matrix:
         config:
-          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", tc: "linux-ubuntu14", tc-ext: ".tar.gz", unpack: "tar xf"}
+          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", unpack: "tar xf"}
 
     runs-on: ${{ matrix.config.os }}
-    name: ${{ matrix.config.name }}_build
+    name: ${{ matrix.config.name }}_requirements
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/cache@v3
+      id: cache-llvm
+      with:
+        path: llvm
+        key: ${{ matrix.config.name }}-llvm_${{ matrix.config.llvm }}
+        restore-keys: |
+          ${{ matrix.config.name }}-llvm_${{ matrix.config.llvm }}
 
-    - name: Requirements (Linux)
+    - uses: actions/cache@v3
+      id: cache-verilator
+      with:
+        path: verilator
+        key: ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator }}
+        restore-keys: |
+          ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator }}
+
+    - if: ${{ steps.cache-llvm.outputs.cache-hit != 'true' }}
+      name: Check Cached Clang
       if: runner.os == 'Linux'
-      run: |
-        sudo apt-get install libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison
-        cmake --version
+      continue-on-error: false
+      shell: bash
+      working-directory: ${{runner.workspace}}
+      run: llvm/clang --version
 
-    - name: Requirements (Linux) LLVM+Clang
+    - if: ${{ steps.cache-llvm.outputs.cache-hit == 'true' }}
+      name: Requirements (Linux) LLVM+Clang
       if: runner.os == 'Linux'
       working-directory: ${{runner.workspace}}
       shell: bash
@@ -46,7 +64,16 @@ jobs:
         ${{ matrix.config.unpack }} ${LLVM_NAME}.${{ matrix.config.llvm-ext }}
         mv ${LLVM_NAME} ${{runner.workspace}}/llvm
 
-    - name: Requirements (Linux) Verilator
+    - if: ${{ steps.cache-verilator.outputs.cache-hit != 'true' }}
+      name: Check Cached Verilator
+      if: runner.os == 'Linux'
+      continue-on-error: false
+      shell: bash
+      working-directory: ${{runner.workspace}}
+      run: verilator/bin/verilator --version
+
+    - if: ${{ steps.cache-verilator.outputs.cache-hit == 'true' }}
+      name: Requirements (Linux) Verilator
       if: runner.os == 'Linux'
       working-directory: ${{runner.workspace}}
       shell: bash
@@ -58,6 +85,56 @@ jobs:
         autoconf
         ./configure
         make -j $(nproc)
+
+  build:
+    strategy:
+      matrix:
+        config:
+          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", unpack: "tar xf"}
+
+    runs-on: ${{ matrix.config.os }}
+    name: ${{ matrix.config.name }}_build
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: actions/cache@v3
+      id: cache-llvm
+      with:
+        path: llvm
+        key: ${{ matrix.config.name }}-llvm_${{ matrix.config.llvm }}
+        restore-keys: |
+          ${{ matrix.config.name }}-llvm_${{ matrix.config.llvm }}
+
+    - uses: actions/cache@v3
+      id: cache-verilator
+      with:
+        path: verilator
+        key: ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator }}
+        restore-keys: |
+          ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator }}
+
+    - name: Requirements (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get install libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison
+        cmake --version
+
+    - if: ${{ steps.cache-verilator.outputs.cache-hit != 'true' }}
+      name: Check Cached Verilator
+      if: runner.os == 'Linux'
+      continue-on-error: false
+      shell: bash
+      working-directory: ${{runner.workspace}}
+      run: verilator/bin/verilator --version
+
+    - if: ${{ steps.cache-llvm.outputs.cache-hit != 'true' }}
+      name: Check Cached Clang
+      if: runner.os == 'Linux'
+      continue-on-error: false
+      shell: bash
+      working-directory: ${{runner.workspace}}
+      run: llvm/clang --version
 
     - name: Configure CMake
       shell: bash
@@ -141,7 +218,7 @@ jobs:
     strategy:
       matrix:
         config:
-          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", tc: "linux-ubuntu14", tc-ext: ".tar.gz", unpack: "tar xf"}
+          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", unpack: "tar xf"}
         duts: ["foo", "cv32e40p", "cv32e40s", "cva6"]
 
     needs: build
@@ -150,6 +227,22 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+
+    - uses: actions/cache@v3
+      id: cache-llvm
+      with:
+        path: llvm
+        key: ${{ matrix.config.name }}-llvm_${{ matrix.config.llvm }}
+        restore-keys: |
+          ${{ matrix.config.name }}-llvm_${{ matrix.config.llvm }}
+
+    - uses: actions/cache@v3
+      id: cache-verilator
+      with:
+        path: verilator
+        key: ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator }}
+        restore-keys: |
+          ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator }}
 
     - name: Fetch Compiled System
       uses: actions/download-artifact@v2
@@ -165,19 +258,23 @@ jobs:
       run: |
         sudo apt-get install libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison
 
-    - name: Requirements (Linux) Verilator
-      working-directory: ${{runner.workspace}}
+    - if: ${{ steps.cache-verilator.outputs.cache-hit != 'true' }}
+      name: Check Cached Verilator
+      if: runner.os == 'Linux'
+      continue-on-error: false
       shell: bash
-      run: |
-        VERILATOR_SOURCE="https://github.com/verilator/verilator.git"
-        git clone ${VERILATOR_SOURCE} ${{runner.workspace}}/verilator
-        cd ${{runner.workspace}}/verilator
-        git checkout ${{ matrix.config.verilator }}
-        autoconf
-        ./configure
-        make -j $(nproc)
+      working-directory: ${{runner.workspace}}
+      run: verilator/bin/verilator --version
 
-    - name: (CTest) Requirements (Linux) Python+Conan
+    - if: ${{ steps.cache-llvm.outputs.cache-hit != 'true' }}
+      name: Check Cached Clang
+      if: runner.os == 'Linux'
+      continue-on-error: false
+      shell: bash
+      working-directory: ${{runner.workspace}}
+      run: llvm/clang --version
+
+    - name: Requirements (Linux) Python+Conan
       working-directory: ${{runner.workspace}}
       shell: bash
       run: |
@@ -199,6 +296,7 @@ jobs:
       working-directory: ${{runner.workspace}}
       run: |
         export VERILATOR_ROOT=${{runner.workspace}}/verilator
+        export LLVM_DIR=${{runner.workspace}}/llvm
         cmake -S ${GITHUB_WORKSPACE}/test/benchmark -B build-${{matrix.duts}} -D VP=${{matrix.duts}} -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D VRTLMOD_ROOT=${{runner.workspace}}/installed
 
     - name: Compile Benchmarks
