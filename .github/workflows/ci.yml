@@ -31,7 +31,7 @@ jobs:
     - uses: actions/cache@v3
       id: cache-llvm
       with:
-        path: llvm
+        path: ${{runner.workspace}}/llvm
         key: ${{ matrix.config.name }}-llvm_${{ matrix.config.llvm }}
         restore-keys: |
           ${{ matrix.config.name }}-llvm_${{ matrix.config.llvm }}
@@ -39,7 +39,7 @@ jobs:
     - uses: actions/cache@v3
       id: cache-verilator
       with:
-        path: verilator
+        path: ${{runner.workspace}}/verilator
         key: ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator }}
         restore-keys: |
           ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator }}
@@ -54,7 +54,7 @@ jobs:
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
-      run: llvm/clang --version
+      run: ${{runner.workspace}}/llvm/clang --version
 
     - if: ${{ steps.cache-llvm.outputs.cache-hit != 'true' }}
       name: Requirements LLVM+Clang
@@ -72,7 +72,7 @@ jobs:
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
-      run: verilator/bin/verilator --version
+      run: ${{runner.workspace}}/verilator/bin/verilator --version
 
     - if: ${{ steps.cache-verilator.outputs.cache-hit != 'true' }}
       name: Requirements Verilator
@@ -103,7 +103,7 @@ jobs:
     - uses: actions/cache@v3
       id: cache-llvm
       with:
-        path: llvm
+        path: ${{runner.workspace}}/llvm
         key: ${{ matrix.config.name }}-llvm_${{ matrix.config.llvm }}
         restore-keys: |
           ${{ matrix.config.name }}-llvm_${{ matrix.config.llvm }}
@@ -111,7 +111,7 @@ jobs:
     - uses: actions/cache@v3
       id: cache-verilator
       with:
-        path: verilator
+        path: ${{runner.workspace}}/verilator
         key: ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator }}
         restore-keys: |
           ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator }}
@@ -126,14 +126,14 @@ jobs:
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
-      run: verilator/bin/verilator --version
+      run: ${{runner.workspace}}/verilator/bin/verilator --version
 
     - if: ${{ steps.cache-llvm.outputs.cache-hit == 'true' }}
       name: Check Cached Clang
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
-      run: llvm/clang --version
+      run: ${{runner.workspace}}/llvm/clang --version
 
     - name: Configure CMake
       shell: bash
@@ -230,7 +230,7 @@ jobs:
     - uses: actions/cache@v3
       id: cache-llvm
       with:
-        path: llvm
+        path: ${{runner.workspace}}/llvm
         key: ${{ matrix.config.name }}-llvm_${{ matrix.config.llvm }}
         restore-keys: |
           ${{ matrix.config.name }}-llvm_${{ matrix.config.llvm }}
@@ -238,7 +238,7 @@ jobs:
     - uses: actions/cache@v3
       id: cache-verilator
       with:
-        path: verilator
+        path: ${{runner.workspace}}/verilator
         key: ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator }}
         restore-keys: |
           ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator }}
@@ -262,14 +262,14 @@ jobs:
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
-      run: verilator/bin/verilator --version
+      run: ${{runner.workspace}}/verilator/bin/verilator --version
 
     - if: ${{ steps.cache-llvm.outputs.cache-hit == 'true' }}
       name: Check Cached Clang
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
-      run: llvm/clang --version
+      run: ${{runner.workspace}}/llvm/clang --version
 
     - name: Requirements (Linux) Python+Conan
       working-directory: ${{runner.workspace}}
