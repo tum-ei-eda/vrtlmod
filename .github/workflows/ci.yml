@@ -198,6 +198,7 @@ jobs:
       shell: bash
       working-directory: ${{runner.workspace}}
       run: |
+        export VERILATOR_ROOT=${{runner.workspace}}/verilator
         cmake -S ${GITHUB_WORKSPACE}/test/benchmark -B build-${{matrix.duts}} -D VP=${{matrix.duts}} -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D VRTLMOD_ROOT=${{runner.workspace}}/installed
 
     - name: Compile Benchmarks
