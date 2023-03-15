@@ -193,16 +193,19 @@ jobs:
         fi
 
     - name: Configure Benchmarks
+      shell: bash
       working-directory: ${{runner.workspace}}
       run: |
-        cmake -S test/benchmark -B build-${{matrix.duts}} -D VP=${{matrix.duts}} -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D VRTLMOD_ROOT=${{runner.workspace}}/installed
+        cmake -S ${GITHUB_WORKSPACE}/test/benchmark -B build-${{matrix.duts}} -D VP=${{matrix.duts}} -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D VRTLMOD_ROOT=${{runner.workspace}}/installed
 
     - name: Compile Benchmarks
+      shell: bash
       working-directory: ${{runner.workspace}}
       run: |
         cmake --build build-${{matrix.duts}}
 
     - name: Run Benchmarks
+      shell: bash
       working-directory: ${{runner.workspace}}
       run: |
         build-${{matrix.duts}}/SC_TEST_VRTLMOD test/benchmark/${{matrix.duts}}/dhry.elf 5 10 > ${{matrix.duts}}-log.txt
