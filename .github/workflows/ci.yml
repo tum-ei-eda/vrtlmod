@@ -113,7 +113,7 @@ jobs:
     - uses: actions/cache@v3
       id: cache-conan
       with:
-        path: ${{runner.home}}/.conan
+        path: ${HOME}/.conan
         key: ${{ matrix.config.name }}-conan_${{ matrix.config.conan }}
         restore-keys: |
           ${{ matrix.config.name }}-conan_${{ matrix.config.conan }}
@@ -246,7 +246,7 @@ jobs:
     - uses: actions/cache@v3
       id: cache-conan
       with:
-        path: ${{runner.home}}/.conan
+        path: ${HOME}/.conan
         key: ${{ matrix.config.name }}-conan_${{ matrix.config.conan }}
         restore-keys: |
           ${{ matrix.config.name }}-conan_${{ matrix.config.conan }}
