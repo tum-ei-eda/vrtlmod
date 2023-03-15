@@ -46,15 +46,13 @@ jobs:
 
     - if: ${{ steps.cache-llvm.outputs.cache-hit != 'true' }}
       name: Check Cached Clang
-      if: runner.os == 'Linux'
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
       run: llvm/clang --version
 
     - if: ${{ steps.cache-llvm.outputs.cache-hit == 'true' }}
-      name: Requirements (Linux) LLVM+Clang
-      if: runner.os == 'Linux'
+      name: Requirements LLVM+Clang
       working-directory: ${{runner.workspace}}
       shell: bash
       run: |
@@ -66,15 +64,13 @@ jobs:
 
     - if: ${{ steps.cache-verilator.outputs.cache-hit != 'true' }}
       name: Check Cached Verilator
-      if: runner.os == 'Linux'
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
       run: verilator/bin/verilator --version
 
     - if: ${{ steps.cache-verilator.outputs.cache-hit == 'true' }}
-      name: Requirements (Linux) Verilator
-      if: runner.os == 'Linux'
+      name: Requirements Verilator
       working-directory: ${{runner.workspace}}
       shell: bash
       run: |
@@ -92,6 +88,7 @@ jobs:
         config:
           - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", unpack: "tar xf"}
 
+    needs: requirements
     runs-on: ${{ matrix.config.os }}
     name: ${{ matrix.config.name }}_build
 
@@ -122,7 +119,6 @@ jobs:
 
     - if: ${{ steps.cache-verilator.outputs.cache-hit != 'true' }}
       name: Check Cached Verilator
-      if: runner.os == 'Linux'
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
@@ -130,7 +126,6 @@ jobs:
 
     - if: ${{ steps.cache-llvm.outputs.cache-hit != 'true' }}
       name: Check Cached Clang
-      if: runner.os == 'Linux'
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
@@ -260,7 +255,6 @@ jobs:
 
     - if: ${{ steps.cache-verilator.outputs.cache-hit != 'true' }}
       name: Check Cached Verilator
-      if: runner.os == 'Linux'
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
@@ -268,7 +262,6 @@ jobs:
 
     - if: ${{ steps.cache-llvm.outputs.cache-hit != 'true' }}
       name: Check Cached Clang
-      if: runner.os == 'Linux'
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
