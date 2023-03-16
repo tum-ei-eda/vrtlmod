@@ -7,7 +7,7 @@ Verilated RTL modifier (vrtlmod) is a LLVM-based tool modifying <a href="https:/
 Besides standard (gmake, cmake, gcc, ...)
 
 1. Verilator  - tested with v4.204 (see: https://www.veripool.org/wiki/verilator and install guide)
-2. LLVM - tested v13.0.1 from cmake with `-DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra" -DBUILD_SHARED_LIBS=On`
+2. LLVM - tested v13.0.1 built with `-D LLVM_ENABLE_PROJECTS="clang;clang-tools-extra"`
 3. Boost filesystem
 4. For Tests: Conan (`pip install conan`)
 
@@ -17,16 +17,14 @@ Besides standard (gmake, cmake, gcc, ...)
 
 ```
 	[BUILD]: export LLVM_DIR=<path/to/llvm/install/dir>/lib/cmake/llvm
-	[BUILD]: export VERILATOR_ROOT=<path/to/verilator/repository> (not tested with installed Verilator, yet)
+	[BUILD]: export VERILATOR_ROOT=<path/to/verilator/build/or/install/directory>
 ```
 
 2. **Or via CMake command line arguments:**
-[BUILD]: -DLLVM_DIR=<path/to/llvm/install/dir>/lib/cmake/llvm
-[BUILD]: -DVERILATOR_ROOT=<path/to/verilator/repository> (not tested with installed Verilator, yet)
 
 ```
 mkdir build && cd build
-cmake .. -D LLVM_DIR=... -D VERILATOR_ROOT=... [-D BUILD_TESTING=Off]
+cmake -S . -B build -D LLVM_DIR=<path/to/llvm/install/dir> -D VERILATOR_ROOT=<path/to/verilator/build/or/install/directory> [-D BUILD_TESTING=Off]
 cmake --build build
 ```
 

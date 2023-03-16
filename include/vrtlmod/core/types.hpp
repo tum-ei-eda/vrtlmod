@@ -263,8 +263,11 @@ class Target : public Variable
     /// \brief Returns the targets undotted hierarchy ("__DOT__"s instead of "."s)
     std::string get_hierarchyDedotted(void) const;
     ///////////////////////////////////////////////////////////////////////
-    /// \brief Returns the targets index
-    // unsigned int get_index(void) const { return index_; }
+    /// \brief Returns zero dim Most and Least significant bit
+    std::pair<int, int> get_element_msb_lsb_pair(void) const;
+    ///////////////////////////////////////////////////////////////////////
+    /// \brief Return the elements mask
+    unsigned long get_element_mask(std::initializer_list<size_t> subscripts) const;
     ///////////////////////////////////////////////////////////////////////
     /// \brief Returns the number of fault injection positions
     unsigned int get_seq_assignment_count(void) const { return sea_locs_.size(); }

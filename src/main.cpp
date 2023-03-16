@@ -57,7 +57,7 @@ static llvm::cl::opt<std::string> OutputDir("out", llvm::cl::Optional, llvm::cl:
                                             llvm::cl::value_desc("path"), llvm::cl::init("vrtlmod-out"),
                                             llvm::cl::cat(UserCat));
 ////////////////////////////////////////////////////////////////////////////////
-/// \brief Frontend user option "override".
+/// \brief Frontend user option "overwrite".
 static llvm::cl::opt<bool> Overwrite("overwrite", llvm::cl::Optional, llvm::cl::desc("Override source files"),
                                      llvm::cl::cat(UserCat));
 ////////////////////////////////////////////////////////////////////////////////
@@ -76,6 +76,11 @@ static llvm::cl::opt<bool> PrintTD("print-td", llvm::cl::Optional,
 static llvm::cl::alias SilentA("s", llvm::cl::NotHidden, llvm::cl::desc("Alias for --silent"),
                                llvm::cl::aliasopt(Silent));
 ////////////////////////////////////////////////////////////////////////////////
+/// \brief Frontend user option "no-auto-include".
+static llvm::cl::opt<bool> NoAutoInclude(
+    "no-auto-include", llvm::cl::Optional,
+    llvm::cl::desc("Execute without automatic include paths for Verilator and Clang"), llvm::cl::cat(UserCat));
+////////////////////////////////////////////////////////////////////////////////
 /// \brief Frontend user option "verbose".
 static llvm::cl::opt<bool> Verbose("verbose", llvm::cl::Optional, llvm::cl::desc("Execute with Verbose output"),
                                    llvm::cl::cat(UserCat));
@@ -83,6 +88,15 @@ static llvm::cl::alias VerboseA("v", llvm::cl::NotHidden, llvm::cl::desc("Alias 
                                 llvm::cl::aliasopt(Verbose));
 
 static llvm::cl::extrahelp CommonHelp(clang::tooling::CommonOptionsParser::HelpMessage);
+
+void auto_argument_adjust(clang::tooling::ClangTool &tool)
+{
+    for (auto const &it : util::auto_include_dirs)
+    {
+        clang::tooling::ArgumentsAdjuster a = clang::tooling::getInsertArgumentAdjuster(it.c_str());
+        tool.appendArgumentsAdjuster(a);
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 /// \brief vrtlmod main()
@@ -137,17 +151,29 @@ int main(int argc, const char **argv)
                                                    [](const auto &x)
                                                    { return (x.find("__Syms.h") != std::string::npos); }));
     clang::tooling::ClangTool MacroTool(op->getCompilations(), srcs_and_headers_wo_symsh);
+    if (!bool(NoAutoInclude))
+    {
+        auto_argument_adjust(MacroTool);
+    }
     LOG_INFO("Run MacroTool on sources ...");
     err = MacroTool.run(vrtlmod::CreateMacroRewritePass(core).get());
     LOG_INFO("... done");
 
     // create a new Clang Tool instance for Macro cleanup in source files
     clang::tooling::ClangTool stage1_ParserTool(op->getCompilations(), srcs_and_headers);
+    if (!bool(NoAutoInclude))
+    {
+        auto_argument_adjust(stage1_ParserTool);
+    }
     LOG_INFO("Analyze VRTL sources (elaboration)...");
     err = stage1_ParserTool.run(vrtlmod::CreateElaboratePass(core).get());
     LOG_INFO("... done");
 
     clang::tooling::ClangTool stage2_ParserTool(op->getCompilations(), srcs_and_headers);
+    if (!bool(NoAutoInclude))
+    {
+        auto_argument_adjust(stage2_ParserTool);
+    }
     LOG_INFO("Analyze VRTL sources for possible injection points ...");
     err = stage2_ParserTool.run(vrtlmod::CreateAnalyzePass(core).get());
     LOG_INFO("... done");
@@ -159,14 +185,25 @@ int main(int argc, const char **argv)
 
     core.initialize_injection_targets(WhiteListXmlFilename);
 
-    clang::tooling::ClangTool stage3_SigDeclRewriterTool(op->getCompilations(), headers);
     LOG_INFO("Rewrite VRTL headers for injectable signals ...");
-    err = stage3_SigDeclRewriterTool.run(vrtlmod::CreateSignalDeclPass(core).get());
+    for (auto const &header_file : headers)
+    {
+        clang::tooling::ClangTool stage3_SigDeclRewriterTool(op->getCompilations(), { header_file });
+        if (!bool(NoAutoInclude))
+        {
+            auto_argument_adjust(stage3_SigDeclRewriterTool);
+        }
+        err = stage3_SigDeclRewriterTool.run(vrtlmod::CreateSignalDeclPass(core).get());
+    }
     LOG_INFO("... done");
 
-    clang::tooling::ClangTool stage4_InjectionExprRewriterTool(op->getCompilations(), sources);
+    clang::tooling::ClangTool stage3_InjectionExprRewriterTool(op->getCompilations(), sources);
+    if (!bool(NoAutoInclude))
+    {
+        auto_argument_adjust(stage3_InjectionExprRewriterTool);
+    }
     LOG_INFO("Rewrite VRTL sources for injection points ...");
-    err = stage4_InjectionExprRewriterTool.run(vrtlmod::CreateInjectionPass(core).get());
+    err = stage3_InjectionExprRewriterTool.run(vrtlmod::CreateInjectionPass(core).get());
     LOG_INFO("... done");
 
     LOG_INFO("Generate API ...");

@@ -107,7 +107,7 @@ class TDentry
     virtual void reset_assign_value(void) = 0;
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// \brief Returns the target compressed into a bit-vector of length bits_
-    virtual std::vector<bool> read_data(void) = 0;
+    virtual std::vector<bool> read_data(void) const = 0;
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// \brief entry identifier name
     virtual const std::string &get_name() const = 0;
@@ -147,7 +147,7 @@ class Named_TDentry : public TDentry
     virtual void reset_value_bit(unsigned bit) {}
     virtual void reset_assign_value(void) {}
 
-    virtual std::vector<bool> read_data(void) { return (std::vector<bool>{}); }
+    virtual std::vector<bool> read_data(void) const { return std::vector<bool>{}; }
     // virtual void inject(int word = 0){};
     virtual void inject_on_update(std::initializer_list<unsigned int> i = {}) {}
     virtual void inject_synchronous(void) {}
@@ -190,7 +190,7 @@ class ZeroD_TDentry final : public Named_TDentry<vcontainer_t>
     virtual void reset_value_bit(unsigned bit) override { BASE::assign_value_ &= ~(1 << bit); }
     virtual void reset_assign_value(void) override { BASE::assign_value_ = 0; }
 
-    std::vector<bool> read_data(void) override;
+    std::vector<bool> read_data(void) const override;
     void inject_on_update(std::initializer_list<unsigned int> i = {}) override { __inject_on_update(); }
     void inject_synchronous(void) { inject(); }
     void incr_cntr(std::initializer_list<unsigned int> i = {}) override { __incr_cntr(); }
@@ -233,7 +233,7 @@ class OneD_TDentry final : public Named_TDentry<vcontainer_t>
     virtual void reset_value_bit(unsigned bit) override;
     virtual void reset_assign_value(void) override;
 
-    std::vector<bool> read_data(void) override;
+    std::vector<bool> read_data(void) const override;
     void inject_on_update(std::initializer_list<unsigned int> i = {}) override;
     void inject_synchronous(void) override;
     void incr_cntr(std::initializer_list<unsigned int> i = {}) override;
@@ -276,7 +276,7 @@ class TwoD_TDentry final : public Named_TDentry<vcontainer_t>
     virtual void reset_value_bit(unsigned bit) override;
     virtual void reset_assign_value(void) override;
 
-    std::vector<bool> read_data(void) override;
+    std::vector<bool> read_data(void) const override;
     void inject_on_update(std::initializer_list<unsigned int> i = {}) override;
     void inject_synchronous(void) override;
     void incr_cntr(std::initializer_list<unsigned int> i = {}) override;
@@ -319,7 +319,7 @@ class ThreeD_TDentry final : public Named_TDentry<vcontainer_t>
     virtual void reset_value_bit(unsigned bit) override;
     virtual void reset_assign_value(void) override;
 
-    std::vector<bool> read_data(void) override;
+    std::vector<bool> read_data(void) const override;
 
     void inject_on_update(std::initializer_list<unsigned int> i = {}) override;
     void inject_synchronous(void) override;
@@ -489,7 +489,7 @@ class TD_API
             x->enable_ = false;
             x->reset_cntr();
             x->reset_mask();
-            return (BIT_CODES::SUCC_TARGET_DISARMED);
+            return BIT_CODES::SUCC_TARGET_DISARMED;
         }
         catch (const std::out_of_range &e)
         {
@@ -512,7 +512,7 @@ class TD_API
             }
             ++i;
         }
-        return (-1);
+        return -1;
     }
 
     TD_API(void) = default;
@@ -548,15 +548,15 @@ inline void ZeroD_TDentry<vcontainer_t>::inject(void)
     }
 }
 template <typename vcontainer_t>
-std::vector<bool> ZeroD_TDentry<vcontainer_t>::read_data(void)
+std::vector<bool> ZeroD_TDentry<vcontainer_t>::read_data(void) const
 {
     std::vector<bool> bitstream;
     for (int bit = 0; bit < TDentry::bits_; ++bit)
     {
-        vcontainer_t msk = 1 << bit;
-        bitstream.push_back(BASE::data_ & msk ? true : false);
+        vcontainer_t msk = (1 << bit);
+        bitstream.push_back((BASE::data_ & msk) ? true : false);
     }
-    return (bitstream);
+    return bitstream;
 }
 
 // Template implmenatations:
@@ -637,7 +637,7 @@ void OneD_TDentry<vcontainer_t, vbasetype_t, M>::reset_assign_value(void)
         BASE::assign_value_[m] = 0;
 }
 template <typename vcontainer_t, typename vbasetype_t, int M>
-std::vector<bool> OneD_TDentry<vcontainer_t, vbasetype_t, M>::read_data(void)
+std::vector<bool> OneD_TDentry<vcontainer_t, vbasetype_t, M>::read_data(void) const
 {
     // this needs some work... generally a caller to read_data only knows the total sum of bits_,
     // thus, would only provide a buffer of such a length via pData
@@ -650,7 +650,7 @@ std::vector<bool> OneD_TDentry<vcontainer_t, vbasetype_t, M>::read_data(void)
         for (int element = 0; element < M; ++element)
             for (int bit = 0; bit < BASE::onedimbits_; ++bit)
             {
-                vbasetype_t msk = 1 << bit;
+                vbasetype_t msk = (1 << bit);
                 bitstream.push_back(BASE::data_[element] & msk ? true : false);
             }
     }
@@ -658,20 +658,20 @@ std::vector<bool> OneD_TDentry<vcontainer_t, vbasetype_t, M>::read_data(void)
     { // basetype extender target, e.g., 65-bit vector in 3 WDatas
         for (int element = 0; element < M; ++element)
         {
-            if (element == M - 1)
+            if (element < (M - 1))
             {
                 for (int bit = 0; bit < BASETYPE_BITS; ++bit)
                 {
-                    vbasetype_t msk = 1 << bit;
-                    bitstream.push_back(BASE::data_[element] & msk ? true : false);
+                    vbasetype_t msk = (1 << bit);
+                    bitstream.push_back((BASE::data_[element] & msk) ? true : false);
                 }
             }
             else
             {
                 for (int bit = 0; bit < BASE::onedimbits_ - (M - 1) * BASETYPE_BITS; ++bit)
                 {
-                    vbasetype_t msk = 1 << bit;
-                    bitstream.push_back(BASE::data_[element] & msk ? true : false);
+                    vbasetype_t msk = (1 << bit);
+                    bitstream.push_back((BASE::data_[element] & msk) ? true : false);
                 }
             }
         }
@@ -801,7 +801,7 @@ void TwoD_TDentry<vcontainer_t, vbasetype_t, L, M>::reset_assign_value(void)
             BASE::assign_value_[l][m] = 0;
 }
 template <typename vcontainer_t, typename vbasetype_t, int L, int M>
-std::vector<bool> TwoD_TDentry<vcontainer_t, vbasetype_t, L, M>::read_data(void)
+std::vector<bool> TwoD_TDentry<vcontainer_t, vbasetype_t, L, M>::read_data(void) const
 {
     // this needs some work... generally a caller to read_data only knows the total sum of bits_,
     // thus, would only provide a buffer of such a length via pData
@@ -815,8 +815,8 @@ std::vector<bool> TwoD_TDentry<vcontainer_t, vbasetype_t, L, M>::read_data(void)
             for (int element = 0; element < M; ++element)
                 for (int bit = 0; bit < BASE::onedimbits_; ++bit)
                 {
-                    vbasetype_t msk = 1 << bit;
-                    bitstream.push_back(BASE::data_[row][element] & msk ? true : false);
+                    vbasetype_t msk = (1 << bit);
+                    bitstream.push_back((BASE::data_[row][element] & msk) ? true : false);
                 }
     }
     else
@@ -824,25 +824,25 @@ std::vector<bool> TwoD_TDentry<vcontainer_t, vbasetype_t, L, M>::read_data(void)
         for (int row = 0; row < L; ++row)
             for (int element = 0; element < M; ++element)
             {
-                if (element == M - 1)
+                if (element < (M - 1))
                 {
                     for (int bit = 0; bit < BASETYPE_BITS; ++bit)
                     {
-                        vbasetype_t msk = 1 << bit;
-                        bitstream.push_back(BASE::data_[row][element] & msk ? true : false);
+                        vbasetype_t msk = (1 << bit);
+                        bitstream.push_back((BASE::data_[row][element] & msk) ? true : false);
                     }
                 }
                 else
                 {
                     for (int bit = 0; bit < BASE::onedimbits_ - (M - 1) * BASETYPE_BITS; ++bit)
                     {
-                        vbasetype_t msk = 1 << bit;
-                        bitstream.push_back(BASE::data_[row][element] & msk ? true : false);
+                        vbasetype_t msk = (1 << bit);
+                        bitstream.push_back((BASE::data_[row][element] & msk) ? true : false);
                     }
                 }
             }
     }
-    return (bitstream);
+    return bitstream;
 }
 template <typename vcontainer_t, typename vbasetype_t, int L, int M>
 inline void TwoD_TDentry<vcontainer_t, vbasetype_t, L, M>::inject_on_update(std::initializer_list<unsigned int> i)
@@ -976,7 +976,7 @@ void ThreeD_TDentry<vcontainer_t, vbasetype_t, K, L, M>::reset_assign_value(void
                 BASE::assign_value_[k][l][m] = 0;
 }
 template <typename vcontainer_t, typename vbasetype_t, int K, int L, int M>
-std::vector<bool> ThreeD_TDentry<vcontainer_t, vbasetype_t, K, L, M>::read_data(void)
+std::vector<bool> ThreeD_TDentry<vcontainer_t, vbasetype_t, K, L, M>::read_data(void) const
 {
     // this needs some work... generally a caller to read_data only knows the total sum of bits_,
     // thus, would only provide a buffer of such a length via pData
@@ -991,8 +991,8 @@ std::vector<bool> ThreeD_TDentry<vcontainer_t, vbasetype_t, K, L, M>::read_data(
                 for (int element = 0; element < M; ++element)
                     for (int bit = 0; bit < BASE::onedimbits_; ++bit)
                     {
-                        vbasetype_t msk = 1 << bit;
-                        bitstream.push_back(BASE::data_[col][row][element] & msk ? true : false);
+                        vbasetype_t msk = (1 << bit);
+                        bitstream.push_back((BASE::data_[col][row][element] & msk) ? true : false);
                     }
     }
     else
@@ -1001,20 +1001,20 @@ std::vector<bool> ThreeD_TDentry<vcontainer_t, vbasetype_t, K, L, M>::read_data(
             for (int row = 0; row < L; ++row)
                 for (int element = 0; element < M; ++element)
                 {
-                    if (element == M - 1)
+                    if (element < (M - 1))
                     {
                         for (int bit = 0; bit < BASETYPE_BITS; ++bit)
                         {
-                            vbasetype_t msk = 1 << bit;
-                            bitstream.push_back(BASE::data_[col][row][element] & msk ? true : false);
+                            vbasetype_t msk = (1 << bit);
+                            bitstream.push_back((BASE::data_[col][row][element] & msk) ? true : false);
                         }
                     }
                     else
                     {
                         for (int bit = 0; bit < BASE::onedimbits_ - (M - 1) * BASETYPE_BITS; ++bit)
                         {
-                            vbasetype_t msk = 1 << bit;
-                            bitstream.push_back(BASE::data_[col][row][element] & msk ? true : false);
+                            vbasetype_t msk = (1 << bit);
+                            bitstream.push_back((BASE::data_[col][row][element] & msk) ? true : false);
                         }
                     }
                 }

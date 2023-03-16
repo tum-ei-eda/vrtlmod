@@ -122,7 +122,7 @@ void SignalDeclRewriter::modify_includes(const clang::Decl *decl, const VrtlPars
 
     std::string newc = parser.getRewriter().getRewrittenText(flocra);
     auto includepos = newc.find("#include");
-    std::cout << ">modify includes: " << includepos << std::endl;
+    LOG_VERBOSE(">modify includes: ", std::to_string(includepos));
     if (includepos != std::string::npos)
     {
         std::string x = get_core().get_include_string();

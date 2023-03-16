@@ -1,0 +1,13 @@
+diff --git a/tlm-bridges/axi2tlm-bridge.h b/tlm-bridges/axi2tlm-bridge.h
+index d630fa7..73a984e 100644
+--- a/tlm-bridges/axi2tlm-bridge.h
++++ b/tlm-bridges/axi2tlm-bridge.h
+@@ -68,7 +68,7 @@ public:
+ 				ADDR_WIDTH,
+ 				CD_DATA_WIDTH> ACESnoopChannels_S__;
+ 
+-	tlm_utils::simple_initiator_socket<axi2tlm_bridge> socket;
++	tlm_utils::simple_initiator_socket<axi2tlm_bridge, ADDR_WIDTH> socket;
+ 
+ 	SC_HAS_PROCESS(axi2tlm_bridge);
+ 
