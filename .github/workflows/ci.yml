@@ -73,7 +73,8 @@ jobs:
         git checkout ${{ matrix.config.verilator }}
         autoconf
         ./configure --prefix ${{runner.workspace}}/verilator
-        make -j $(nproc) install
+        make -j $(nproc)
+        make install
 
     - name: Check (cached) Verilator
       continue-on-error: false
