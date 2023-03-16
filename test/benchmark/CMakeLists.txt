@@ -15,6 +15,7 @@
 ####################################################################################################
 
 cmake_minimum_required(VERSION 3.15 FATAL_ERROR)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake)
 project(V${VP})
 
 if(NOT CMAKE_CXX_STANDARD)
@@ -28,7 +29,7 @@ if(NOT VERILATOR_ROOT)
     set(VERILATOR_ROOT $ENV{VERILATOR_ROOT})
     message(STATUS "VERILATOR_ROOT not specified in CMake .. using environment VERILATOR_ROOT: $ENV{VERILATOR_ROOT}")
 endif()
-find_package(verilator HINTS ${VERILATOR_ROOT} REQUIRED)
+find_package(VERILATOR REQUIRED)
 
 if(NOT CMAKE_CXX_STANDARD)
     set(CMAKE_CXX_STANDARD 17)
@@ -191,8 +192,8 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     ${SystemC_LIBRARIES}
 )
 target_include_directories(${PROJECT_NAME} PUBLIC
-    ${VERILATOR_ROOT}/include
-    ${VERILATOR_ROOT}/include/vltstd
+    ${VERILATOR_INCLUDE_DIRECTORY}
+    ${VERILATOR_INCLUDE_DIRECTORY}/vltstd
     ${CMAKE_CURRENT_BINARY_DIR}/${VRTL_NAME}/obj_dir
 )
 
@@ -235,7 +236,7 @@ if(MAKE_VRTLMOD)
         SYSTEMC
         OUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/${VRTLMOD_OUT_DIR}
         WHITELIST_XML ${WHITELIST_XML}
-        INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/${VRTL_DIR}/ ${VERILATOR_ROOT}/include ${VERILATOR_ROOT}/include/vltstd
+        INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/${VRTL_DIR}/ ${VERILATOR_INCLUDE_DIRECTORY} ${VERILATOR_INCLUDE_DIRECTORY}/vltstd
         SYSTEMC_INCLUDE_DIRS ${SYSTEMC_INCLUDE_DIRS}
     )
 endif()
@@ -243,16 +244,16 @@ endif()
 add_library(${PROJECT_NAME}_vrtlmod OBJECT
     ${CMAKE_CURRENT_BINARY_DIR}/null.cpp
     ${VRTLMOD_OUTSOURCES}
-    ${VERILATOR_ROOT}/include/verilated.cpp
-    ${VERILATOR_ROOT}/include/verilated_dpi.cpp
+    ${VERILATOR_INCLUDE_DIRECTORY}/verilated.cpp
+    ${VERILATOR_INCLUDE_DIRECTORY}/verilated_dpi.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/${VRTLMOD_OUT_DIR}/${PROJECT_NAME}_vrtlmodapi.cpp
 )
 target_link_libraries(${PROJECT_NAME}_vrtlmod PUBLIC
     ${SystemC_LIBRARIES}
 )
 target_include_directories(${PROJECT_NAME}_vrtlmod PUBLIC
-    ${VERILATOR_ROOT}/include
-    ${VERILATOR_ROOT}/include/vltstd
+    ${VERILATOR_INCLUDE_DIRECTORY}
+    ${VERILATOR_INCLUDE_DIRECTORY}/vltstd
     ${CMAKE_CURRENT_BINARY_DIR}/${VRTLMOD_OUT_DIR}
 )
 
