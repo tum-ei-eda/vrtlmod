@@ -1,0 +1,68 @@
+diff --git a/src/components/scc/memory.h b/src/components/scc/memory.h
+index ce41fcd..1d4f12f 100644
+--- a/src/components/scc/memory.h
++++ b/src/components/scc/memory.h
+@@ -157,11 +157,28 @@ int memory<SIZE, BUSWIDTH>::handle_operation(tlm::tlm_generic_payload& trans, sc
+             auto offs = adr & mem.page_addr_mask;
+             if((offs + len) > mem.page_size) {
+                 auto first_part = mem.page_size - offs;
+-                std::copy(p.data() + offs, p.data() + offs + first_part, ptr);
+                 const auto& p2 = mem((adr / mem.page_size) + 1);
+-                std::copy(p2.data(), p2.data() + len - first_part, ptr + first_part);
++                if(!byt)
++                {
++                    std::copy(p.data() + offs, p.data() + offs + first_part, ptr);
++                    std::copy(p2.data(), p2.data() + len - first_part, ptr + first_part);
++                }
++                else
++                {
++                    for(int i = 0; i < first_part; ++i)
++                        if(byt[i] == 0xff)
++                            ptr[i] = *(p.data()+offs+i);
++                    for(int i = first_part; i < len; ++i)
++                        if(byt[i] == 0xff)
++                            ptr[i] = *(p2.data()+len-i);
++                }
+             } else {
+-                std::copy(p.data() + offs, p.data() + offs + len, ptr);
++                if(!byt)
++                    std::copy(p.data() + offs, p.data() + offs + len, ptr);
++                else
++                    for(int i = 0; i < len; ++i)
++                        if(byt[i] == 0xff)
++                            ptr[i] = *(p.data()+offs+i);
+             }
+         } else {
+             // no allocated page so return randomized data
+@@ -176,11 +193,28 @@ int memory<SIZE, BUSWIDTH>::handle_operation(tlm::tlm_generic_payload& trans, sc
+         auto offs = adr & mem.page_addr_mask;
+         if((offs + len) > mem.page_size) {
+             auto first_part = mem.page_size - offs;
+-            std::copy(ptr, ptr + first_part, p.data() + offs);
+             auto& p2 = mem((adr / mem.page_size) + 1);
+-            std::copy(ptr + first_part, ptr + len, p2.data());
++            if(!byt)
++            {
++                std::copy(ptr, ptr + first_part, p.data() + offs);
++                std::copy(ptr + first_part, ptr + len, p2.data());
++            }
++            else
++            {
++                for(int i = 0; i < first_part; ++i)
++                    if(byt[i] == 0xff)
++                        *(p.data()+offs+i) = ptr[i];
++                for(int i = first_part; i < len; ++i)
++                    if(byt[i] == 0xff)
++                        *(p2.data()+len-i) = ptr[i];
++            }
+         } else {
+-            std::copy(ptr, ptr + len, p.data() + offs);
++            if(!byt)
++                std::copy(ptr, ptr + len, p.data() + offs);
++            else
++                for(int i = 0; i < len; ++i)
++                    if(byt[i] == 0xff)
++                        *(p.data()+offs+i) = ptr[i];
+         }
+     }
+     trans.set_response_status(tlm::TLM_OK_RESPONSE);
