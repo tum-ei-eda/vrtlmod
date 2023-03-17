@@ -178,8 +178,8 @@ if(LLVM_FOUND AND Clang_FOUND)
         ${PROJECT_NAME}-core
     )
 
-    if(NOT LLVM_ENABLE_RTTI)
-        message(WARNING "LLVM built with RTTI required (-DLLVM_ENABLE_RTTI=On)... Disable Runtime Type Information (-fno-rtti) for vrtlmod.")
+    if(NOT LLVM_ENABLE_RTTI) # set or unset by find_package(LLVM)
+        message(WARNING "LLVM built without Runtime Type Information (RTTI) (-DLLVM_ENABLE_RTTI=Off)... Disable Runtime Type Information (-fno-rtti) for vrtlmod.")
         target_compile_options(${PROJECT_NAME}-core PUBLIC -fno-rtti)
         target_compile_options(${PROJECT_NAME}-bin PUBLIC -fno-rtti)
     endif()
