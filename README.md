@@ -1,7 +1,8 @@
-# vrtlmod - Verilated RTL Injection modifier
+# vRTLmod - Verilated RTL Injection modifier
 
 ## Brief
-Verilated RTL modifier (vrtlmod) is a LLVM-based tool modifying <a href="https://www.veripool.org/wiki/verilator" title="Verilator homepage">Verilator</a> output for cycle accurate target injection. Additionally, `vrtlmod` its own XML output `*-vrtlmod.xml` as a whitelist filter argument.
+The verilated RTL modifier (vRTLmod) is an LLVM based open-source tool to enable fault injection in verilator RTL (vRTL) simulations.
+Within an Clang-Frontend (LLVM) tool it automatically adds fault injection capability to <a href="https://www.veripool.org/wiki/verilator" title="Verilator homepage">Verilator</a> output. Additionally, `vRTLmod` can make use of its own XML output `*-vrtlmod.xml` as a whitelist filter argument to allow manual steering of wanted/unwanted injectable variables.
 
 ## Dependencies
 Besides standard (gmake, cmake, gcc, ...)
@@ -41,7 +42,7 @@ vrtlmod [--systemc] [--wl-regxml=<*-vrtlmod.xml>] --out=<outputdir> <VRTL-Cpp-fi
 
 or use installed `vrtlmod-config.cmake` in CMake environment.
 
-The output can be found at `<outputdir>` in form of altered Cpp files (`<VRTL-Cpp-files>_vrtlmod.cpp`) and the built injection API inside `<outputdir>/vrtlmodapi` concluding:
+The output can be found at `<outputdir>` in form of altered Cpp files (`<vRTL-Cpp-files>_vrtlmod.cpp`) and the built injection API inside `<outputdir>/vrtlmodapi` concluding:
 - Target dictionary
 - Injection classes
 
