@@ -15,6 +15,7 @@
 ####################################################################################################
 
 cmake_minimum_required(VERSION 3.15 FATAL_ERROR)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake)
 
 set(VRTL_NAME fiapp)
 set(TOP_NAME ${VRTL_NAME})
@@ -30,37 +31,7 @@ if(NOT IS_DIRECTORY $ENV{VERILATOR_ROOT})
 endif()
 set(VERILATOR_ROOT $ENV{VERILATOR_ROOT})
 message(STATUS "VERILATOR_ROOT: ${VERILATOR_ROOT}")
-if(EXISTS "${VERILATOR_ROOT}/Makefile")
-    # This is a non-install Verilator, aka repository+build
-    # VERILATOR_ROOT/
-    # |-> bin/verilator_bin
-    # |-> src/
-    # |-> ...
-    # \-> include/
-    set(VERILATOR_INCLUDE_DIRECTORY "${VERILATOR_ROOT}/include")
-    find_package(verilator HINTS ${VERILATOR_ROOT} REQUIRED)
-else()
-    # This is an installed Verilator:
-    if(IS_DIRECTORY "${VERILATOR_ROOT}/share/verilator/include")
-        # VERILATOR_ROOT/
-        # |-> bin/verilator_bin
-        # \-> share/
-        #     \-> verilator/
-        #         |-> bin/verilator_includer
-        #         |-> include/
-        #         \-> examples/
-        set(VERILATOR_INCLUDE_DIRECTORY "${VERILATOR_ROOT}/share/verilator/include")
-        find_package(verilator HINTS ${VERILATOR_ROOT}/share/verilator REQUIRED)
-        set(VERILATOR_ROOT "${VERILATOR_ROOT}/share/verilator") # TODO: This is a workaround to trick verilate() function
-    else()
-        # This might be pointing to <install>/share/verilator/ and is not supported
-        # VERILATOR_ROOT/
-        #               |-> bin/verilator_includer
-        #               |-> include/
-        #               \-> examples/
-        message(FATAL_ERROR "Set VERILATOR_ROOT to base <install> directory!")
-    endif()
-endif()
+find_package(VERILATOR REQUIRED)
 
 ####################################################################################################
 # SystemC by conan package manager settings
