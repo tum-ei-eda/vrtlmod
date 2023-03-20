@@ -111,7 +111,7 @@ add_subdirectory(third_party)
 ####################################################################################################
 
 if(LLVM_FOUND AND Clang_FOUND)
-    add_definitions(-DVRTLMOD_VERSION="0.9.3")
+    add_definitions(-DVRTLMOD_VERSION="0.9.4")
 
     set(CLANG_INCLUDE_DIRS ${LLVM_INSTALL_PREFIX}/lib/clang/${LLVM_VERSION}/include)
     set(CLANG_LIBS clangTooling clangRewriteFrontend)
