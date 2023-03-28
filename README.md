@@ -42,9 +42,7 @@ vrtlmod [--systemc] [--wl-regxml=<*-vrtlmod.xml>] --out=<outputdir> <VRTL-Cpp-fi
 
 or use installed `vrtlmod-config.cmake` in CMake environment.
 
-The output can be found at `<outputdir>` in form of altered Cpp files (`<vRTL-Cpp-files>_vrtlmod.cpp`) and the built injection API inside `<outputdir>/vrtlmodapi` concluding:
-- Target dictionary
-- Injection classes
+The output can be found at `<outputdir>/` in form of altered Cpp files (`<vRTL-Cpp-files>`) and the built injection API inside `<outputdir>/` in the form of `<top>_vrtlmodapi.{cpp,hpp}` including the target dictionary and API wrapper.
 
 ## Examples
 
