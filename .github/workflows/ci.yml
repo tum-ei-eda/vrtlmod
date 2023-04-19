@@ -19,8 +19,8 @@ jobs:
     strategy:
       matrix:
         config:
-          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison"}
-          - {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison libncurses5"}
+          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "x86_64-linux-gnu-ubuntu-18.04", llvm_prefix: "clang+llvm", llvm_version: "13.0.1", llvm_postfix: "-", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison"}
+          - {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "src", llvm_prefix: "llvm-project",  llvm_version: "13.0.1", llvm_postfix: ".", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison libncurses5"}
 
     runs-on: ${{ matrix.config.os }}
     name: ${{ matrix.config.name }}_requirements
@@ -30,9 +30,9 @@ jobs:
       id: cache-llvm
       with:
         path: ${{runner.workspace}}/llvm
-        key: ${{ matrix.config.name }}-llvm_${{ matrix.config.llvm }}
+        key: ${{ matrix.config.name }}-${{ matrix.config.llvm_prefix }}_${{ matrix.config.llvm_version }}_${{ matrix.config.llvm }}
         restore-keys: |
-          ${{ matrix.config.name }}-llvm_${{ matrix.config.llvm }}
+          ${{ matrix.config.name }}-${{ matrix.config.llvm_prefix }}_${{ matrix.config.llvm_version }}_${{ matrix.config.llvm }}
 
     - uses: actions/cache@v3
       id: cache-verilator
@@ -52,11 +52,17 @@ jobs:
       working-directory: ${{runner.workspace}}
       shell: bash
       run: |
-        LLVM_NAME="clang+llvm-13.0.1-x86_64-${{ matrix.config.llvm }}"
-        LLVM_SOURCE="https://github.com/llvm/llvm-project/releases/download/llvmorg-13.0.1"
+        LLVM_NAME="${{ matrix.config.llvm_prefix }}-${{ matrix.config.llvm_version }}${{ matrix.config.llvm_postfix }}${{ matrix.config.llvm }}"
+        LLVM_SOURCE="https://github.com/llvm/llvm-project/releases/download/llvmorg-${{ matrix.config.llvm_version }}"
         wget -nv --show-progress ${LLVM_SOURCE}/${LLVM_NAME}.${{ matrix.config.llvm-ext }}
         ${{ matrix.config.unpack }} ${LLVM_NAME}.${{ matrix.config.llvm-ext }}
-        mv ${LLVM_NAME} ${{runner.workspace}}/llvm
+        if [[ "${{ matrix.config.llvm }}" = "src" ]]
+        then
+            cmake -S ${LLVM_NAME}/llvm -B /tmp/llvm-build -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D LLVM_ENABLE_PROJECTS="clang;clang-tools-extra" -D CMAKE_INSTALL_PREFIX=${{runner.workspace}}/llvm
+            cmake --build /tmp/llvm-build --parallel $(nproc) --target install
+        else
+            mv ${LLVM_NAME} ${{runner.workspace}}/llvm
+        fi
 
     - name: Check (cached) Clang
       continue-on-error: false
@@ -89,8 +95,8 @@ jobs:
     strategy:
       matrix:
         config:
-          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison"}
-          - {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison libncurses5"}
+          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "x86_64-linux-gnu-ubuntu-18.04", llvm_prefix: "clang+llvm", llvm_version: "13.0.1", llvm_postfix: "-", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison"}
+          - {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "src", llvm_prefix: "llvm-project",  llvm_version: "13.0.1", llvm_postfix: ".", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison libncurses5"}
 
     needs: requirements
     runs-on: ${{ matrix.config.os }}
@@ -110,9 +116,9 @@ jobs:
       id: cache-llvm
       with:
         path: ${{runner.workspace}}/llvm
-        key: ${{ matrix.config.name }}-llvm_${{ matrix.config.llvm }}
+        key: ${{ matrix.config.name }}-${{ matrix.config.llvm_prefix }}_${{ matrix.config.llvm_version }}_${{ matrix.config.llvm }}
         restore-keys: |
-          ${{ matrix.config.name }}-llvm_${{ matrix.config.llvm }}
+          ${{ matrix.config.name }}-${{ matrix.config.llvm_prefix }}_${{ matrix.config.llvm_version }}_${{ matrix.config.llvm }}
 
     - name: Cache (Verilator)
       uses: actions/cache@v3
@@ -226,8 +232,8 @@ jobs:
     strategy:
       matrix:
         config:
-          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison"}
-          - {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison libncurses5"}
+          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "x86_64-linux-gnu-ubuntu-18.04", llvm_prefix: "clang+llvm", llvm_version: "13.0.1", llvm_postfix: "-", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison"}
+          - {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "src", llvm_prefix: "llvm-project",  llvm_version: "13.0.1", llvm_postfix: ".", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison libncurses5"}
         duts: ["foo", "cv32e40p", "cv32e40s", "cva6"]
 
     needs: build
@@ -241,9 +247,9 @@ jobs:
       id: cache-llvm
       with:
         path: ${{runner.workspace}}/llvm
-        key: ${{ matrix.config.name }}-llvm_${{ matrix.config.llvm }}
+        key: ${{ matrix.config.name }}-${{ matrix.config.llvm_prefix }}_${{ matrix.config.llvm_version }}_${{ matrix.config.llvm }}
         restore-keys: |
-          ${{ matrix.config.name }}-llvm_${{ matrix.config.llvm }}
+          ${{ matrix.config.name }}-${{ matrix.config.llvm_prefix }}_${{ matrix.config.llvm_version }}_${{ matrix.config.llvm }}
 
     - uses: actions/cache@v3
       id: cache-verilator
