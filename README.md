@@ -10,7 +10,7 @@ Besides standard (gmake, cmake, gcc, ...)
 1. Verilator  - tested with v4.204 (see: https://www.veripool.org/wiki/verilator and install guide)
 2. LLVM - tested v13.0.1 built with `-D LLVM_ENABLE_PROJECTS="clang;clang-tools-extra"`
 3. Boost filesystem
-4. For Tests: Conan (`pip install conan`)
+4. For Tests: Conan v<2.0, tested with 1.59.0 (`pip install --force-reinstall "conan==1.59.0"`)
 
 ## Build
 
