@@ -22,7 +22,8 @@ jobs:
     strategy:
       matrix:
         config:
-          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", unpack: "tar xf"}
+          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0"}
+          - {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0"}
 
     runs-on: ${{ matrix.config.os }}
     name: ${{ matrix.config.name }}_requirements
@@ -87,15 +88,18 @@ jobs:
       matrix:
         config:
           - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0"}
+          - {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0"}
 
     needs: requirements
     runs-on: ${{ matrix.config.os }}
     name: ${{ matrix.config.name }}_build
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout
+      uses: actions/checkout@v2
 
-    - uses: actions/cache@v3
+    - name: Cache (LLVM)
+      uses: actions/cache@v3
       id: cache-llvm
       with:
         path: ${{runner.workspace}}/llvm
@@ -103,7 +107,8 @@ jobs:
         restore-keys: |
           ${{ matrix.config.name }}-llvm_${{ matrix.config.llvm }}
 
-    - uses: actions/cache@v3
+    - name: Cache (Verilator)
+      uses: actions/cache@v3
       id: cache-verilator
       with:
         path: ${{runner.workspace}}/verilator
@@ -111,7 +116,8 @@ jobs:
         restore-keys: |
           ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator }}
 
-    - uses: actions/cache@v3
+    - name: Cache (Conan)
+      uses: actions/cache@v3
       id: cache-conan
       with:
         path: ${HOME}/.conan
@@ -219,6 +225,7 @@ jobs:
       matrix:
         config:
           - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0"}
+          - {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "linux-gnu-ubuntu-18.04", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0"}
         duts: ["foo", "cv32e40p", "cv32e40s", "cva6"]
 
     needs: build
