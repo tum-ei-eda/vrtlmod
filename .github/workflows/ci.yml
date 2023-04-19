@@ -42,6 +42,11 @@ jobs:
         restore-keys: |
           ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator }}
 
+    - name: Requirements (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get install ${{ matrix.config.packages }}
+
     - if: ${{ steps.cache-llvm.outputs.cache-hit != 'true' }}
       name: Requirements LLVM+Clang
       working-directory: ${{runner.workspace}}
@@ -95,6 +100,11 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
+    - name: Requirements (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get install ${{ matrix.config.packages }}
+
     - name: Cache (LLVM)
       uses: actions/cache@v3
       id: cache-llvm
@@ -121,11 +131,6 @@ jobs:
         key: ${{ matrix.config.name }}-conan_${{ matrix.config.conan }}
         restore-keys: |
           ${{ matrix.config.name }}-conan_${{ matrix.config.conan }}
-
-    - name: Requirements (Linux)
-      if: runner.os == 'Linux'
-      run: |
-        sudo apt-get install ${{ matrix.config.packages }}
 
     - name: Check (cached) Verilator
       continue-on-error: false
@@ -262,13 +267,13 @@ jobs:
         name: vrtlmod-${{matrix.config.name}}.tar.gz
         path: ${{runner.workspace}}
 
-    - name: Unpack Compiled System
-      working-directory: ${{runner.workspace}}
-      run: tar -xf vrtlmod.tar.gz
-
     - name: Requirements (Linux)
       run: |
         sudo apt-get install ${{ matrix.config.packages }}
+
+    - name: Unpack Compiled System
+      working-directory: ${{runner.workspace}}
+      run: tar -xf vrtlmod.tar.gz
 
     - name: Check (cached) Verilator
       continue-on-error: false
