@@ -42,6 +42,7 @@ class VrtlmodCore;
 const std::string &get_version(void);
 
 std::unique_ptr<clang::tooling::ToolAction> CreateMacroRewritePass(VrtlmodCore &core);
+std::unique_ptr<clang::tooling::ToolAction> CreateCommentRewritePass(VrtlmodCore &core);
 std::unique_ptr<clang::tooling::ToolAction> CreateElaboratePass(VrtlmodCore &core);
 std::unique_ptr<clang::tooling::ToolAction> CreateAnalyzePass(VrtlmodCore &core);
 std::unique_ptr<clang::tooling::ToolAction> CreateSignalDeclPass(VrtlmodCore &core);

@@ -76,6 +76,11 @@ std::unique_ptr<clang::tooling::ToolAction> CreateMacroRewritePass(VrtlmodCore &
     return clang::tooling::newFrontendActionFactory<vrtlmod::transform::rewrite::RewriteMacrosAction>();
 }
 
+std::unique_ptr<clang::tooling::ToolAction> CreateCommentRewritePass(VrtlmodCore &core)
+{
+    return clang::tooling::newFrontendActionFactory<vrtlmod::transform::rewrite::RewriteCommentsAction>();
+}
+
 std::unique_ptr<clang::tooling::ToolAction> CreateElaboratePass(VrtlmodCore &core)
 {
     return newGeneratorFrontendActionFactory<vrtlmod::ParserAction<vrtlmod::passes::ElaboratePass>>(core);

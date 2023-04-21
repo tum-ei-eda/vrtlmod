@@ -60,6 +60,19 @@ class RewriteMacrosAction : public clang::PreprocessorFrontendAction
     void ExecuteAction();
 };
 
+class RewriteCommentsAction : public clang::PreprocessorFrontendAction
+{
+    struct CommentHandler : clang::CommentHandler
+    {
+        llvm::StringRef file_;
+        clang::RewriteBuffer *rb_;
+        void set_file(llvm::StringRef file) { file_ = file; }
+        void set_rewrite_buffer(clang::RewriteBuffer &RB) { rb_ = &RB; }
+        bool HandleComment(clang::Preprocessor &PP, clang::SourceRange Comment) override;
+    } ch_;
+    void ExecuteAction(void) override;
+};
+
 } // namespace rewrite
 } // namespace transform
 } // namespace vrtlmod
