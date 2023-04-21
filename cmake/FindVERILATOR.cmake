@@ -47,6 +47,7 @@ else()
         set(VERILATOR_ROOT "${VERILATOR_ROOT}/share/verilator") # TODO: This is a workaround to trick verilate() function
 
         set(VERILATOR_INCLUDE_DIRS ${VERILATOR_INCLUDE_DIRECTORY} ${VERILATOR_INCLUDE_DIRECTORY}/vltstd ${VERILATOR_INCLUDE_DIRECTORY}/gtkwave)
+
     else()
         # This might be pointing to <install>/share/verilator/ and is not supported
         # VERILATOR_ROOT/
@@ -55,4 +56,9 @@ else()
         #               \-> examples/
         message(FATAL_ERROR "Set VERILATOR_ROOT to base <install> directory!")
     endif()
+endif()
+
+if(verilator_FOUND)
+    message(STATUS "VERILATOR_VERSION: ${verilator_VERSION}")
+    string(REPLACE "." "" VRTLMOD_VERILATOR_VERSION "${verilator_VERSION}")
 endif()

@@ -53,11 +53,24 @@ std::string VapiGenerator::get_targetdictionary_relpath(void) const
 }
 std::string VapiGenerator::get_apiheader_filename(void) const
 {
-    return util::concat(get_core().get_top_cell().get_type(), "_", API_HEADER_NAME);
+    std::string top_name = get_core().get_top_cell().get_type();
+#if VRTLMOD_VERILATOR_VERSION <= 4202
+    // nothing to do here
+#else // VRTLMOD_VERILATOR_VERSION <= 4228
+    util::strhelp::replace(top_name, "___024root", "");
+#endif
+    return util::concat(top_name, "_", API_HEADER_NAME);
 }
 std::string VapiGenerator::get_apisource_filename(void) const
 {
-    return util::concat(get_core().get_top_cell().get_type(), "_", API_SOURCE_NAME);
+    std::string top_name = get_core().get_top_cell().get_type();
+#if VRTLMOD_VERILATOR_VERSION <= 4202
+    // nothing to do here
+#else // VRTLMOD_VERILATOR_VERSION <= 4228
+    util::strhelp::replace(top_name, "___024root", "");
+#endif
+
+    return util::concat(top_name, "_", API_SOURCE_NAME);
 }
 
 int VapiGenerator::build_targetdictionary(void) const

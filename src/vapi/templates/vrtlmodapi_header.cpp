@@ -31,7 +31,13 @@ namespace vapi
 std::string VapiGenerator::VapiHeader::generate_body(void) const
 {
     const auto &core = gen_.get_core();
-    std::string top_type = core.get_top_cell().get_type();
+
+    std::string top_name = core.get_top_cell().get_type();
+#if VRTLMOD_VERILATOR_VERSION <= 4202
+#else // VRTLMOD_VERILATOR_VERSION <= 4228
+    util::strhelp::replace(top_name, "___024root", "");
+#endif
+    std::string top_type = top_name;
     std::stringstream x, entries;
 
     std::string api_name = top_type + "VRTLmodAPI";

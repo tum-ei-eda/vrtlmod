@@ -33,6 +33,8 @@ using namespace clang::ast_matchers;
 using namespace clang::driver;
 using namespace clang::tooling;
 
+#define VRTLMOD_VERILATOR_VERSION 4228
+
 namespace vrtlmod
 {
 
@@ -56,6 +58,7 @@ void VrtlParser::run(const clang::ast_matchers::MatchFinder::MatchResult &Result
 
 void VrtlParser::addMatcher(clang::ast_matchers::MatchFinder &finder)
 {
+    // clang-format off
     const auto vrtl_internal = anyOf(
         matchesName("::__V"),
         matchesName("__VinpClk__"),
@@ -89,9 +92,15 @@ void VrtlParser::addMatcher(clang::ast_matchers::MatchFinder &finder)
 
     const auto topref_decl =
         fieldDecl(allOf(isPublic(), hasAncestor(symtable_decl),
+#if VRTLMOD_VERILATOR_VERSION <= 4202
                         anyOf(hasType(pointsTo(sc_module_decl)), hasType(pointsTo(cc_module_decl)),
                               hasType(references(sc_module_decl)), hasType(references(cc_module_decl))),
-                        matchesName("::TOPp")),
+                        matchesName("::TOPp")
+#else // VRTLMOD_VERILATOR_VERSION <= 4.228
+                        anyOf(hasType(sc_module_decl), hasType(cc_module_decl)),
+                        hasName("TOP")
+#endif
+                            ),
                   unless(vrtl_internal))
             .bind("topref_decl"); ///< field declarations referencing the top module
 
@@ -99,7 +108,12 @@ void VrtlParser::addMatcher(clang::ast_matchers::MatchFinder &finder)
         fieldDecl(allOf(isPublic(), anyOf(hasAncestor(sc_module_decl), hasAncestor(cc_module_decl)),
                         anyOf(hasType(pointsTo(sc_module_decl)), hasType(pointsTo(cc_module_decl)),
                               hasType(references(sc_module_decl)), hasType(references(cc_module_decl))),
-                        unless(matchesName("::TOPp"))),
+#if VRTLMOD_VERILATOR_VERSION <= 4202
+                        unless(matchesName("::TOPp")
+#else // VRTLMOD_VERILATOR_VERSION <= 4.228
+                        unless(matchesName("::TOP")
+#endif
+                                   )),
                   unless(vrtl_internal))
             .bind("cell_decl"); ///< field declarations referencing a cell of a verilated module
 
@@ -112,17 +126,32 @@ void VrtlParser::addMatcher(clang::ast_matchers::MatchFinder &finder)
     const auto signal_decl =
         fieldDecl(
             isPublic(), anyOf(hasAncestor(sc_module_decl), hasAncestor(cc_module_decl)), unless(vrtl_internal),
+#if VRTLMOD_VERILATOR_VERSION <= 4202
             unless(hasType(pointsTo(
-                cxxRecordDecl())) // we can not use {sc,cc}_module_decl fine grained matching because verilator builds
-                                  // its dependant modules with forward declarations not resolvable from header AST
-                   ))
+                cxxRecordDecl()))) // we can not use {sc,cc}_module_decl fine grained matching because verilator builds
+                                   // its dependant modules with forward declarations not resolvable from header AST
+#else // VERILATOR_VERSION <= 4.228
+            unless(anyOf(hasType(pointsTo(cxxRecordDecl())),
+                         hasType(referenceType())))
+#endif
+            )
             .bind(
                 "signal_decl"); ///< field declarations of verilated signals (non reference) = instances of data storage
 
     const auto compound_of_sequent_func =
-        compoundStmt(hasParent(functionDecl(anyOf(matchesName("::_sequent__*"),
-                                                  matchesName("::_multiclk__*")))
-                                   .bind("sequent_function_def")))
+        compoundStmt(hasParent(functionDecl(
+#if VRTLMOD_VERILATOR_VERSION <= 4202
+            anyOf(
+                matchesName("::_sequent__*"),
+                matchesName("::_multiclk__*")
+            )
+#else // VERILATOR_VERSION <= 4.228
+            anyOf(
+                matchesName("__sequent__*"),
+                matchesName("__multiclk__*")
+            )
+#endif
+        ).bind("sequent_function_def")))
             .bind("compound_of_sequent_func"); ///< compound statements (`{...}`) of sequential evaluation functions
 
     const auto symtbl_instance_signal_expr = // {symboltable}->{instance}.{signal}
@@ -244,6 +273,7 @@ void VrtlParser::addMatcher(clang::ast_matchers::MatchFinder &finder)
                               expr(this_signal_expr).bind("arg1_expr"), expr(this_wsignal_expr).bind("arg1_expr")))));
         finder.addMatcher(seq_assignment_func_matcher.bind("sea_func"), this);
     }
+    // clang-format on
 }
 
 void VrtlParser::onEndOfTranslationUnit(void)
