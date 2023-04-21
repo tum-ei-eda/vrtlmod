@@ -33,8 +33,6 @@ using namespace clang::ast_matchers;
 using namespace clang::driver;
 using namespace clang::tooling;
 
-#define VRTLMOD_VERILATOR_VERSION 4228
-
 namespace vrtlmod
 {
 
