@@ -605,8 +605,19 @@ const types::Variable *VrtlmodCore::add_variable(const clang::FieldDecl *variabl
 
     if (bits <= 0)
     {
-        LOG_FATAL("Failed to extract total bit length of signal [", id, "] of module [", module_id,
-                  "]. Extracted value:", std::to_string(bits));
+        // FIXME: normally we should not have any string types here, since AST matchers should be configured to filter
+        // them out before add_variable is called
+        if (type.find("string") != std::string::npos)
+        {
+            LOG_WARNING("Variable is of type string (can be ignored) - Failed to extract total bit length of signal [",
+                        id, "] of module [", module_id, "]. Extracted value:", std::to_string(bits));
+        }
+        else
+        {
+            // not of type string, we should stop here by throwing a fatal log+except.
+            LOG_FATAL("Failed to extract total bit length of signal [", id, "] of module [", module_id,
+                      "]. Extracted value:", std::to_string(bits));
+        }
         return nullptr;
     }
 
