@@ -130,7 +130,9 @@ void VrtlParser::addMatcher(clang::ast_matchers::MatchFinder &finder)
                                    // its dependant modules with forward declarations not resolvable from header AST
 #else // VERILATOR_VERSION <= 4.228
             unless(anyOf(hasType(pointsTo(cxxRecordDecl())),
-                         hasType(referenceType())))
+                         hasType(referenceType()),
+                         hasType(namedDecl(matchesName("string")))
+                     ))
 #endif
             )
             .bind(
@@ -166,7 +168,9 @@ void VrtlParser::addMatcher(clang::ast_matchers::MatchFinder &finder)
                 ),
             unless(anyOf(hasDeclaration(namedDecl(matchesName("::__V"))),
                          hasDeclaration(namedDecl(matchesName("->__V"))),
-                         hasDeclaration(namedDecl(matchesName(".__V"))))))
+                         hasDeclaration(namedDecl(matchesName(".__V"))),
+                         hasType(namedDecl(matchesName("string")))
+                     )))
             .bind("signal"); ///< signal member of instance reference
 
     const auto symtbl_instance_wsignal_expr = // {symboltable}->{instance}.{signal}implicit{wsignal}
@@ -184,7 +188,9 @@ void VrtlParser::addMatcher(clang::ast_matchers::MatchFinder &finder)
                                 ),
             unless(anyOf(hasDeclaration(namedDecl(matchesName("::__V"))),
                          hasDeclaration(namedDecl(matchesName("->__V"))),
-                         hasDeclaration(namedDecl(matchesName(".__V"))))))
+                         hasDeclaration(namedDecl(matchesName(".__V"))),
+                         hasType(namedDecl(matchesName("string")))
+                         )))
             .bind("signal"); ///< signal member of instance reference
 
     const auto top_wsignal_expr = // vlTOPp->{signal}implcit{wsignal}
@@ -198,7 +204,9 @@ void VrtlParser::addMatcher(clang::ast_matchers::MatchFinder &finder)
                 cxxThisExpr(anyOf(hasType(pointsTo(sc_module_decl)), hasType(pointsTo(cc_module_decl)))).bind("this")),
             unless(anyOf(hasDeclaration(namedDecl(matchesName("::__V"))),
                          hasDeclaration(namedDecl(matchesName("->__V"))),
-                         hasDeclaration(namedDecl(matchesName(".__V"))))))
+                         hasDeclaration(namedDecl(matchesName(".__V"))),
+                         hasType(namedDecl(matchesName("string")))
+             )))
             .bind("signal"); ///< signal member of instance reference
 
     const auto this_wsignal_expr = // vlTOPp->{signal}implcit{wsignal}
