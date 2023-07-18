@@ -803,6 +803,12 @@ void VrtlmodCore::build_xml()
                 std::string parent = node.parent().name();
                 if (parent == "module")
                 {
+                    auto locator = types::Locatable(node);
+                    if (locator.get_inj_loc() == "") //(node.attribute("inj_loc").value() == "")
+                    {
+                        // does not have an injection location. Pass.
+                        return true;
+                    }
                     types::Module m{ node.parent() };
 
                     const types::Module *unique_module{ nullptr };
@@ -818,7 +824,9 @@ void VrtlmodCore::build_xml()
                     core_.foreach_module(func);
 
                     if (unique_module != nullptr)
+                    {
                         core_.add_injectable_target(std::make_shared<types::Target>(node, *unique_module));
+                    }
                 }
             }
             return true;
