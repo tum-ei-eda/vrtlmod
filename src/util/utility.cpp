@@ -52,6 +52,10 @@ bool replace(std::string &str, const std::string &from, const std::string &to)
 
 void replaceAll(std::string &str, const std::string &from, const std::string &to)
 {
+    if(to.find(from) != std::string::npos)
+    {
+        LOG_FATAL("util::strhelp::replaceAll does not support replacing substrings with strings containing the substring.");
+    }
     while (replace(str, from, to))
     {
     }
