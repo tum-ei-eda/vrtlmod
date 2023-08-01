@@ -85,10 +85,58 @@ void AnalyzePass::action(const VrtlParser &parser, const clang::ast_matchers::Ma
         }
     };
 
-    if (const clang::BinaryOperator *x = Result.Nodes.getNodeAs<clang::BinaryOperator>("sea"))
+    clang::BinaryOperator const * binop = nullptr;
+
+    if (binop = Result.Nodes.getNodeAs<clang::BinaryOperator>("sea_binary_array_oop_oop_3d"))
     {
-        check_add_seqassignment(x);
+        LOG_INFO("{sea_binary_array_oop_oop_3d}:", util::logging::dump_to_str<const clang::Stmt *>(binop, ctx));
     }
+    else if (binop = Result.Nodes.getNodeAs<clang::BinaryOperator>("sea_binary_oop_3d"))
+    {
+        LOG_INFO("{sea_binary_oop_3d}:", util::logging::dump_to_str<const clang::Stmt *>(binop, ctx));
+    }
+    else if (binop = Result.Nodes.getNodeAs<clang::BinaryOperator>("sea_binary_array_3d"))
+    {
+        LOG_INFO("{sea_binary_array_3d}:", util::logging::dump_to_str<const clang::Stmt *>(binop, ctx));
+        #if VRTLMOD_VERILATOR_VERSION <= 4202
+        #else // VERILATOR_VERSION <= 4.228
+        LOG_FATAL("Matched unexpected sequential assignment!");
+        #endif
+    }
+    else if (binop = Result.Nodes.getNodeAs<clang::BinaryOperator>("sea_binary_array_oop_2d"))
+    {
+        LOG_INFO("{sea_binary_array_oop_2d}:", util::logging::dump_to_str<const clang::Stmt *>(binop, ctx));
+    }
+    else if (binop = Result.Nodes.getNodeAs<clang::BinaryOperator>("sea_binary_oop_2d"))
+    {
+        LOG_INFO("{sea_binary_oop_2d}:", util::logging::dump_to_str<const clang::Stmt *>(binop, ctx));
+    }
+    else if (binop = Result.Nodes.getNodeAs<clang::BinaryOperator>("sea_binary_array_2d"))
+    {
+        LOG_INFO("{sea_binary_array_2d}:", util::logging::dump_to_str<const clang::Stmt *>(binop, ctx));
+        #if VRTLMOD_VERILATOR_VERSION <= 4202
+        #else // VERILATOR_VERSION <= 4.228
+        LOG_FATAL("Matched unexpected sequential assignment!");
+        #endif
+    }
+    else if (binop = Result.Nodes.getNodeAs<clang::BinaryOperator>("sea_binary_oop_1d"))
+    {
+        LOG_INFO("{sea_binary_oop_1d}:", util::logging::dump_to_str<const clang::Stmt *>(binop, ctx));
+    }
+    else if (binop = Result.Nodes.getNodeAs<clang::BinaryOperator>("sea_binary_array_1d"))
+    {
+        LOG_INFO("{sea_binary_array_1d}:", util::logging::dump_to_str<const clang::Stmt *>(binop, ctx));
+    }
+    else if (binop = Result.Nodes.getNodeAs<clang::BinaryOperator>("sea_binary_trivial"))
+    {
+        LOG_INFO("{sea_binary_trivial}:", util::logging::dump_to_str<const clang::Stmt *>(binop, ctx));
+    }
+
+    if(binop != nullptr)
+    {
+        check_add_seqassignment(binop);
+    }
+
     if (const clang::CallExpr *x = Result.Nodes.getNodeAs<clang::CallExpr>("sea_func"))
     {
         if (const clang::Expr *arg = Result.Nodes.getNodeAs<clang::Expr>("arg1_expr"))
