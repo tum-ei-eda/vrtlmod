@@ -76,7 +76,7 @@ int sc_main(int argc, char *argv[])
     {
         vrtlfi::td::TDentry const *diff_target = nullptr;
         int ret = 0;
-        if (diff_target = gDiff.compare_fast(target); target != nullptr)
+        if (diff_target = gDiff.compare_fast(target); diff_target != nullptr)
         {
             if (diff_target == target)
             {
