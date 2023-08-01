@@ -130,7 +130,7 @@ if(LLVM_FOUND AND Clang_FOUND AND verilator_FOUND)
     string(REGEX REPLACE "^/\*.*#ifndef" "#ifndef" CMAKE_TARGET_DICTIONARY_BODY "${CMAKE_TARGET_DICTIONARY_BODY}")
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/vapi/templates/targetdictionary_header.cpp.in ${CMAKE_CURRENT_BINARY_DIR}/targetdictionary_header.cpp @ONLY)
 
-    add_library(${PROJECT_NAME}-core
+    add_library(${PROJECT_NAME}-core OBJECT
         src/util/logging.cpp
         src/util/utility.cpp
 
