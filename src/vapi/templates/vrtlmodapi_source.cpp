@@ -386,25 +386,25 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
                                 if (!fast_compare)
                                 {
                                     x << R"(
-    )" << xor_str << "[" << l << "]"
-                                      << "[" << m << "]"
-                                      << " = (" << lhs_str << "[" << l << "]"
-                                      << "[" << m << "]"
-                                      << " ^ " << rhs_str << "[" << l << "]"
-                                      << "[" << m << "]) & 0x" << std::hex << t.get_element_mask({ l, m }) << std::dec
+    )" << xor_str << "[" << m << "]"
+                                      << "[" << l << "]"
+                                      << " = (" << lhs_str << "[" << m << "]"
+                                      << "[" << l << "]"
+                                      << " ^ " << rhs_str << "[" << m << "]"
+                                      << "[" << l << "]) & 0x" << std::hex << t.get_element_mask({ l, m }) << std::dec
                                       << ";";
                                     x << R"(
-    ret += )" << xor_str << "[" << l << "]"
-                                      << "[" << m << "] ? 1 : 0;";
+    ret += )" << xor_str << "[" << m << "]"
+                                      << "[" << l << "] ? 1 : 0;";
                                 }
                                 else
                                 {
                                     x << R"(
             if(__UNLIKELY(()" << lhs_str
-                                      << "[" << l << "]"
                                       << "[" << m << "]"
-                                      << " ^ " << rhs_str << "[" << l << "]"
-                                      << "[" << m << "]) & 0x" << std::hex << t.get_element_mask({ l, m }) << std::dec
+                                      << "[" << l << "]"
+                                      << " ^ " << rhs_str << "[" << m << "]"
+                                      << "[" << l << "]) & 0x" << std::hex << t.get_element_mask({ l, m }) << std::dec
                                       << " ))"
                                       << R"(
                 return faulty_.td_.at)"
@@ -422,31 +422,31 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
                                     if (!fast_compare)
                                     {
                                         x << R"(
-    )" << xor_str << "[" << k << "]"
+    )" << xor_str << "[" << m << "]"
                                           << "[" << l << "]"
-                                          << "[" << m << "]"
-                                          << " = (" << lhs_str << "[" << k << "]"
+                                          << "[" << k << "]"
+                                          << " = (" << lhs_str << "[" << m << "]"
                                           << "[" << l << "]"
-                                          << "[" << m << "]"
-                                          << " ^ " << rhs_str << "[" << k << "]"
+                                          << "[" << k << "]"
+                                          << " ^ " << rhs_str << "[" << m << "]"
                                           << "[" << l << "]"
-                                          << "[" << m << "]) & 0x" << std::hex << t.get_element_mask({ k, l, m })
+                                          << "[" << k << "]) & 0x" << std::hex << t.get_element_mask({ k, l, m })
                                           << std::dec << ";";
                                         x << R"(
-    ret += )" << xor_str << "[" << k << "]"
+    ret += )" << xor_str << "[" << m << "]"
                                           << "[" << l << "]"
-                                          << "[" << m << "] ? 1 : 0;";
+                                          << "[" << k << "] ? 1 : 0;";
                                     }
                                     else
                                     {
                                         x << R"(
             if(__UNLIKELY(()" << lhs_str << "["
-                                          << k << "]"
+                                          << m << "]"
                                           << "[" << l << "]"
-                                          << "[" << m << "]"
-                                          << " ^ " << rhs_str << "[" << k << "]"
+                                          << "[" << k << "]"
+                                          << " ^ " << rhs_str << "[" << m << "]"
                                           << "[" << l << "]"
-                                          << "[" << m << "]) & 0x" << std::hex << t.get_element_mask({ k, l, m })
+                                          << "[" << k << "]) & 0x" << std::hex << t.get_element_mask({ k, l, m })
                                           << std::dec << "))"
                                           << R"(
                 return faulty_.td_.at)"
