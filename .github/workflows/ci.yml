@@ -24,7 +24,7 @@ jobs:
         verilator: ["v4.202", "v4.228"]
 
     runs-on: ${{ matrix.config.os }}
-    name: ${{ matrix.config.name }}_requirements
+    name: ${{ matrix.config.name }}-verilator_${{ matrix.verilator }}_requirements
 
     steps:
     - uses: actions/cache@v3
@@ -102,7 +102,7 @@ jobs:
 
     needs: requirements
     runs-on: ${{ matrix.config.os }}
-    name: ${{ matrix.config.name }}_build
+    name: ${{ matrix.config.name }}-verilator_${{ matrix.verilator }}_build
 
     steps:
     - name: Checkout
@@ -241,7 +241,7 @@ jobs:
 
     needs: build
     runs-on: ${{ matrix.config.os }}
-    name: ${{ matrix.config.name }}_benchmark_${{ matrix.duts }}
+    name: ${{ matrix.config.name }}-verilator_${{ matrix.verilator }}_benchmark_${{ matrix.duts }}
 
     steps:
     - uses: actions/checkout@v2
