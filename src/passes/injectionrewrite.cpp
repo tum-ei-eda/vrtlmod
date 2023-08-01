@@ -60,6 +60,7 @@ void InjectionRewriter::action(const VrtlParser &parser,
         LOG_INFO("Matcher ENTER sequent body of: \n\t", active_sequent_func_->getNameAsString());
         map_seq_compounds_[active_sequent_func_] = {};
         map_injected_targets_[active_sequent_func_] = {};
+        map_nonliteral_subscript_targets_[active_sequent_func_] = {};
     }
 
     if (const clang::Stmt *c = Result.Nodes.getNodeAs<clang::Stmt>("compound_of_sequent_func"))
@@ -142,10 +143,23 @@ void InjectionRewriter::action(const VrtlParser &parser,
         prefix = "this->";
     }
 
+    auto is_integer_literal = [&](const auto &expr) -> bool
+    {
+        if (auto *cast = llvm::dyn_cast<clang::ImplicitCastExpr>(expr))
+        {
+            if (auto *integerliteral = llvm::dyn_cast<clang::IntegerLiteral>(cast->getSubExpr()))
+            {
+                return true;
+            }
+        }
+        return false;
+    };
+
     if (prefix != "")
     {
         // if (const clang::BinaryOperator *x = Result.Nodes.getNodeAs<clang::BinaryOperator>("sea"))
         {
+            bool has_non_literal = false;
             const types::Target *t = nullptr;
             std::shared_ptr<BinarySInj> asgn{ nullptr };
 
@@ -158,18 +172,21 @@ void InjectionRewriter::action(const VrtlParser &parser,
                 {
                     LOG_INFO("{oop_1d}:", util::logging::dump_to_str<const clang::Stmt *>(narrow, ctx));
                     auto idx_1d = narrow->getArg(1);
+                    has_non_literal |= !is_integer_literal(idx_1d);
                     if (const auto *oop_2d = Result.Nodes.getNodeAs<clang::CXXOperatorCallExpr>("oop_2d"))
                     {
                         LOG_INFO("{oop_2d}:", util::logging::dump_to_str<const clang::Stmt *>(oop_2d, ctx));
                         auto idx_2d = oop_2d->getArg(1);
+                        has_non_literal |= !is_integer_literal(idx_2d);
                         if (const auto *array_3d = Result.Nodes.getNodeAs<clang::ArraySubscriptExpr>("array_3d"))
                         {
                             LOG_INFO("{array_3d}:", util::logging::dump_to_str<const clang::Stmt *>(array_3d, ctx));
                             auto idx_3d = array_3d->getIdx();
+                            has_non_literal |= !is_integer_literal(idx_3d);
                             t = check_add_seqinjection(narrow);
                             if (t != nullptr)
                             {
-                                auto _asgn = std::make_shared<BinarySubscriptedSInj>(narrow->getArg(0), x, prefix, *t);
+                                auto _asgn = std::make_shared<BinarySubscriptedSInj>(narrow->getArg(0), x, prefix, t);
                                 _asgn->set_index(0, idx_1d);
                                 _asgn->set_index(1, idx_2d);
                                 _asgn->set_index(2, idx_3d);
@@ -201,14 +218,16 @@ void InjectionRewriter::action(const VrtlParser &parser,
                 {
                     LOG_INFO("{oop_1d}:", util::logging::dump_to_str<const clang::Stmt *>(narrow, ctx));
                     auto idx_1d = narrow->getArg(1);
+                    has_non_literal |= !is_integer_literal(idx_1d);
                     if (const auto *array_2d = Result.Nodes.getNodeAs<clang::ArraySubscriptExpr>("array_2d"))
                     {
                         LOG_INFO("{array_2d}:", util::logging::dump_to_str<const clang::Stmt *>(array_2d, ctx));
                         auto idx_2d = array_2d->getIdx();
+                        has_non_literal |= !is_integer_literal(idx_2d);
                         t = check_add_seqinjection(narrow);
                         if (t != nullptr)
                         {
-                            auto _asgn = std::make_shared<BinarySubscriptedSInj>(narrow->getArg(0), x, prefix, *t);
+                            auto _asgn = std::make_shared<BinarySubscriptedSInj>(narrow->getArg(0), x, prefix, t);
                             _asgn->set_index(0, idx_1d);
                             _asgn->set_index(1, idx_2d);
                             asgn = _asgn;
@@ -233,18 +252,21 @@ void InjectionRewriter::action(const VrtlParser &parser,
                 {
                     LOG_INFO("{oop_1d}:", util::logging::dump_to_str<const clang::Stmt *>(narrow, ctx));
                     auto idx_1d = narrow->getArg(1);
+                    has_non_literal |= !is_integer_literal(idx_1d);
                     if (const auto *oop_2d = Result.Nodes.getNodeAs<clang::CXXOperatorCallExpr>("oop_2d"))
                     {
                         LOG_INFO("{oop_2d}:", util::logging::dump_to_str<const clang::Stmt *>(oop_2d, ctx));
                         auto idx_2d = oop_2d->getArg(1);
+                        has_non_literal |= !is_integer_literal(idx_2d);
                         if (const auto *oop_3d = Result.Nodes.getNodeAs<clang::CXXOperatorCallExpr>("oop_3d"))
                         {
                             LOG_INFO("{oop_3d}:", util::logging::dump_to_str<const clang::Stmt *>(oop_3d, ctx));
                             auto idx_3d = oop_3d->getArg(1);
+                            has_non_literal |= !is_integer_literal(idx_3d);
                             t = check_add_seqinjection(narrow);
                             if (t != nullptr)
                             {
-                                auto _asgn = std::make_shared<BinarySubscriptedSInj>(narrow->getArg(0), x, prefix, *t);
+                                auto _asgn = std::make_shared<BinarySubscriptedSInj>(narrow->getArg(0), x, prefix, t);
                                 _asgn->set_index(0, idx_1d);
                                 _asgn->set_index(1, idx_2d);
                                 _asgn->set_index(2, idx_3d);
@@ -275,14 +297,16 @@ void InjectionRewriter::action(const VrtlParser &parser,
                 {
                     LOG_INFO("{oop_1d}:", util::logging::dump_to_str<const clang::Stmt *>(narrow, ctx));
                     auto idx_1d = narrow->getArg(1);
+                    has_non_literal |= !is_integer_literal(idx_1d);
                     if (const auto *oop_2d = Result.Nodes.getNodeAs<clang::CXXOperatorCallExpr>("oop_2d"))
                     {
                         LOG_INFO("{oop_2d}:", util::logging::dump_to_str<const clang::Stmt *>(oop_2d, ctx));
                         auto idx_2d = oop_2d->getArg(1);
+                        has_non_literal |= !is_integer_literal(idx_2d);
                         t = check_add_seqinjection(narrow);
                         if (t != nullptr)
                         {
-                            auto _asgn = std::make_shared<BinarySubscriptedSInj>(narrow->getArg(0), x, prefix, *t);
+                            auto _asgn = std::make_shared<BinarySubscriptedSInj>(narrow->getArg(0), x, prefix, t);
                             _asgn->set_index(0, idx_1d);
                             _asgn->set_index(1, idx_2d);
                             asgn = _asgn;
@@ -307,10 +331,11 @@ void InjectionRewriter::action(const VrtlParser &parser,
                 {
                     LOG_INFO("{oop_1d}:", util::logging::dump_to_str<const clang::Stmt *>(narrow, ctx));
                     auto idx_1d = narrow->getArg(1);
+                    has_non_literal |= !is_integer_literal(idx_1d);
                     t = check_add_seqinjection(narrow);
                     if (t != nullptr)
                     {
-                        auto _asgn = std::make_shared<BinarySubscriptedSInj>(narrow->getArg(0), x, prefix, *t);
+                        auto _asgn = std::make_shared<BinarySubscriptedSInj>(narrow->getArg(0), x, prefix, t);
                         _asgn->set_index(0, idx_1d);
                         asgn = _asgn;
                     }
@@ -332,18 +357,21 @@ void InjectionRewriter::action(const VrtlParser &parser,
                 {
                     LOG_INFO("{array_1d}:", util::logging::dump_to_str<const clang::Stmt *>(narrow, ctx));
                     auto idx_1d = narrow->getIdx();
+                    has_non_literal |= !is_integer_literal(idx_1d);
                     if (const auto *arr_2d = Result.Nodes.getNodeAs<clang::ArraySubscriptExpr>("array_2d"))
                     {
                         LOG_INFO("{array_2d}:", util::logging::dump_to_str<const clang::Stmt *>(arr_2d, ctx));
                         auto idx_2d = arr_2d->getIdx();
+                        has_non_literal |= !is_integer_literal(idx_2d);
                         if (const auto *arr_3d = Result.Nodes.getNodeAs<clang::ArraySubscriptExpr>("array_3d"))
                         {
                             LOG_INFO("{array_3d}:", util::logging::dump_to_str<const clang::Stmt *>(arr_3d, ctx));
                             auto idx_3d = arr_3d->getIdx();
+                            has_non_literal |= !is_integer_literal(idx_3d);
                             t = check_add_seqinjection(narrow);
                             if (t != nullptr)
                             {
-                                auto _asgn = std::make_shared<BinarySubscriptedSInj>(narrow->getBase(), x, prefix, *t);
+                                auto _asgn = std::make_shared<BinarySubscriptedSInj>(narrow->getBase(), x, prefix, t);
                                 _asgn->set_index(0, idx_1d);
                                 _asgn->set_index(1, idx_2d);
                                 _asgn->set_index(2, idx_3d);
@@ -373,15 +401,17 @@ void InjectionRewriter::action(const VrtlParser &parser,
                 {
                     LOG_INFO("{array_1d}:", util::logging::dump_to_str<const clang::Stmt *>(narrow, ctx));
                     auto idx_1d = narrow->getIdx();
+                    has_non_literal |= !is_integer_literal(idx_1d);
                     if (const auto *arr_2d = Result.Nodes.getNodeAs<clang::ArraySubscriptExpr>("array_2d"))
                     {
                         LOG_INFO("{array_2d}:", util::logging::dump_to_str<const clang::Stmt *>(arr_2d, ctx));
                         auto idx_2d = arr_2d->getIdx();
+                        has_non_literal |= !is_integer_literal(idx_2d);
                         t = check_add_seqinjection(narrow);
 
                         if (t != nullptr)
                         {
-                            auto _asgn = std::make_shared<BinarySubscriptedSInj>(narrow->getBase(), x, prefix, *t);
+                            auto _asgn = std::make_shared<BinarySubscriptedSInj>(narrow->getBase(), x, prefix, t);
                             _asgn->set_index(0, idx_1d);
                             _asgn->set_index(1, idx_2d);
                             asgn = _asgn;
@@ -405,10 +435,11 @@ void InjectionRewriter::action(const VrtlParser &parser,
                 {
                     LOG_INFO("{array_1d}:", util::logging::dump_to_str<const clang::Stmt *>(narrow, ctx));
                     auto idx_1d = narrow->getIdx();
+                    has_non_literal |= !is_integer_literal(idx_1d);
                     t = check_add_seqinjection(narrow);
                     if (t != nullptr)
                     {
-                        auto _asgn = std::make_shared<BinarySubscriptedSInj>(narrow->getBase(), x, prefix, *t);
+                        auto _asgn = std::make_shared<BinarySubscriptedSInj>(narrow->getBase(), x, prefix, t);
                         _asgn->set_index(0, idx_1d);
                         asgn = _asgn;
                     }
@@ -429,7 +460,7 @@ void InjectionRewriter::action(const VrtlParser &parser,
                 t = check_add_seqinjection(x->getLHS());
                 if (t != nullptr)
                 {
-                    asgn = std::make_shared<BinarySInj>(x, prefix, *t);
+                    asgn = std::make_shared<BinarySInj>(x, prefix, t);
                 }
             }
 
@@ -438,6 +469,10 @@ void InjectionRewriter::action(const VrtlParser &parser,
                 auto comp = get_finest_compound(active_sequent_func_, asgn->get_base_expr());
                 comp->add_assignment(asgn);
                 map_injected_targets_.at(active_sequent_func_).insert({ prefix, t });
+                if (has_non_literal)
+                {
+                    map_nonliteral_subscript_targets_.at(active_sequent_func_).insert({ prefix, t });
+                }
             }
         }
         if (const clang::CallExpr *x = Result.Nodes.getNodeAs<clang::CallExpr>("sea_func"))
@@ -451,14 +486,18 @@ void InjectionRewriter::action(const VrtlParser &parser,
                 {
                     // TODO: function call assigning new values to arg1_expr, revert back to synchronous injection,
                     // b.c. hard to deduce assigned bits. This might need a thorough rework.
-                    // map_sequential_injections_.at(active_sequent_func_->func_)
-                    //    .push_back(std::move(std::make_shared<CallSInj>(x, arg, prefix, *t)));
-                    // map_injected_targets_.at(active_sequent_func_->func_).insert({ prefix, t });
-                    auto asgn = std::make_shared<CallSInj>(x, arg, prefix, *t);
-                    auto comp = get_finest_compound(active_sequent_func_, asgn->get_base_expr());
-                    // active_compound_->add_assignment(asgn);
-                    comp->add_assignment(asgn);
-                    map_injected_targets_.at(active_sequent_func_).insert({ prefix, t });
+                    auto assignee_parent_pair = parser.parse_sequential_assignment(arg, Result);
+                    auto assignee = assignee_parent_pair.first;
+                    auto parent = assignee_parent_pair.second;
+
+                    if (assignee != nullptr && parent != nullptr)
+                    {
+                        auto asgn = std::make_shared<CallSInj>(x, assignee, prefix, t);
+                        auto comp = get_finest_compound(active_sequent_func_, asgn->get_base_expr());
+                        // active_compound_->add_assignment(asgn);
+                        comp->add_assignment(asgn);
+                        map_injected_targets_.at(active_sequent_func_).insert({ prefix, t });
+                    }
                 }
             }
         }
@@ -498,12 +537,12 @@ std::vector<std::shared_ptr<InjectionRewriter::SInj>> InjectionRewriter::Compoun
     return ret;
 }
 
-void InjectionRewriter::BinarySubscriptedSInj::rewrite_injection(const VrtlParser &parser) const
+void InjectionRewriter::BinarySubscriptedSInj::rewrite_injection(const VrtlParser &parser, bool write_as_comment) const
 {
-    BinarySInj::rewrite_injection(parser);
+    BinarySInj::rewrite_injection(parser, write_as_comment);
 }
 
-void InjectionRewriter::BinarySInj::rewrite_injection(const VrtlParser &parser) const
+void InjectionRewriter::BinarySInj::rewrite_injection(const VrtlParser &parser, bool write_as_comment) const
 {
     int idx;
     LOG_INFO("op: --- ", parser.getRewriter().getRewrittenText(expr_->getSourceRange()).c_str());
@@ -543,19 +582,27 @@ void InjectionRewriter::BinarySInj::rewrite_injection(const VrtlParser &parser) 
 
     std::string str = parser.getRewriter().getRewrittenText(expr_->getSourceRange());
     str += "; ";
+    if (write_as_comment)
+    {
+        str += "// ";
+    }
     str += prefix_;
-    str += get_sequent_injection_stmt(t_, subscripts);
+    str += get_sequent_injection_stmt(*t_, subscripts);
 
-    LOG_INFO("Writing sequential injection point [", str, "] for target: ", t_._self());
+    LOG_INFO("Writing sequential injection point [", str, "] for target: ", t_->_self());
     parser.getRewriter().ReplaceText(expr_->getSourceRange(), str);
 }
 
-void InjectionRewriter::CallSInj::rewrite_injection(const VrtlParser &parser) const
+void InjectionRewriter::CallSInj::rewrite_injection(const VrtlParser &parser, bool write_as_comment) const
 {
     std::string str = parser.getRewriter().getRewrittenText(expr_->getSourceRange());
     str += "; ";
+    if (write_as_comment)
+    {
+        str += "// ";
+    }
     str += prefix_;
-    str += get_synchronous_injection_stmt(t_);
+    str += get_synchronous_injection_stmt(*t_);
 
     parser.getRewriter().ReplaceText(expr_->getSourceRange(), str);
 }
@@ -621,7 +668,18 @@ void InjectionRewriter::write_sequent_injections(void) const
             auto dominant_asgns = compound->get_dominant_assignments();
             for (auto const sinj : dominant_asgns)
             {
-                sinj->rewrite_injection(compound->parser_);
+                // find target in map_nonliteral_subscript_targets_, if so skip sequential injection
+                bool skip = false;
+                auto &ts = map_nonliteral_subscript_targets_.at(seq_func);
+                for (auto const& [prefix, target]: ts)
+                {
+                    skip |= (target == sinj->t_) && (prefix == sinj->prefix_);
+                    if(skip)
+                    {
+                        break;
+                    }
+                }
+                sinj->rewrite_injection(compound->parser_, skip);
             }
         }
     }
