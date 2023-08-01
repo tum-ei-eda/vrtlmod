@@ -273,7 +273,7 @@ jobs:
     - name: Fetch Compiled System
       uses: actions/download-artifact@v2
       with:
-        name: vrtlmod-${{matrix.config.name}}.tar.gz
+        name: vrtlmod-${{matrix.config.name}}-verilator_${{ matrix.verilator }}.tar.gz
         path: ${{runner.workspace}}
 
     - name: Requirements (Linux)
