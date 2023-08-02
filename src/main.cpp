@@ -144,6 +144,15 @@ int main(int argc, const char **argv)
     srcs_and_headers.insert(srcs_and_headers.end(), headers.begin(), headers.end());
     auto srcs_and_headers_wo_symsh = srcs_and_headers;
 
+    clang::tooling::ClangTool CommentTool(op->getCompilations(), srcs_and_headers);
+    if (!bool(NoAutoInclude))
+    {
+        auto_argument_adjust(CommentTool);
+    }
+    LOG_INFO("Run CommentTool on sources ...");
+    err = CommentTool.run(vrtlmod::CreateCommentRewritePass(core).get());
+    LOG_INFO("... done");
+
     // create a new Clang Tool instance for Macro cleanup in source and header files except Verilated Symboltable header
     // which does not need cleanup, but breaks the MacroTool Lexer
     // FIXME: MacroTool only breaks for large VRTL models on Symboltable

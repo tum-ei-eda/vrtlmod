@@ -30,6 +30,12 @@ namespace vrtlmod
 {
 namespace vapi
 {
+static const char *SYMBOLTABLE_NAME =
+#if VRTLMOD_VERILATOR_VERSION <= 4202
+    "__VlSymsp";
+#else // VRTLMOD_VERILATOR_VERSION <= 4228
+    "vlSymsp";
+#endif
 
 std::string VapiGenerator::VapiSource::generate_body(void) const
 {
@@ -37,7 +43,13 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
     bool fast_compare = false;
 
     const auto &core = gen_.get_core();
-    std::string top_type = core.get_top_cell().get_type();
+    std::string top_name = core.get_top_cell().get_type();
+#if VRTLMOD_VERILATOR_VERSION <= 4202
+#else // VRTLMOD_VERILATOR_VERSION <= 4228
+    util::strhelp::replace(top_name, "___024root", "");
+#endif
+    std::string top_type = top_name;
+
     std::stringstream x, entries;
 
     std::string api_name = top_type + "VRTLmodAPI";
@@ -64,10 +76,24 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
 )";
 
     auto get_prefix = [&](types::Cell const *c, std::string module_instance) -> std::string
-    { return (*c == core.get_top_cell()) ? core.get_top_cell().get_id() : module_instance; };
+    {
+//#if VRTLMOD_VERILATOR_VERSION <= 4202
+//#else // VRTLMOD_VERILATOR_VERSION <= 4228
+//        return (*c == core.get_top_cell()) ? "rootp" : module_instance;
+//#endif
+        return (*c == core.get_top_cell()) ? core.get_top_cell().get_id() : module_instance;
+    };
 
     auto get_memberstr = [&](types::Cell const *c, const types::Target &t, const std::string &prefix) -> std::string
-    { return util::concat("__VlSymsp->", prefix, (*c == core.get_top_cell()) ? "->" : ".", t.get_id()); };
+    {
+        return util::concat(
+#if VRTLMOD_VERILATOR_VERSION <= 4202
+            SYMBOLTABLE_NAME, "->", prefix, (*c == core.get_top_cell()) ? "->" : "."
+#else // VRTLMOD_VERILATOR_VERSION <= 4228
+            "rootp->", SYMBOLTABLE_NAME, "->", prefix, "."
+#endif
+            , t.get_id());
+    };
 
     auto write_init_td = [&](const types::Module &M) -> bool
     {
@@ -360,25 +386,25 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
                                 if (!fast_compare)
                                 {
                                     x << R"(
-    )" << xor_str << "[" << l << "]"
-                                      << "[" << m << "]"
-                                      << " = (" << lhs_str << "[" << l << "]"
-                                      << "[" << m << "]"
-                                      << " ^ " << rhs_str << "[" << l << "]"
-                                      << "[" << m << "]) & 0x" << std::hex << t.get_element_mask({ l, m }) << std::dec
+    )" << xor_str << "[" << m << "]"
+                                      << "[" << l << "]"
+                                      << " = (" << lhs_str << "[" << m << "]"
+                                      << "[" << l << "]"
+                                      << " ^ " << rhs_str << "[" << m << "]"
+                                      << "[" << l << "]) & 0x" << std::hex << t.get_element_mask({ l, m }) << std::dec
                                       << ";";
                                     x << R"(
-    ret += )" << xor_str << "[" << l << "]"
-                                      << "[" << m << "] ? 1 : 0;";
+    ret += )" << xor_str << "[" << m << "]"
+                                      << "[" << l << "] ? 1 : 0;";
                                 }
                                 else
                                 {
                                     x << R"(
             if(__UNLIKELY(()" << lhs_str
-                                      << "[" << l << "]"
                                       << "[" << m << "]"
-                                      << " ^ " << rhs_str << "[" << l << "]"
-                                      << "[" << m << "]) & 0x" << std::hex << t.get_element_mask({ l, m }) << std::dec
+                                      << "[" << l << "]"
+                                      << " ^ " << rhs_str << "[" << m << "]"
+                                      << "[" << l << "]) & 0x" << std::hex << t.get_element_mask({ l, m }) << std::dec
                                       << " ))"
                                       << R"(
                 return faulty_.td_.at)"
@@ -396,31 +422,31 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
                                     if (!fast_compare)
                                     {
                                         x << R"(
-    )" << xor_str << "[" << k << "]"
+    )" << xor_str << "[" << m << "]"
                                           << "[" << l << "]"
-                                          << "[" << m << "]"
-                                          << " = (" << lhs_str << "[" << k << "]"
+                                          << "[" << k << "]"
+                                          << " = (" << lhs_str << "[" << m << "]"
                                           << "[" << l << "]"
-                                          << "[" << m << "]"
-                                          << " ^ " << rhs_str << "[" << k << "]"
+                                          << "[" << k << "]"
+                                          << " ^ " << rhs_str << "[" << m << "]"
                                           << "[" << l << "]"
-                                          << "[" << m << "]) & 0x" << std::hex << t.get_element_mask({ k, l, m })
+                                          << "[" << k << "]) & 0x" << std::hex << t.get_element_mask({ k, l, m })
                                           << std::dec << ";";
                                         x << R"(
-    ret += )" << xor_str << "[" << k << "]"
+    ret += )" << xor_str << "[" << m << "]"
                                           << "[" << l << "]"
-                                          << "[" << m << "] ? 1 : 0;";
+                                          << "[" << k << "] ? 1 : 0;";
                                     }
                                     else
                                     {
                                         x << R"(
             if(__UNLIKELY(()" << lhs_str << "["
-                                          << k << "]"
+                                          << m << "]"
                                           << "[" << l << "]"
-                                          << "[" << m << "]"
-                                          << " ^ " << rhs_str << "[" << k << "]"
+                                          << "[" << k << "]"
+                                          << " ^ " << rhs_str << "[" << m << "]"
                                           << "[" << l << "]"
-                                          << "[" << m << "]) & 0x" << std::hex << t.get_element_mask({ k, l, m })
+                                          << "[" << k << "]) & 0x" << std::hex << t.get_element_mask({ k, l, m })
                                           << std::dec << "))"
                                           << R"(
                 return faulty_.td_.at)"

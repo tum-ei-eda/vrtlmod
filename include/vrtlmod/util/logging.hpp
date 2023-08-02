@@ -31,6 +31,8 @@
 
 #include <string>
 
+#include <stdexcept>
+
 namespace util
 {
 
@@ -142,6 +144,6 @@ template <typename... Strings>
 void LOG_FATAL(Strings &&...strings)
 {
     util::logging::LOG<util::logging::ERROR>(std::forward<Strings>(strings)...);
-    // TODO: break execution here
+    throw std::runtime_error(std::string("Failed: ") + util::concat(std::forward<Strings>(strings)...));
 }
 #endif // __VRTLMOD_UTIL_LOGGING_HPP__

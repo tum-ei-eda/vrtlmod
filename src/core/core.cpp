@@ -207,11 +207,23 @@ std::vector<std::string> VrtlmodCore::prepare_headers(const std::vector<std::str
 
 std::string VrtlmodCore::get_vrtltopheader_filename(void) const
 {
-    return (ctx_->top_cell_->get_type() + ".h");
+    std::string top_name = get_top_cell().get_type();
+#if VRTLMOD_VERILATOR_VERSION <= 4202
+
+#else // VRTLMOD_VERILATOR_VERSION <= 4228
+    util::strhelp::replace(top_name, "___024root", "");
+#endif
+    return (top_name + ".h");
 }
 std::string VrtlmodCore::get_vrtltopsymsheader_filename(void) const
 {
-    return (ctx_->top_cell_->get_type() + "__Syms.h");
+    std::string top_name = get_top_cell().get_type();
+#if VRTLMOD_VERILATOR_VERSION <= 4202
+
+#else // VRTLMOD_VERILATOR_VERSION <= 4228
+    util::strhelp::replace(top_name, "___024root", "");
+#endif
+    return (top_name + "__Syms.h");
 }
 
 std::string VrtlmodCore::getTDExternalDecl(void) const
@@ -456,9 +468,12 @@ const types::Variable *VrtlmodCore::add_variable(const clang::FieldDecl *variabl
         lsb = decl_source_code_text.substr(second_col, third_col - second_col);
         var_type = std::regex_search(decl_source_code_text, std::regex("/\\*VL_INW*\\*/")) ? "in" : "out";
         auto cxx_base_type_str = decl_source_code_text.substr(0, decl_source_code_text.find(id) - 1);
+#if VRTLMOD_VERILATOR_VERSION <= 4202
         auto openbrace = decl_source_code_text.find('[');
         auto closebrace = decl_source_code_text.find(']');
         cxx_base_type_str += decl_source_code_text.substr(openbrace, closebrace - openbrace + 1);
+#else // VRTLMOD_VERILATOR_VERSION <= 4228
+#endif
         unpacked.push_back(std::make_pair<>(std::string(cxx_base_type_str), std::string("0")));
         LOG_VERBOSE(">>>: is a wctype ", var_type, " from ", msb, " to ", lsb);
     }
@@ -590,8 +605,19 @@ const types::Variable *VrtlmodCore::add_variable(const clang::FieldDecl *variabl
 
     if (bits <= 0)
     {
-        LOG_ERROR("Failed to extract total bit length of signal [", id, "] of module [", module_id,
-                  "]. Extracted value:", std::to_string(bits));
+        // FIXME: normally we should not have any string types here, since AST matchers should be configured to filter
+        // them out before add_variable is called
+        if (type.find("string") != std::string::npos)
+        {
+            LOG_WARNING("Variable is of type string (can be ignored) - Failed to extract total bit length of signal [",
+                        id, "] of module [", module_id, "]. Extracted value:", std::to_string(bits));
+        }
+        else
+        {
+            // not of type string, we should stop here by throwing a fatal log+except.
+            LOG_FATAL("Failed to extract total bit length of signal [", id, "] of module [", module_id,
+                      "]. Extracted value:", std::to_string(bits));
+        }
         return nullptr;
     }
 
@@ -750,7 +776,13 @@ void VrtlmodCore::build_xml()
             file_node.append_attribute("path") = it.second.string().c_str();
         });
 
-    auto outfile = out_dir_path_ / get_top_cell().get_type();
+    std::string top_name = get_top_cell().get_type();
+#if VRTLMOD_VERILATOR_VERSION <= 4202
+
+#else // VRTLMOD_VERILATOR_VERSION <= 4228
+    util::strhelp::replace(top_name, "___024root", "");
+#endif
+    auto outfile = out_dir_path_ / top_name;
     outfile += "-vrtlmod.xml";
 
     LOG_INFO("Writing VRTL Analysis XML: ", outfile.string());
@@ -771,6 +803,12 @@ void VrtlmodCore::build_xml()
                 std::string parent = node.parent().name();
                 if (parent == "module")
                 {
+                    auto locator = types::Locatable(node);
+                    if (locator.get_inj_loc() == "") //(node.attribute("inj_loc").value() == "")
+                    {
+                        // does not have an injection location. Pass.
+                        return true;
+                    }
                     types::Module m{ node.parent() };
 
                     const types::Module *unique_module{ nullptr };
@@ -786,7 +824,9 @@ void VrtlmodCore::build_xml()
                     core_.foreach_module(func);
 
                     if (unique_module != nullptr)
+                    {
                         core_.add_injectable_target(std::make_shared<types::Target>(node, *unique_module));
+                    }
                 }
             }
             return true;

@@ -130,7 +130,7 @@ inline std::pair<int, int> Target::get_element_msb_lsb_pair(void) const
             break;
         }
     }
-    return {msb, lsb};
+    return { msb, lsb };
 }
 
 inline std::vector<int> Target::get_dimension_lengths(void) const
@@ -228,25 +228,30 @@ unsigned long Target::get_element_mask(std::initializer_list<size_t> subscripts)
     auto msb = msblsb_pair.first;
     auto lsb = msblsb_pair.second;
 
-    if (one_dim_bits > sizeof(QData)*8) //(cxxtypedim.back().find("WData[") != std::string::npos) //(one_dim_bits > 64)
+    if (one_dim_bits >
+        sizeof(QData) * 8) //(cxxtypedim.back().find("WData[") != std::string::npos) //(one_dim_bits > 64)
     {
-        int elementsubs = *(subscripts.end()-1);
+        int elementsubs = *(subscripts.end() - 1);
         int elementsize = dimlens.back();
+        auto active_bits = one_dim_bits % (sizeof(WData) * 8);
         // packed in WData
-        if ((elementsubs + 1) != elementsize)
+        if (((elementsubs + 1) != elementsize) || (active_bits == 0) // fully used last element, i.e., no inactive rest
+        )
         {
             mask = WData(-1);
         }
         else
         {
-            for (int i = 0; i < one_dim_bits%(sizeof(WData)*8); ++i)
+            for (int i = 0; i < active_bits; ++i)
+            {
                 mask |= 1 << i;
+            }
         }
     }
     else
     {
         // unpacked
-        for (int i = lsb; i < msb+1; ++i)
+        for (int i = lsb; i < msb + 1; ++i)
             mask |= 1 << i;
     }
     return mask;
