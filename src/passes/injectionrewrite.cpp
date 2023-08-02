@@ -585,9 +585,16 @@ void InjectionRewriter::BinarySInj::rewrite_injection(const VrtlParser &parser, 
     if (write_as_comment)
     {
         str += "// ";
+        str += prefix_;
+        auto sis_str = get_sequent_injection_stmt(*t_, subscripts);
+        util::strhelp::replaceAll(sis_str, "\n", "\n// ");
+        str += sis_str;
     }
-    str += prefix_;
-    str += get_sequent_injection_stmt(*t_, subscripts);
+    else
+    {
+        str += prefix_;
+        str += get_sequent_injection_stmt(*t_, subscripts);
+    }
 
     LOG_INFO("Writing sequential injection point [", str, "] for target: ", t_->_self());
     parser.getRewriter().ReplaceText(expr_->getSourceRange(), str);
@@ -600,9 +607,16 @@ void InjectionRewriter::CallSInj::rewrite_injection(const VrtlParser &parser, bo
     if (write_as_comment)
     {
         str += "// ";
+        str += prefix_;
+        auto sis_str = get_synchronous_injection_stmt(*t_);
+        util::strhelp::replaceAll(sis_str, "\n", "\n// ");
+        str += sis_str;
     }
-    str += prefix_;
-    str += get_synchronous_injection_stmt(*t_);
+    else
+    {
+        str += prefix_;
+        str += get_synchronous_injection_stmt(*t_);
+    }
 
     parser.getRewriter().ReplaceText(expr_->getSourceRange(), str);
 }
@@ -671,10 +685,10 @@ void InjectionRewriter::write_sequent_injections(void) const
                 // find target in map_nonliteral_subscript_targets_, if so skip sequential injection
                 bool skip = false;
                 auto &ts = map_nonliteral_subscript_targets_.at(seq_func);
-                for (auto const& [prefix, target]: ts)
+                for (auto const &[prefix, target] : ts)
                 {
                     skip |= (target == sinj->t_) && (prefix == sinj->prefix_);
-                    if(skip)
+                    if (skip)
                     {
                         break;
                     }
