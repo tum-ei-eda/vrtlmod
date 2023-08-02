@@ -19,8 +19,8 @@ jobs:
     strategy:
       matrix:
         config:
-          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", llvm: "x86_64-linux-gnu-ubuntu-18.04", llvm_prefix: "clang+llvm", llvm_version: "13.0.1", llvm_postfix: "-", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison"}
-          #- {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, python: "3.9", cmakegen: "Release", verilator: "v4.228", llvm: "src", llvm_prefix: "llvm-project",  llvm_version: "13.0.1", llvm_postfix: ".", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison libncurses5"}
+          #- {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", llvm: "x86_64-linux-gnu-ubuntu-18.04", llvm_prefix: "clang+llvm", llvm_version: "13.0.1", llvm_postfix: "-", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison"}
+          - {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, python: "3.9", cmakegen: "Release", verilator: "v4.228", llvm: "src", llvm_prefix: "llvm-project",  llvm_version: "13.0.1", llvm_postfix: ".", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison libncurses5"}
         verilator: ["v4.202", "v4.228"]
 
     runs-on: ${{ matrix.config.os }}
@@ -101,8 +101,8 @@ jobs:
     strategy:
       matrix:
         config:
-          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", llvm: "x86_64-linux-gnu-ubuntu-18.04", llvm_prefix: "clang+llvm", llvm_version: "13.0.1", llvm_postfix: "-", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison"}
-          #- {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, python: "3.9", cmakegen: "Release", verilator: "v4.228", llvm: "src", llvm_prefix: "llvm-project",  llvm_version: "13.0.1", llvm_postfix: ".", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison libncurses5"}
+          #- {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", llvm: "x86_64-linux-gnu-ubuntu-18.04", llvm_prefix: "clang+llvm", llvm_version: "13.0.1", llvm_postfix: "-", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison"}
+          - {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, python: "3.9", cmakegen: "Release", verilator: "v4.228", llvm: "src", llvm_prefix: "llvm-project",  llvm_version: "13.0.1", llvm_postfix: ".", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison libncurses5"}
         verilator: ["v4.202", "v4.228"]
 
     needs: requirements
@@ -239,8 +239,8 @@ jobs:
     strategy:
       matrix:
         config:
-          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", llvm: "x86_64-linux-gnu-ubuntu-18.04", llvm_prefix: "clang+llvm", llvm_version: "13.0.1", llvm_postfix: "-", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison"}
-          #- {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, python: "3.9", cmakegen: "Release", verilator: "v4.228", llvm: "src", llvm_prefix: "llvm-project",  llvm_version: "13.0.1", llvm_postfix: ".", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison libncurses5"}
+          #- {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", llvm: "x86_64-linux-gnu-ubuntu-18.04", llvm_prefix: "clang+llvm", llvm_version: "13.0.1", llvm_postfix: "-", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison"}
+          - {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, python: "3.9", cmakegen: "Release", verilator: "v4.228", llvm: "src", llvm_prefix: "llvm-project",  llvm_version: "13.0.1", llvm_postfix: ".", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison libncurses5"}
         verilator: ["v4.202", "v4.228"]
         duts: ["foo", "cv32e40p", "cv32e40s", "cva6"]
 
