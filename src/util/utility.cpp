@@ -41,23 +41,27 @@ int check_file(const fs::path &fpath)
 namespace strhelp
 {
 
-bool replace(std::string &str, const std::string &from, const std::string &to)
+bool replace(std::string &str, const std::string &from, const std::string &to, size_t start_pos)
 {
-    size_t start_pos = str.find(from);
-    if (start_pos == std::string::npos)
+    size_t pos = str.find(from, start_pos);
+    if (pos == std::string::npos)
         return false;
-    str.replace(start_pos, from.length(), to);
+    str.replace(pos, from.length(), to);
     return true;
 }
 
-void replaceAll(std::string &str, const std::string &from, const std::string &to)
+void replaceAll(std::string &str, const std::string &from, const std::string &to, size_t start_pos)
 {
-    if(to.find(from) != std::string::npos)
+    size_t pos = start_pos;
+    while(true)
     {
-        LOG_FATAL("util::strhelp::replaceAll does not support replacing substrings with strings containing the substring.");
-    }
-    while (replace(str, from, to))
-    {
+        pos = str.find(from, pos);
+        if(pos == std::string::npos)
+        {
+            break;
+        }
+        str.replace(pos, from.size(), to);
+        pos += to.size();
     }
 }
 
