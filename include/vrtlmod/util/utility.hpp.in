@@ -50,13 +50,15 @@ namespace strhelp
 /// @param from Substring of str to be replaced
 /// @param to Replacement for to be replaced substring of str
 /// @return True if a substring was replaced, false if not.
-bool replace(std::string &str, const std::string &from, const std::string &to);
+/// @param start_pos [default:=0] start position in str for find-replace 
+bool replace(std::string &str, const std::string &from, const std::string &to, size_t start_pos = 0);
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief Replace all occurrences of a substring with another
 /// @param str In-/Out string
 /// @param from Substring of str to be replaced
 /// @param to Replacement for to be replaced substring of str
-void replaceAll(std::string &str, const std::string &from, const std::string &to);
+/// @param start_pos [default:=0] start position in str for find-replace algorithm
+void replaceAll(std::string &str, const std::string &from, const std::string &to, size_t start_pos = 0);
 
 } // namespace strhelp
 

@@ -19,11 +19,12 @@ jobs:
     strategy:
       matrix:
         config:
-          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "x86_64-linux-gnu-ubuntu-18.04", llvm_prefix: "clang+llvm", llvm_version: "13.0.1", llvm_postfix: "-", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison"}
-          - {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, python: "3.9", cmakegen: "Release", verilator: "v4.228", llvm: "src", llvm_prefix: "llvm-project",  llvm_version: "13.0.1", llvm_postfix: ".", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison libncurses5"}
+          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", llvm: "x86_64-linux-gnu-ubuntu-18.04", llvm_prefix: "clang+llvm", llvm_version: "13.0.1", llvm_postfix: "-", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison"}
+          #- {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, python: "3.9", cmakegen: "Release", verilator: "v4.228", llvm: "src", llvm_prefix: "llvm-project",  llvm_version: "13.0.1", llvm_postfix: ".", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison libncurses5"}
+        verilator: ["v4.202", "v4.228"]
 
     runs-on: ${{ matrix.config.os }}
-    name: ${{ matrix.config.name }}_requirements
+    name: ${{ matrix.config.name }}-verilator_${{ matrix.verilator }}_requirements
 
     steps:
     - uses: actions/cache@v3
@@ -38,9 +39,14 @@ jobs:
       id: cache-verilator
       with:
         path: ${{runner.workspace}}/verilator
-        key: ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator }}
+        key: ${{ matrix.config.name }}-verilator_${{ matrix.verilator }}
         restore-keys: |
-          ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator }}
+          ${{ matrix.config.name }}-verilator_${{ matrix.verilator }}
+
+    - name: Requirements (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get install ${{ matrix.config.packages }}
 
     - name: Requirements (Linux)
       if: runner.os == 'Linux'
@@ -79,7 +85,7 @@ jobs:
         VERILATOR_SOURCE="https://github.com/verilator/verilator.git"
         git clone ${VERILATOR_SOURCE} ${{runner.workspace}}/verilator-src
         cd ${{runner.workspace}}/verilator-src
-        git checkout ${{ matrix.config.verilator }}
+        git checkout ${{ matrix.verilator }}
         autoconf
         ./configure --prefix ${{runner.workspace}}/verilator
         make -j $(nproc)
@@ -95,12 +101,13 @@ jobs:
     strategy:
       matrix:
         config:
-          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "x86_64-linux-gnu-ubuntu-18.04", llvm_prefix: "clang+llvm", llvm_version: "13.0.1", llvm_postfix: "-", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison"}
-          - {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, python: "3.9", cmakegen: "Release", verilator: "v4.228", llvm: "src", llvm_prefix: "llvm-project",  llvm_version: "13.0.1", llvm_postfix: ".", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison libncurses5"}
+          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", llvm: "x86_64-linux-gnu-ubuntu-18.04", llvm_prefix: "clang+llvm", llvm_version: "13.0.1", llvm_postfix: "-", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison"}
+          #- {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, python: "3.9", cmakegen: "Release", verilator: "v4.228", llvm: "src", llvm_prefix: "llvm-project",  llvm_version: "13.0.1", llvm_postfix: ".", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison libncurses5"}
+        verilator: ["v4.202", "v4.228"]
 
     needs: requirements
     runs-on: ${{ matrix.config.os }}
-    name: ${{ matrix.config.name }}_build
+    name: ${{ matrix.config.name }}-verilator_${{ matrix.verilator }}_build
 
     steps:
     - name: Checkout
@@ -125,9 +132,9 @@ jobs:
       id: cache-verilator
       with:
         path: ${{runner.workspace}}/verilator
-        key: ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator }}
+        key: ${{ matrix.config.name }}-verilator_${{ matrix.verilator }}
         restore-keys: |
-          ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator }}
+          ${{ matrix.config.name }}-verilator_${{ matrix.verilator }}
 
     - name: Cache (Conan)
       uses: actions/cache@v3
@@ -225,20 +232,21 @@ jobs:
       if: runner.os == 'Linux'
       uses: actions/upload-artifact@v2
       with:
-        name: vrtlmod-${{matrix.config.name}}.tar.gz
+        name: vrtlmod-${{matrix.config.name}}-verilator_${{ matrix.verilator }}.tar.gz
         path: ${{runner.workspace}}/vrtlmod.tar.gz
 
   benchmark:
     strategy:
       matrix:
         config:
-          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", verilator: "v4.202", llvm: "x86_64-linux-gnu-ubuntu-18.04", llvm_prefix: "clang+llvm", llvm_version: "13.0.1", llvm_postfix: "-", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison"}
-          - {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, python: "3.9", cmakegen: "Release", verilator: "v4.228", llvm: "src", llvm_prefix: "llvm-project",  llvm_version: "13.0.1", llvm_postfix: ".", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison libncurses5"}
+          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", llvm: "x86_64-linux-gnu-ubuntu-18.04", llvm_prefix: "clang+llvm", llvm_version: "13.0.1", llvm_postfix: "-", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison"}
+          #- {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, python: "3.9", cmakegen: "Release", verilator: "v4.228", llvm: "src", llvm_prefix: "llvm-project",  llvm_version: "13.0.1", llvm_postfix: ".", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison libncurses5"}
+        verilator: ["v4.202", "v4.228"]
         duts: ["foo", "cv32e40p", "cv32e40s", "cva6"]
 
     needs: build
     runs-on: ${{ matrix.config.os }}
-    name: ${{ matrix.config.name }}_benchmark_${{ matrix.duts }}
+    name: ${{ matrix.config.name }}-verilator_${{ matrix.verilator }}_benchmark_${{ matrix.duts }}
 
     steps:
     - uses: actions/checkout@v2
@@ -255,9 +263,9 @@ jobs:
       id: cache-verilator
       with:
         path: ${{runner.workspace}}/verilator
-        key: ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator }}
+        key: ${{ matrix.config.name }}-verilator_${{ matrix.verilator }}
         restore-keys: |
-          ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator }}
+          ${{ matrix.config.name }}-verilator_${{ matrix.verilator }}
 
     - uses: actions/cache@v3
       id: cache-conan
@@ -270,7 +278,7 @@ jobs:
     - name: Fetch Compiled System
       uses: actions/download-artifact@v2
       with:
-        name: vrtlmod-${{matrix.config.name}}.tar.gz
+        name: vrtlmod-${{matrix.config.name}}-verilator_${{ matrix.verilator }}.tar.gz
         path: ${{runner.workspace}}
 
     - name: Requirements (Linux)
