@@ -143,7 +143,7 @@ void InjectionRewriter::action(const VrtlParser &parser,
         prefix = "this->";
     }
 
-    auto is_integer_literal = [&](const auto &expr) -> bool
+    auto is_integer_literal = [](const auto &expr) -> bool
     {
         if (auto *cast = llvm::dyn_cast<clang::ImplicitCastExpr>(expr))
         {
@@ -151,6 +151,10 @@ void InjectionRewriter::action(const VrtlParser &parser,
             {
                 return true;
             }
+        }
+        else if (auto *integerliteral = llvm::dyn_cast<clang::IntegerLiteral>(expr))
+        {
+            return true;
         }
         return false;
     };
@@ -471,6 +475,9 @@ void InjectionRewriter::action(const VrtlParser &parser,
                 map_injected_targets_.at(active_sequent_func_).insert({ prefix, t });
                 if (has_non_literal)
                 {
+                    LOG_WARNING("Injection Target [", t->_self(), "] has non-literal sequential assignment.");
+                    LOG_WARNING("{AST}:\n",
+                                util::logging::dump_to_str<const clang::Stmt *>(asgn->get_base_expr(), ctx));
                     map_nonliteral_subscript_targets_.at(active_sequent_func_).insert({ prefix, t });
                 }
             }
