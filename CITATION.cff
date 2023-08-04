@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Geier"
+  given-names: "Johannes"
+  orcid: "https://orcid.org/0000-0002-9439-3890"
+title: "vrtlmod"
+url: "https://github.com/tum-ei-eda/vrtlmod"
+preferred-citation:
+  type: conference-paper
+  authors:
+  - family-names: "Geier"
+    given-names: "Johannes"
+    orcid: "https://orcid.org/0000-0002-9439-3890"
+  - family-names: "Mueller-Gritschneder"
+    given-names: "Daniel"
+    orcid: "https://orcid.org/0000-0003-0903-631X"
+  year: "2023"
+  isbn: "9798400701405"
+  title: "vRTLmod: An LLVM Based Open-Source Tool to Enable Fault Injection in Verilator RTL Simulations"
+  start: "387"
+  end: "388"
+  doi: "10.1145/3587135.3591435"
+  url: "https://doi.org/10.1145/3587135.3591435"
+  publisher: "Association for Computing Machinery"
+  address: "New York, NY, USA"
+  booktitle: "Proceedings of the 20th ACM International Conference on Computing Frontiers"
+  location: "Bologna, Italy"
+  series: "CF '23"
