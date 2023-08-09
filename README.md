@@ -4,6 +4,31 @@
 The verilated RTL modifier (vRTLmod) is an LLVM based open-source tool to enable fault injection in verilator RTL (vRTL) simulations.
 Within an Clang-Frontend (LLVM) tool it automatically adds fault injection capability to <a href="https://www.veripool.org/wiki/verilator" title="Verilator homepage">Verilator</a> output. Additionally, `vRTLmod` can make use of its own XML output `*-vrtlmod.xml` as a whitelist filter argument to allow manual steering of wanted/unwanted injectable variables.
 
+## Publication
+
+If you use vRTLmod in your academic work you can cite it like this:
+
+<details>
+<summary>vRTLmod Publication</summary>
+<p>
+
+```
+@inproceedings{Geier_vRTLmod_2023,
+  author = {Geier, Johannes and Mueller-Gritschneder, Daniel},
+  booktitle = {Proceedings of the 20th ACM International Conference on Computing Frontiers},
+  doi = {10.1145/3587135.3591435},
+  pages = {387--388},
+  publisher = {Association for Computing Machinery},
+  series = {20th ACM International Conference on Computing Frontiers},
+  title = {{vRTLmod: An LLVM Based Open-Source Tool to Enable Fault Injection in Verilator RTL Simulations}},
+  url = {https://doi.org/10.1145/3587135.3591435},
+  year = {2023}
+}
+```
+
+</p>
+</details>
+
 ## Dependencies
 Besides standard (gmake, cmake, gcc, ...)
 
