@@ -128,7 +128,7 @@ class TDentry
     }
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// \brief Destructor
-    virtual ~TDentry(void) {}
+    virtual ~TDentry(void) = default;
 };
 
 template <typename vcontainer_t>
@@ -162,7 +162,7 @@ class Named_TDentry : public TDentry
         : TDentry(bits, onedimbits), name_(name), data_(data)
     {
     }
-    virtual ~Named_TDentry() {}
+    virtual ~Named_TDentry(void) = default;
 };
 
 template <typename vcontainer_t>
@@ -204,7 +204,7 @@ class ZeroD_TDentry final : public Named_TDentry<vcontainer_t>
         : BASE(name, data, bits, onedimbits)
     {
     }
-    virtual ~ZeroD_TDentry() {}
+    virtual ~ZeroD_TDentry(void) = default;
 };
 
 template <typename vcontainer_t, typename vbasetype_t, int M>
@@ -247,7 +247,7 @@ class OneD_TDentry final : public Named_TDentry<vcontainer_t>
         : BASE(name, data, bits, onedimbits)
     {
     }
-    virtual ~OneD_TDentry(void) {}
+    virtual ~OneD_TDentry(void) = default;
 };
 
 template <typename vcontainer_t, typename vbasetype_t, int L, int M>
@@ -290,7 +290,7 @@ class TwoD_TDentry final : public Named_TDentry<vcontainer_t>
         : BASE(name, data, bits, onedimbits)
     {
     }
-    virtual ~TwoD_TDentry(void) {}
+    virtual ~TwoD_TDentry(void) = default;
 };
 
 template <typename vcontainer_t, typename vbasetype_t, int K, int L, int M>
@@ -334,7 +334,7 @@ class ThreeD_TDentry final : public Named_TDentry<vcontainer_t>
         : BASE(name, data, bits, onedimbits)
     {
     }
-    virtual ~ThreeD_TDentry(void) {}
+    virtual ~ThreeD_TDentry(void) = default;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -518,7 +518,7 @@ class TD_API
     }
 
     TD_API(void) = default;
-    virtual ~TD_API(void) {}
+    virtual ~TD_API(void) = default;
 };
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // ZeroD_TDentry impl //////////////////////////////////////////////////////////////////////////////

@@ -77,10 +77,10 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
 
     auto get_prefix = [&](types::Cell const *c, std::string module_instance) -> std::string
     {
-//#if VRTLMOD_VERILATOR_VERSION <= 4202
-//#else // VRTLMOD_VERILATOR_VERSION <= 4228
-//        return (*c == core.get_top_cell()) ? "rootp" : module_instance;
-//#endif
+        //#if VRTLMOD_VERILATOR_VERSION <= 4202
+        //#else // VRTLMOD_VERILATOR_VERSION <= 4228
+        //        return (*c == core.get_top_cell()) ? "rootp" : module_instance;
+        //#endif
         return (*c == core.get_top_cell()) ? core.get_top_cell().get_id() : module_instance;
     };
 
@@ -92,7 +92,8 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
 #else // VRTLMOD_VERILATOR_VERSION <= 4228
             "rootp->", SYMBOLTABLE_NAME, "->", prefix, "."
 #endif
-            , t.get_id());
+            ,
+            t.get_id());
     };
 
     auto write_init_td = [&](const types::Module &M) -> bool
