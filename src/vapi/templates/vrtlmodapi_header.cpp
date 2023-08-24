@@ -52,16 +52,20 @@ std::string VapiGenerator::VapiHeader::generate_body(void) const
 #include ")"
       << top_type << R"(.h"
 #include <iostream>
+#include <list>
+
 class )"
       << top_type << R"(;
 
 struct )"
       << api_name << R"( : public vrtlfi::td::TD_API
 {
+    std::map<const vrtlfi::td::TDentry*, size_t> target2id_;
+    std::map<size_t, const vrtlfi::td::TDentry*> id2target_;
 )"
       << "    " << api_name << R"((const char* name =")" << top_type << R"(");
 )"
-      << "    virtual ~" << api_name << R"((void);
+      << "    virtual ~" << api_name << R"((void) = default;
 )"
       << "    " << api_name << "(" << api_name << R"( const&) = delete;
 )"
@@ -71,16 +75,10 @@ struct )"
 )"
       << R"(};
 
-class )"
+struct )"
 
-      << api_name << "Differential : private " << api_name << R"(
+      << api_name << "Differential : public " << api_name << R"(
 {
-    std::map<const vrtlfi::td::TDentry*, size_t> reference_target2id_;
-    std::map<const vrtlfi::td::TDentry*, size_t> faulty_target2id_;
-    /////////////////////////////////////////////////////////////////////////////
-    /// \brief Get link id for passed target which can be a pointer to an element
-    ///        of either `faulty_`, `reference_`, or `this`
-    size_t get_id(vrtlfi::td::TDentry const *target) const;
 )";
     if (core.is_systemc())
     {
@@ -112,15 +110,43 @@ class )"
     }
 
     x << R"(
-  public:
-    std::map<const vrtlfi::td::TDentry*, size_t> diff_target2id_;)"
-      << R"(
-    )"
-      << "const " << api_name << "& faulty_; ///< Fault injection core"
+    const )"
+      << api_name << "& faulty_; ///< Fault injection core"
       << R"(
     const )"
       << api_name << "& reference_; ///< Reference core"
       << R"(
+    // std::map<const vrtlfi::td::TDentry*, size_t> faulty_target2id_;
+    // std::map<size_t, const vrtlfi::td::TDentry*> faulty_id2target_;
+    // std::map<const vrtlfi::td::TDentry*, size_t> reference_target2id_;
+    // std::map<size_t, const vrtlfi::td::TDentry*> reference_id2target_;
+    // std::map<const vrtlfi::td::TDentry*, size_t> diff_target2id_;
+    // std::map<size_t, const vrtlfi::td::TDentry*> diff_id2target_;
+
+    /////////////////////////////////////////////////////////////////////////////
+    /// \brief Get faulty target entry for passed id
+    /// \param id passed target dictionary. Take care id for a target may change between vRTLmod of the same vRTL
+    vrtlfi::td::TDentry const *get_faulty_target(size_t id) const { return faulty_.id2target_.at(id); }
+    /////////////////////////////////////////////////////////////////////////////
+    /// \brief Get reference target entry for passed id
+    /// \param id passed target dictionary. Take care id for a target may change between vRTLmod of the same vRTL
+    vrtlfi::td::TDentry const *get_reference_target(size_t id) const { return reference_.id2target_.at(id); }
+    /////////////////////////////////////////////////////////////////////////////
+    /// \brief Get diff target entry for passed id
+    /// \param id passed target dictionary. Take care id for a target may change between vRTLmod of the same vRTL
+    vrtlfi::td::TDentry const *get_diff_target(size_t id) const { return this->id2target_.at(id); }
+    /////////////////////////////////////////////////////////////////////////////
+    /// \brief Get target entry for passed id
+    /// \param id passed target dictionary. Take care id for a target may change between vRTLmod of the same vRTL
+    vrtlfi::td::TDentry const *get_target(size_t id) const { return get_faulty_target(id); }
+    /////////////////////////////////////////////////////////////////////////////
+    /// \brief Get link id for passed
+    /// \param target target which can be a pointer to an element of either
+    ///        of either `faulty_`, `reference_`, or `this`
+    size_t get_id(vrtlfi::td::TDentry const *target) const;
+)";
+
+    x << R"(
 
     /////////////////////////////////////////////////////////////////////////////
     /// \brief Calculate diff between `faulty_` and `reference_` target dict-
@@ -141,6 +167,25 @@ class )"
     ///              list entry..
     /// \return First mismatching target `vrtlfi::td::TDentry`.
     vrtlfi::td::TDentry const* compare_fast(vrtlfi::td::TDentry const *start = nullptr) const;
+
+    /////////////////////////////////////////////////////////////////////////////
+    /// \brief Diff a single target with a given value.
+    /// \param target_idx Target index
+    /// \param element_idx Element index of the given target (serialized multidim
+    ///                    access)
+    /// \param val value to compare with, will be masked with the element's bit
+    ///            mask
+    /// \return True on diff=0 False diff!=0
+    bool diff_target(size_t target_id, size_t element_id, uint64_t val) const;
+
+    /////////////////////////////////////////////////////////////////////////////
+    /// \brief Diff a single target with a given value.
+    /// \param diff_in tuple containing a set of indices for target and element
+    ///                and the value to diff with
+    /// \return True on diff=0 False diff!=0
+    bool diff_target(vrtlfi::td::UniqueElementTriplet const& diff_in) const { return diff_target(diff_in.target_id_, diff_in.element_id_, diff_in.val_); }
+
+    std::list<vrtlfi::td::UniqueElementTriplet> get_non_zeros(void) const;
 
     /////////////////////////////////////////////////////////////////////////////
     /// \brief Constructor. Attach existing VrtlmodApis to this Differential
