@@ -33,7 +33,7 @@ std::string VapiGenerator::VapiHeader::generate_body(void) const
     const auto &core = gen_.get_core();
 
     std::string top_name = core.get_top_cell().get_type();
-#if VRTLMOD_VERILATOR_VERSION <= 4202
+#if VRTLMOD_VERILATOR_VERSION <= 4204
 #else // VRTLMOD_VERILATOR_VERSION <= 4228
     util::strhelp::replace(top_name, "___024root", "");
 #endif
