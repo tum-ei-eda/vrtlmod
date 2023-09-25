@@ -90,7 +90,7 @@ void VrtlParser::addMatcher(clang::ast_matchers::MatchFinder &finder)
 
     const auto topref_decl =
         fieldDecl(allOf(isPublic(), hasAncestor(symtable_decl),
-#if VRTLMOD_VERILATOR_VERSION <= 4202
+#if VRTLMOD_VERILATOR_VERSION <= 4204
                         anyOf(hasType(pointsTo(sc_module_decl)), hasType(pointsTo(cc_module_decl)),
                               hasType(references(sc_module_decl)), hasType(references(cc_module_decl))),
                         matchesName("::TOPp")
@@ -106,7 +106,7 @@ void VrtlParser::addMatcher(clang::ast_matchers::MatchFinder &finder)
         fieldDecl(allOf(isPublic(), anyOf(hasAncestor(sc_module_decl), hasAncestor(cc_module_decl)),
                         anyOf(hasType(pointsTo(sc_module_decl)), hasType(pointsTo(cc_module_decl)),
                               hasType(references(sc_module_decl)), hasType(references(cc_module_decl))),
-#if VRTLMOD_VERILATOR_VERSION <= 4202
+#if VRTLMOD_VERILATOR_VERSION <= 4204
                         unless(matchesName("::TOPp")
 #else // VRTLMOD_VERILATOR_VERSION <= 4.228
                         unless(matchesName("::TOP")
@@ -124,7 +124,7 @@ void VrtlParser::addMatcher(clang::ast_matchers::MatchFinder &finder)
     const auto signal_decl =
         fieldDecl(
             isPublic(), anyOf(hasAncestor(sc_module_decl), hasAncestor(cc_module_decl)), unless(vrtl_internal),
-#if VRTLMOD_VERILATOR_VERSION <= 4202
+#if VRTLMOD_VERILATOR_VERSION <= 4204
             unless(hasType(pointsTo(
                 cxxRecordDecl()))) // we can not use {sc,cc}_module_decl fine grained matching because verilator builds
                                    // its dependant modules with forward declarations not resolvable from header AST
@@ -140,7 +140,7 @@ void VrtlParser::addMatcher(clang::ast_matchers::MatchFinder &finder)
 
     const auto compound_of_sequent_func =
         compoundStmt(hasParent(functionDecl(
-#if VRTLMOD_VERILATOR_VERSION <= 4202
+#if VRTLMOD_VERILATOR_VERSION <= 4204
             anyOf(
                 matchesName("::_sequent__*"),
                 matchesName("::_multiclk__*")

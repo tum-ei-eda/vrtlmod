@@ -208,7 +208,7 @@ std::vector<std::string> VrtlmodCore::prepare_headers(const std::vector<std::str
 std::string VrtlmodCore::get_vrtltopheader_filename(void) const
 {
     std::string top_name = get_top_cell().get_type();
-#if VRTLMOD_VERILATOR_VERSION <= 4202
+#if VRTLMOD_VERILATOR_VERSION <= 4204
 
 #else // VRTLMOD_VERILATOR_VERSION <= 4228
     util::strhelp::replace(top_name, "___024root", "");
@@ -218,7 +218,7 @@ std::string VrtlmodCore::get_vrtltopheader_filename(void) const
 std::string VrtlmodCore::get_vrtltopsymsheader_filename(void) const
 {
     std::string top_name = get_top_cell().get_type();
-#if VRTLMOD_VERILATOR_VERSION <= 4202
+#if VRTLMOD_VERILATOR_VERSION <= 4204
 
 #else // VRTLMOD_VERILATOR_VERSION <= 4228
     util::strhelp::replace(top_name, "___024root", "");
@@ -468,7 +468,7 @@ const types::Variable *VrtlmodCore::add_variable(const clang::FieldDecl *variabl
         lsb = decl_source_code_text.substr(second_col, third_col - second_col);
         var_type = std::regex_search(decl_source_code_text, std::regex("/\\*VL_INW*\\*/")) ? "in" : "out";
         auto cxx_base_type_str = decl_source_code_text.substr(0, decl_source_code_text.find(id) - 1);
-#if VRTLMOD_VERILATOR_VERSION <= 4202
+#if VRTLMOD_VERILATOR_VERSION <= 4204
         auto openbrace = decl_source_code_text.find('[');
         auto closebrace = decl_source_code_text.find(']');
         cxx_base_type_str += decl_source_code_text.substr(openbrace, closebrace - openbrace + 1);
@@ -777,7 +777,7 @@ void VrtlmodCore::build_xml()
         });
 
     std::string top_name = get_top_cell().get_type();
-#if VRTLMOD_VERILATOR_VERSION <= 4202
+#if VRTLMOD_VERILATOR_VERSION <= 4204
 
 #else // VRTLMOD_VERILATOR_VERSION <= 4228
     util::strhelp::replace(top_name, "___024root", "");

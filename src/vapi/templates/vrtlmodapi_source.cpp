@@ -31,7 +31,7 @@ namespace vrtlmod
 namespace vapi
 {
 static const char *SYMBOLTABLE_NAME =
-#if VRTLMOD_VERILATOR_VERSION <= 4202
+#if VRTLMOD_VERILATOR_VERSION <= 4204
     "__VlSymsp";
 #else // VRTLMOD_VERILATOR_VERSION <= 4228
     "vlSymsp";
@@ -44,7 +44,7 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
 
     const auto &core = gen_.get_core();
     std::string top_name = core.get_top_cell().get_type();
-#if VRTLMOD_VERILATOR_VERSION <= 4202
+#if VRTLMOD_VERILATOR_VERSION <= 4204
 #else // VRTLMOD_VERILATOR_VERSION <= 4228
     util::strhelp::replace(top_name, "___024root", "");
 #endif
@@ -77,7 +77,7 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
 
     auto get_prefix = [&](types::Cell const *c, std::string module_instance) -> std::string
     {
-//#if VRTLMOD_VERILATOR_VERSION <= 4202
+//#if VRTLMOD_VERILATOR_VERSION <= 4204
 //#else // VRTLMOD_VERILATOR_VERSION <= 4228
 //        return (*c == core.get_top_cell()) ? "rootp" : module_instance;
 //#endif
@@ -87,7 +87,7 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
     auto get_memberstr = [&](types::Cell const *c, const types::Target &t, const std::string &prefix) -> std::string
     {
         return util::concat(
-#if VRTLMOD_VERILATOR_VERSION <= 4202
+#if VRTLMOD_VERILATOR_VERSION <= 4204
             SYMBOLTABLE_NAME, "->", prefix, (*c == core.get_top_cell()) ? "->" : "."
 #else // VRTLMOD_VERILATOR_VERSION <= 4228
             "rootp->", SYMBOLTABLE_NAME, "->", prefix, "."
