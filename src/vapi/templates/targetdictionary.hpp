@@ -567,18 +567,34 @@ std::vector<bool> ZeroD_TDentry<vcontainer_t>::read_data(void) const
 template <typename vcontainer_t, typename vbasetype_t, int M>
 constexpr std::array<unsigned, 2> OneD_TDentry<vcontainer_t, vbasetype_t, M>::map_bit(unsigned bit)
 {
-    std::array<unsigned, 2> x{};
-    if (BASE::onedimbits_ <= BASETYPE_BITS)
-    {                                   // array of elements, e.g., logic[1:0] x[3][5];
-        x[0] = bit / BASE::onedimbits_; // M element offset
-        x[1] = bit % BASE::onedimbits_; // bit offset
+    int m = 0;
+    long ubit = bit;
+
+    for (m = 0; m < M; ++m)
+    {
+        if (BASE::onedimbits_ <= BASETYPE_BITS)
+        { // array of elements, e.g., logic[1:0] x[3][5];
+            ubit -= BASE::onedimbits_;
+        }
+        else
+        { // basetype extender target, e.g., 65-bit vector in 3 WDatas
+            if (m < (M - 1))
+            {
+                ubit -= BASETYPE_BITS;
+            }
+            else
+            {
+                auto mod = BASE::onedimbits_ % BASETYPE_BITS;
+                ubit -= (mod) ? mod : BASETYPE_BITS;
+            }
+        }
+        if (ubit < 0)
+            break; // leave all loops, stop counting dimensions
     }
-    else
-    { // basetype extender target, e.g., 65-bit vector in 3 WDatas
-        x[0] = bit / BASETYPE_BITS;
-        x[1] = bit % BASETYPE_BITS;
-    }
-    return x;
+
+    unsigned overhang = bit % ((BASE::onedimbits_ <= BASETYPE_BITS) ? BASE::onedimbits_ : BASETYPE_BITS);
+
+    return std::array<unsigned, 2>{ static_cast<unsigned>(m), overhang };
 }
 template <typename vcontainer_t, typename vbasetype_t, int M>
 inline void OneD_TDentry<vcontainer_t, vbasetype_t, M>::inject(unsigned m)
@@ -727,20 +743,55 @@ std::vector<int> OneD_TDentry<vcontainer_t, vbasetype_t, M>::get_cntr(void)
 template <typename vcontainer_t, typename vbasetype_t, int L, int M>
 constexpr std::array<unsigned, 3> TwoD_TDentry<vcontainer_t, vbasetype_t, L, M>::map_bit(unsigned bit)
 {
-    std::array<unsigned, 3> x{};
+    int l = 0, m = 0;
+    long ubit = bit;
+
+    for (l = 0; l < L; ++l)
+    {
+        for (m = 0; m < M; ++m)
+        {
+            if (BASE::onedimbits_ <= BASETYPE_BITS)
+            { // array of elements, e.g., logic[1:0] x[3][5];
+                ubit -= BASE::onedimbits_;
+            }
+            else
+            { // basetype extender target, e.g., 65-bit vector in 3 WDatas
+                if (m < (M - 1))
+                {
+                    ubit -= BASETYPE_BITS;
+                }
+                else
+                {
+                    auto mod = BASE::onedimbits_ % BASETYPE_BITS;
+                    ubit -= (mod) ? mod : BASETYPE_BITS;
+                }
+            }
+            if (ubit < 0)
+                break; // leave all loops, stop counting dimensions
+        }
+        if (ubit < 0)
+            break; // leave all loops, stop counting dimensions
+    }
+
+    unsigned overhang = 0;
     if (BASE::onedimbits_ <= BASETYPE_BITS)
-    {                                         // array of elements, e.g., logic[1:0] x[3][5];
-        x[0] = bit / (BASE::onedimbits_ * M); // L element offset
-        x[1] = (bit / BASE::onedimbits_) % M; // M element offset
-        x[2] = bit % BASE::onedimbits_;       // bit offset
+    {
+        overhang = bit % BASE::onedimbits_;
     }
     else
-    { // basetype extender target, e.g., 65-bit vector in 3 WDatas
-        x[0] = bit / (BASE::onedimbits_);
-        x[1] = (bit - x[0] * BASE::onedimbits_) / BASETYPE_BITS;
-        x[2] = bit % BASETYPE_BITS;
+    {
+        overhang = bit % BASETYPE_BITS;
+        if (m >= (M - 1))
+        {
+            // substract amount of overhang from lower index elements in serialized target vector. We count the number
+            // of elements by multiplying outer dim `k` with the maximum inner dimension L and add the count of inner
+            // dimension to retrieve the number of innermost elements. When de-serializing, we need to substrac the
+            // number of overhang bits from all predecessor inner-most elements from the final overhang bit count
+            overhang -= (l) * (BASE::onedimbits_ % BASETYPE_BITS);
+        }
     }
-    return x;
+
+    return std::array<unsigned, 3>{ static_cast<unsigned>(l), static_cast<unsigned>(m), overhang };
 }
 template <typename vcontainer_t, typename vbasetype_t, int L, int M>
 inline void TwoD_TDentry<vcontainer_t, vbasetype_t, L, M>::inject(unsigned l, unsigned m)
@@ -896,24 +947,61 @@ std::vector<int> TwoD_TDentry<vcontainer_t, vbasetype_t, L, M>::get_cntr(void)
 template <typename vcontainer_t, typename vbasetype_t, int K, int L, int M>
 constexpr std::array<unsigned, 4> ThreeD_TDentry<vcontainer_t, vbasetype_t, K, L, M>::map_bit(unsigned bit)
 {
-    std::array<unsigned, 4> x{};
-    unsigned rowbits = BASE::onedimbits_ * M;
-    unsigned planebits = rowbits * L;
+    int k = 0, l = 0, m = 0;
+    long ubit = bit;
+
+    for (k = 0; k < K; ++k)
+    {
+        for (l = 0; l < L; ++l)
+        {
+            for (m = 0; m < M; ++m)
+            {
+                if (BASE::onedimbits_ <= BASETYPE_BITS)
+                { // array of elements, e.g., logic[1:0] x[3][5];
+                    ubit -= BASE::onedimbits_;
+                }
+                else
+                { // basetype extender target, e.g., 65-bit vector in 3 WDatas
+                    if (m < (M - 1))
+                    {
+                        ubit -= BASETYPE_BITS;
+                    }
+                    else
+                    {
+                        auto mod = BASE::onedimbits_ % BASETYPE_BITS;
+                        ubit -= (mod) ? mod : BASETYPE_BITS;
+                    }
+                }
+                if (ubit < 0)
+                    break; // leave all loops, stop counting dimensions
+            }
+            if (ubit < 0)
+                break; // leave all loops, stop counting dimensions
+        }
+        if (ubit < 0)
+            break; // leave all loops, stop counting dimensions
+    }
+
+    unsigned overhang = 0;
     if (BASE::onedimbits_ <= BASETYPE_BITS)
-    {                                                // array of elements, e.g., logic[1:0] x[3][5];
-        x[0] = bit / planebits;                      // plane offset
-        x[1] = (bit - x[0] * planebits) / (rowbits); // L element offset
-        x[2] = (bit - x[0] * planebits - x[1] * rowbits) / BASE::onedimbits_; // M element offset
-        x[3] = bit % BASE::onedimbits_;                                       // bit offset
+    {
+        overhang = bit % BASE::onedimbits_;
     }
     else
-    { // basetype extender target, e.g., 65-bit vector in 3 WDatas
-        x[0] = bit / planebits;
-        x[1] = (bit - x[0] * planebits) / (rowbits);
-        x[2] = (bit - x[0] * planebits - x[1] * rowbits) / BASETYPE_BITS;
-        x[3] = bit % BASETYPE_BITS;
+    {
+        overhang = bit % BASETYPE_BITS;
+        if (m >= (M - 1))
+        {
+            // substract amount of overhang from lower index elements in serialized target vector. We count the number
+            // of elements by multiplying outer dim `k` with the maximum inner dimension L and add the count of inner
+            // dimension to retrieve the number of innermost elements. When de-serializing, we need to substrac the
+            // number of overhang bits from all predecessor inner-most elements from the final overhang bit count
+            overhang -= ((k)*L + (l)) * (BASE::onedimbits_ % BASETYPE_BITS);
+        }
     }
-    return x;
+
+    return std::array<unsigned, 4>{ static_cast<unsigned>(k), static_cast<unsigned>(l), static_cast<unsigned>(m),
+                                    overhang };
 }
 template <typename vcontainer_t, typename vbasetype_t, int K, int L, int M>
 inline void ThreeD_TDentry<vcontainer_t, vbasetype_t, K, L, M>::inject(unsigned k, unsigned l, unsigned m)
