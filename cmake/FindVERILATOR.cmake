@@ -14,12 +14,15 @@
 # limitations under the License.
 ####################################################################################################
 
-if(NOT IS_DIRECTORY $ENV{VERILATOR_ROOT})
-    message(FATAL_ERROR "Set VERILATOR_ROOT environment variable!")
+if(NOT VERILATOR_ROOT)
+    message(WARNING "VERILATOR_ROOT not set by CMake. Trying environment...")
+    set(VERILATOR_ROOT $ENV{VERILATOR_ROOT})
 endif()
-
-set(VERILATOR_ROOT $ENV{VERILATOR_ROOT})
-message(STATUS "VERILATOR_ROOT: ${VERILATOR_ROOT}")
+if(NOT VERILATOR_ROOT)
+    message(FATAL_ERROR "Please specify VERILATOR_ROOT in environment or CMake CL.")
+else()
+    message(STATUS "VERILATOR_ROOT: ${VERILATOR_ROOT}")
+endif()
 
 if(EXISTS "${VERILATOR_ROOT}/Makefile")
     # This is a non-install Verilator, aka repository+build
