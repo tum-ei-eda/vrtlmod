@@ -98,7 +98,7 @@ void AnalyzePass::action(const VrtlParser &parser, const clang::ast_matchers::Ma
     else if (binop = Result.Nodes.getNodeAs<clang::BinaryOperator>("sea_binary_array_3d"))
     {
         LOG_INFO("{sea_binary_array_3d}:", util::logging::dump_to_str<const clang::Stmt *>(binop, ctx));
-        #if VRTLMOD_VERILATOR_VERSION <= 4202
+        #if VRTLMOD_VERILATOR_VERSION <= 4204
         #else // VERILATOR_VERSION <= 4.228
         LOG_FATAL("Matched unexpected sequential assignment!");
         #endif
@@ -114,7 +114,7 @@ void AnalyzePass::action(const VrtlParser &parser, const clang::ast_matchers::Ma
     else if (binop = Result.Nodes.getNodeAs<clang::BinaryOperator>("sea_binary_array_2d"))
     {
         LOG_INFO("{sea_binary_array_2d}:", util::logging::dump_to_str<const clang::Stmt *>(binop, ctx));
-        #if VRTLMOD_VERILATOR_VERSION <= 4202
+        #if VRTLMOD_VERILATOR_VERSION <= 4204
         #else // VERILATOR_VERSION <= 4.228
         LOG_FATAL("Matched unexpected sequential assignment!");
         #endif

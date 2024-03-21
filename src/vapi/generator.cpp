@@ -54,7 +54,7 @@ std::string VapiGenerator::get_targetdictionary_relpath(void) const
 std::string VapiGenerator::get_apiheader_filename(void) const
 {
     std::string top_name = get_core().get_top_cell().get_type();
-#if VRTLMOD_VERILATOR_VERSION <= 4202
+#if VRTLMOD_VERILATOR_VERSION <= 4204
     // nothing to do here
 #else // VRTLMOD_VERILATOR_VERSION <= 4228
     util::strhelp::replace(top_name, "___024root", "");
@@ -64,7 +64,7 @@ std::string VapiGenerator::get_apiheader_filename(void) const
 std::string VapiGenerator::get_apisource_filename(void) const
 {
     std::string top_name = get_core().get_top_cell().get_type();
-#if VRTLMOD_VERILATOR_VERSION <= 4202
+#if VRTLMOD_VERILATOR_VERSION <= 4204
     // nothing to do here
 #else // VRTLMOD_VERILATOR_VERSION <= 4228
     util::strhelp::replace(top_name, "___024root", "");
