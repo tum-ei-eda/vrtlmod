@@ -15,8 +15,7 @@
  */
 
 ////////////////////////////////////////////////////////////////////////////////
-/// @file test.cpp
-/// @date Created on Mon Jan 25 19:29:05 2020
+/// @file sc_fiapp_test.cpp
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "Vfiapp_vrtlmodapi.hpp"
@@ -137,21 +136,24 @@ int sc_main(int argc, char *argv[])
               << "..." << std::endl;
 
     // test injections
-    for (auto &it : gFault.td_)
+    for (auto &[kname, vtarget_ptr] : gFault.td_)
     {
-        testreturn &= testinject(*(it.second), gFault, clockspin, reset, check_diff);
+        if(vtarget_ptr->injectable_)
+        {
+            testreturn &= testinject(*vtarget_ptr, gFault, clockspin, reset, check_diff);
+        }
     }
     if (testreturn && gFault.td_.size() > 0)
     {
         std::cout << std::endl
                   << "..."
-                  << "All passed. \033[0;32mTest successful.\033[0m" << std::endl;
+                  << " all passed. \033[0;32mTest successful.\033[0m" << std::endl;
     }
     else
     {
         std::cout << std::endl
                   << "..."
-                  << "\033[0;31mTest failed.\033[0m" << std::endl;
+                  << "\033[0;31m test failed.\033[0m" << std::endl;
         return 1;
     }
     return 0;

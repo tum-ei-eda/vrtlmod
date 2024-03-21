@@ -37,7 +37,7 @@
 #define __UNLIKELY(x) __builtin_expect(!!(x), 0)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// @brief namespace for all vrtl-fi
+/// @brief namespace for all vrtlfi
 namespace vrtlfi
 {
 
@@ -76,6 +76,8 @@ class ThreeD_TDentry;
 class TDentry
 {
   public:
+    const bool injectable_;     ///< This entry is injectable, if not it may be used for addressing
+                                ///<  or logging only.
     bool enable_;               ///< Entry is enabled to perform injections
     INJ_TYPE_t inj_type_;       ///< Type of injection to perform
     const unsigned bits_;       ///< Number of bits within target
@@ -122,8 +124,8 @@ class TDentry
     virtual std::vector<int> get_cntr(void) = 0;
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// \brief Constructor
-    TDentry(unsigned bits, unsigned onedimbits)
-        : enable_(false), inj_type_(INJ_TYPE::BITFLIP), bits_(bits), onedimbits_(onedimbits)
+    TDentry(unsigned bits, unsigned onedimbits, bool injectable = true)
+        : injectable_(injectable), enable_(false), inj_type_(INJ_TYPE::BITFLIP), bits_(bits), onedimbits_(onedimbits)
     {
     }
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -155,14 +157,47 @@ class Named_TDentry : public TDentry
     virtual void inject_synchronous(void) {}
     virtual void incr_cntr(std::initializer_list<unsigned int> i = {}) {}
     virtual void decr_cntr(std::initializer_list<unsigned int> i = {}) {}
+    virtual void reset_cntr(std::initializer_list<unsigned int> i = {}) {};
     virtual std::vector<int> get_cntr(void) { return {}; }
 
     const std::string &get_name() const { return name_; }
-    Named_TDentry(const char *name, vcontainer_t &data, unsigned bits, unsigned onedimbits)
-        : TDentry(bits, onedimbits), name_(name), data_(data)
+    Named_TDentry(const char *name, vcontainer_t &data, unsigned bits, unsigned onedimbits, bool injectable = true)
+        : TDentry(bits, onedimbits, injectable), name_(name), data_(data)
     {
     }
     virtual ~Named_TDentry(void) = default;
+};
+
+template <typename vcontainer_t>
+class SystemC_Port_TDentry final : public TDentry
+{
+    std::string name_;
+
+  public:
+    vcontainer_t &data_;
+
+    virtual void set_maskBit(unsigned bit) {}
+    virtual void reset_mask(void) {}
+
+    virtual void set_value_bit(unsigned bit) {}
+    virtual void reset_value_bit(unsigned bit) {}
+    virtual void reset_assign_value(void) {}
+
+    virtual std::vector<bool> read_data(void) const;
+    // virtual void inject(int word = 0){};
+    virtual void inject_on_update(std::initializer_list<unsigned int> i = {}) {}
+    virtual void inject_synchronous(void) {}
+    virtual void incr_cntr(std::initializer_list<unsigned int> i = {}) {}
+    virtual void decr_cntr(std::initializer_list<unsigned int> i = {}) {}
+    virtual void reset_cntr(std::initializer_list<unsigned int> i = {}) {};
+    virtual std::vector<int> get_cntr(void) { return {}; }
+
+    const std::string &get_name() const { return name_; }
+    SystemC_Port_TDentry(const char *name, vcontainer_t &data, unsigned bits)
+        : TDentry(bits, bits, /*injectable:*/ false), name_(name), data_(data)
+    {
+    }
+    virtual ~SystemC_Port_TDentry(void) = default;
 };
 
 template <typename vcontainer_t>
@@ -177,7 +212,6 @@ class ZeroD_TDentry final : public Named_TDentry<vcontainer_t>
 
     void inject(void);
 
-  public:
   public:
     void __inject_on_update(void) { inject(); }
     void __incr_cntr(void) { ++cntr_; }
@@ -201,7 +235,7 @@ class ZeroD_TDentry final : public Named_TDentry<vcontainer_t>
     std::vector<int> get_cntr(void) override { return std::vector<int>{ cntr_ }; }
 
     ZeroD_TDentry(const char *name, vcontainer_t &data, unsigned bits, unsigned onedimbits)
-        : BASE(name, data, bits, onedimbits)
+        : BASE(name, data, bits, onedimbits, true)
     {
     }
     virtual ~ZeroD_TDentry(void) = default;
@@ -244,7 +278,7 @@ class OneD_TDentry final : public Named_TDentry<vcontainer_t>
     std::vector<int> get_cntr(void) override;
 
     OneD_TDentry(const char *name, vcontainer_t &data, unsigned bits, unsigned onedimbits)
-        : BASE(name, data, bits, onedimbits)
+        : BASE(name, data, bits, onedimbits, true)
     {
     }
     virtual ~OneD_TDentry(void) = default;
@@ -287,7 +321,7 @@ class TwoD_TDentry final : public Named_TDentry<vcontainer_t>
     std::vector<int> get_cntr(void) override;
 
     TwoD_TDentry(const char *name, vcontainer_t &data, const unsigned bits, const unsigned onedimbits)
-        : BASE(name, data, bits, onedimbits)
+        : BASE(name, data, bits, onedimbits, true)
     {
     }
     virtual ~TwoD_TDentry(void) = default;
@@ -331,7 +365,7 @@ class ThreeD_TDentry final : public Named_TDentry<vcontainer_t>
     std::vector<int> get_cntr(void) override;
 
     ThreeD_TDentry(const char *name, vcontainer_t &data, const unsigned bits, const unsigned onedimbits)
-        : BASE(name, data, bits, onedimbits)
+        : BASE(name, data, bits, onedimbits, true)
     {
     }
     virtual ~ThreeD_TDentry(void) = default;
@@ -347,14 +381,16 @@ class TD_API
     /// \brief Return codes for API methods
     typedef enum BIT_CODES
     {
-        ERROR_TARGET_NAME_UNKNOWN = 0x0001,
-        ERROR_TARGET_IDX_UNKNOWN = 0x0002,
-        ERROR_BIT_OUTOFRANGE = 0x0004,
-        ERROR_INJTYPE_UNSUPPORTED = 0x0008,
+        ERROR = (0x1 << (sizeof(int) * 8 - 1)),
+        ERROR_TARGET_NAME_UNKNOWN = (0x1 << (sizeof(int) * 8 - 1)) | 0x1,
+        ERROR_TARGET_IDX_UNKNOWN = (0x1 << (sizeof(int) * 8 - 1)) | 0x2,
+        ERROR_BIT_OUTOFRANGE = (0x1 << (sizeof(int) * 8 - 1)) | 0x4,
+        ERROR_INJTYPE_UNSUPPORTED = (0x1 << (sizeof(int) * 8 - 1)) | 0x8,
+        ERROR_TARGETINJ_UNSUPPORTED = (0x1 << (sizeof(int) * 8 - 1)) | 0x10,
+
         SUCC_TARGET_ARMED = 0x10,
         SUCC_TARGET_DISARMED = 0x20,
-        GENERIC_OK = 0,
-        GENERIC_ERROR = 0x8000
+        GENERIC_OK = 0
     } BIT_CODES_t;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -387,6 +423,10 @@ class TD_API
     int prep_inject(TDentry &target, const unsigned bit, const INJ_TYPE_t type = BITFLIP)
     {
         int ret = 0;
+        if (!target.injectable_)
+        {
+            return BIT_CODES::ERROR_TARGETINJ_UNSUPPORTED;
+        }
         if (type != INJ_TYPE::BITFLIP)
         {
             ret |= BIT_CODES::ERROR_INJTYPE_UNSUPPORTED;
@@ -440,7 +480,10 @@ class TD_API
     /// \return BIT_CODES
     int prep_value_inject(TDentry &target, const std::map<unsigned, bool> &value_map) const
     {
-        int ret = 0;
+        if (!target.injectable_)
+        {
+            return BIT_CODES::ERROR_TARGETINJ_UNSUPPORTED;
+        }
         target.reset_mask();
         target.reset_assign_value();
         for (const auto &it : value_map)
@@ -503,6 +546,8 @@ class TD_API
     /// \brief Get index of entry within entry vector
     /// \param targetname string identifier name of injection target
     /// \return index of injection entry (-1 if not found)
+    [[deprecated("The generated indices are instable because they depend on how `std::map<string, TDentry> td_` sorts "
+                 "values. Use `<top name>VRTLmodAPIDifferential::{target2id, id2target}`")]]
     int get_EntryArrayIndex(const char *targetname) const
     {
         unsigned int i = 0;
@@ -520,6 +565,22 @@ class TD_API
     TD_API(void) = default;
     virtual ~TD_API(void) = default;
 };
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// SystemC_Port_TDentry impl ///////////////////////////////////////////////////////////////////////
+template <typename sc_port_t>
+std::vector<bool> SystemC_Port_TDentry<sc_port_t>::read_data(void) const
+{
+    std::vector<bool> bitstream;
+    /* TODO[Implement bitvec conversion for a) sc_port of type sc_bv and native types]
+    auto bv = data_.read();
+    for(int bit = 0; bit < TDentry::bits_; ++bit)
+    {
+        bitstream.push_back(bv.get_bit(bit));
+    }
+    */
+    return bitstream;
+}
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // ZeroD_TDentry impl //////////////////////////////////////////////////////////////////////////////
 template <typename vcontainer_t>
@@ -584,7 +645,8 @@ constexpr std::array<unsigned, 2> OneD_TDentry<vcontainer_t, vbasetype_t, M>::ma
             }
             else
             {
-                ubit -= BASE::onedimbits_ % BASETYPE_BITS;
+                auto mod = BASE::onedimbits_ % BASETYPE_BITS;
+                ubit -= (mod) ? mod : BASETYPE_BITS;
             }
         }
         if (ubit < 0)
@@ -761,7 +823,8 @@ constexpr std::array<unsigned, 3> TwoD_TDentry<vcontainer_t, vbasetype_t, L, M>:
                 }
                 else
                 {
-                    ubit -= BASE::onedimbits_ % BASETYPE_BITS;
+                    auto mod = BASE::onedimbits_ % BASETYPE_BITS;
+                    ubit -= (mod) ? mod : BASETYPE_BITS;
                 }
             }
             if (ubit < 0)
@@ -966,7 +1029,8 @@ constexpr std::array<unsigned, 4> ThreeD_TDentry<vcontainer_t, vbasetype_t, K, L
                     }
                     else
                     {
-                        ubit -= BASE::onedimbits_ % BASETYPE_BITS;
+                        auto mod = BASE::onedimbits_ % BASETYPE_BITS;
+                        ubit -= (mod) ? mod : BASETYPE_BITS;
                     }
                 }
                 if (ubit < 0)
@@ -1157,12 +1221,12 @@ std::vector<int> ThreeD_TDentry<vcontainer_t, vbasetype_t, K, L, M>::get_cntr(vo
     return c;
 }
 
-struct UniqueElementTriplet
+typedef struct __attribute__((packed, aligned(4))) UniqueElementTriplet
 {
-    size_t target_id_;
-    size_t element_id_;
+    uint16_t target_id_;
+    uint16_t element_id_;
     uint64_t val_;
-};
+} uet_t;
 
 } // namespace td
 

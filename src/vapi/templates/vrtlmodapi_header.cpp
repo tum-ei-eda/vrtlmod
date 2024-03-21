@@ -92,18 +92,27 @@ struct )"
                     auto type = var->get_bases();
                     util::strhelp::replace(type, "[", "");
                     util::strhelp::replace(type, "]", "");
+                    auto base_type = type;
 
                     auto port_name = var->get_id();
+                    // replace the systemc port type with a systemc signal type equivalent
                     if (!util::strhelp::replace(type, "sc_out<", "sc_signal<"))
                         if (!util::strhelp::replace(type, "sc_in<", "sc_signal<"))
                             util::strhelp::replace(type, "sc_inout<", "sc_signal<");
 
-                    x << R"(
+                    // remvove the systemc port type from the signal's type
+                    if (!util::strhelp::replace(base_type, "sc_out<", ""))
+                        if (!util::strhelp::replace(base_type, "sc_in<", ""))
+                            util::strhelp::replace(base_type, "sc_inout<", "");
+                    util::strhelp::replace(base_type, ">", "");
+
+                            x
+                        << R"(
     )" << type << " " << port_name
-                      << "_dummy_{\"dummy_" << port_name << "\"};";
+                        << "_dummy_{\"dummy_" << port_name << "\"};";
                     x << R"(
-    )" << type << " " << port_name
-                      << "_diff_{\"diff_" << port_name << "\"};";
+    )" << base_type << " "
+                      << port_name << "_diff_;"; //{\"diff_" << port_name << "\"};";
                 }
             }
         }
@@ -186,6 +195,7 @@ struct )"
     bool diff_target(vrtlfi::td::UniqueElementTriplet const& diff_in) const { return diff_target(diff_in.target_id_, diff_in.element_id_, diff_in.val_); }
 
     std::list<vrtlfi::td::UniqueElementTriplet> get_non_zeros(void) const;
+    std::vector<vrtlfi::td::UniqueElementTriplet> gen_nz_triplet_vec(void) const; // vector is contigiously storing data which makes it better for FILE IO with HDF5
 
     /////////////////////////////////////////////////////////////////////////////
     /// \brief Constructor. Attach existing VrtlmodApis to this Differential

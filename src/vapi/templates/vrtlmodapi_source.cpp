@@ -183,6 +183,36 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
     td_nmb = 0;
     core.foreach_module(write_init_td);
 
+    if (core.is_systemc())
+    {
+        if (auto top_module = core.get_module_from_cell(core.get_top_cell()))
+        {
+            for (auto const &var : top_module->variables_)
+            {
+                std::string name = var->get_type(); //< seems odd to get name by get_type, but the name is the XML type where id is the XML node type
+                if (name == "in" || name == "out" || name == "inout")
+                {
+                    auto type = var->get_bases();
+                    util::strhelp::replace(type, "[", "");
+                    util::strhelp::replace(type, "]", "");
+                    auto port_type_str = type; //util::concat("sc_", name, "<", type, ">");
+                    auto port_name = var->get_id();
+                    std::string prefix_str = "TOP";
+                    std::string map_key = util::concat(prefix_str, ".", port_name);
+                    x << R"(
+    td_[")" << map_key << "\"]" << " = " << "std::make_shared< " << "vrtlfi::td::SystemC_Port_TDentry< "
+                      << port_type_str << " >" << " >" << "(" << R"(
+          /*name:*/    ")" << map_key << R"("
+        , /*dataRef:*/ vrtl_.)" << port_name << R"(
+        , /*bits:*/    )" << var->get_bits()
+                      << ")" << ";\n";
+                }
+            }
+        }
+    }
+    x << R"(
+)";
+
     std::string map_prefix = "";
     std::string retr_prefix = "";
     bool reverse_map = false;
@@ -214,13 +244,11 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
                 for (const auto &module_instance : t.get_parent().symboltable_instances_)
                 {
                     auto prefix_str = get_prefix(c, module_instance);
-                    //auto member_str = get_memberstr(c, t, prefix_str);
                     auto member_str = util::concat("vrtl_.", get_memberstr(c, t, prefix_str));
-                    //auto element_0 = retr_prefix + "get_target(\"" + prefix_str + "." + t.get_id() + "\")";
                     auto element_0 = member_str + "__td_";
                     auto element_1 = std::to_string(td_nmb);
                     x << "\n        ";
-                    if(td_nmb == 0)
+                    if (td_nmb == 0)
                     {
                         x << "  ";
                     }
@@ -228,8 +256,8 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
                     {
                         x << ", ";
                     }
-                    x << "{ " << (reverse_map ? element_1 : element_0) << ", "
-                      << (reverse_map ? element_0 : element_1) << " }";
+                    x << "{ " << (reverse_map ? element_1 : element_0) << ", " << (reverse_map ? element_0 : element_1)
+                      << " }";
                     ++td_nmb;
                 }
             }
@@ -238,6 +266,37 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
         core.foreach_injection_target(targetiterf);
         return true;
     };
+    auto write_systemc_target2id = [&](void) -> void {
+        if (core.is_systemc())
+        {
+            if (auto top_module = core.get_module_from_cell(core.get_top_cell()))
+            {
+                for (auto const &var : top_module->variables_)
+                {
+                    std::string name = var->get_type(); //< seems odd to get name by get_type, but the name is the XML type where id is the XML node type
+                    if (name == "in" || name == "out" || name == "inout")
+                    {
+                        auto port_name = var->get_id();
+                        std::string prefix_str = "TOP";
+                        auto element_0 = util::concat("td_.at(\"", prefix_str, ".", port_name, "\").get()");
+                        auto element_1 = std::to_string(td_nmb);
+                        x << "\n        ";
+                        if (td_nmb == 0)
+                        {
+                            x << "  ";
+                        }
+                        else
+                        {
+                            x << ", ";
+                        }
+                        x << "{ " << (reverse_map ? element_1 : element_0) << ", " << (reverse_map ? element_0 : element_1)
+                        << " }";
+                        ++td_nmb;
+                    }
+                }
+            }
+        }
+    };
 
     map_prefix = "";
     retr_prefix = "";
@@ -245,6 +304,7 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
     td_nmb = 0;
     x << "    " << map_prefix << (reverse_map ? "id2target_ = {" : "target2id_ = {");
     core.foreach_module(writetarget2idinitializer);
+    write_systemc_target2id();
     x << R"(
     };
 )";
@@ -255,13 +315,14 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
     td_nmb = 0;
     x << "    " << map_prefix << (reverse_map ? "id2target_ = {" : "target2id_ = {");
     core.foreach_module(writetarget2idinitializer);
+    write_systemc_target2id();
     x << R"(
     };
 )";
     x << R"(
-})";
-    //x << top_type << "VRTLmodAPI::~" << top_type << "VRTLmodAPI(void) { \n\
-}\n" << std::endl;
+}
+
+)";
 
     x << api_name << "Differential::" << api_name << "Differential(const " << api_name << "& faulty, const " << api_name
       << R"(& reference)
@@ -271,55 +332,7 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
     , faulty_(faulty)
     , reference_(reference)
 )";
-/*
 
-    map_prefix = "faulty";
-    retr_prefix = "faulty.";
-    reverse_map = false;
-    td_nmb = 0;
-    x << "    , " << map_prefix << (reverse_map ? "_id2target_{" : "_target2id_{");
-    core.foreach_module(writetarget2idinitializer);
-    x << R"(
-    }
-)";
-    //map_prefix = "faulty"
-    reverse_map = true;
-    td_nmb = 0;
-    x << "    , " << map_prefix << (reverse_map ? "_id2target_{" : "_target2id_{");
-    core.foreach_module(writetarget2idinitializer);x << R"(
-    }
-)";
-    map_prefix = "reference";
-    retr_prefix = "reference.";
-    reverse_map = false;
-    td_nmb = 0;
-    x << "    , " << map_prefix << (reverse_map ? "_id2target_{" : "_target2id_{");
-    core.foreach_module(writetarget2idinitializer);x << R"(
-    }
-)";
-    //map_prefix = "faulty"
-    reverse_map = true;
-    td_nmb = 0;
-    x << "    , " << map_prefix << (reverse_map ? "_id2target_{" : "_target2id_{");
-    core.foreach_module(writetarget2idinitializer);x << R"(
-    }
-)";
-    map_prefix = "diff";
-    retr_prefix = "";
-    reverse_map = false;
-    td_nmb = 0;
-    x << "    , " << map_prefix << (reverse_map ? "_id2target_{" : "_target2id_{");
-    core.foreach_module(writetarget2idinitializer);x << R"(
-    }
-)";
-    //map_prefix = "faulty"
-    reverse_map = true;
-    td_nmb = 0;
-    x << "    , " << map_prefix << (reverse_map ? "_id2target_{" : "_target2id_{");
-    core.foreach_module(writetarget2idinitializer);x << R"(
-    }
-)";
-*/
     x << "{";
 
     if (core.is_systemc())
@@ -400,8 +413,6 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
         return true;
     };
 
-    // td_nmb = 0;
-    // core.foreach_module(writetarget2idinit); // old in compound initializer
     x << R"(
 }
 )";
@@ -626,10 +637,6 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
 
                     auto type = var->get_cxx_type();
                     auto port_name = var->get_id();
-                    if (!util::strhelp::replace(type, "sc_out<", "sc_signal<"))
-                        if (!util::strhelp::replace(type, "sc_in<", "sc_signal<"))
-                            util::strhelp::replace(type, "sc_inout<", "sc_signal<");
-
                     x << R"(
     )" << port_name << "_diff_ = faulty_.vrtl_."
                       << port_name << ".read() ^ reference_.vrtl_." << port_name << ".read();"
@@ -637,15 +644,16 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
     )";
                     if (type.find("sc_bv<") != std::string::npos)
                     {
-                        x << "for(size_t i = 0; i < " << port_name << "_diff_.read().size() ; ++i)"
+                        x << "for(size_t i = 0; i < " << port_name << "_diff_.size() ; ++i)"
                           << R"(
         ret += )" << port_name
-                          << "_diff_.read().get_word(i) ? 1 : 0;";
+                          << "_diff_.get_word(i) ? 1 : 0;";
                     }
                     else
                     {
-                        x << "ret += " << port_name << "_diff_.read() ? 1 : 0;";
+                        x << "ret += " << port_name << "_diff_ ? 1 : 0;";
                     }
+                    ++td_nmb;
                 }
             }
         }
@@ -673,6 +681,32 @@ compare_rotate_switch_entry:
     td_nmb = 0;
     fast_compare = true;
     core.foreach_module(writecomparebody);
+
+    if (core.is_systemc())
+    {
+        if (auto top_module = core.get_module_from_cell(core.get_top_cell()))
+        {
+            for (auto const &var : top_module->variables_)
+            {
+                std::string name = var->get_type(); //< seems odd to get name by get_type, but the name is the XML type where id is the XML node type
+                if (name == "in" || name == "out" || name == "inout")
+                {
+                    auto type = var->get_cxx_type();
+                    auto port_name = var->get_id();
+                    auto diff_expr = util::concat("faulty_.vrtl_.", port_name, ".read() ^ reference_.vrtl_.", port_name, ".read()");
+
+                    x << R"(
+        case )" << td_nmb << ": ";
+                    x << R"(
+            if(__UNLIKELY(()" << diff_expr << ") != 0))" << R"(
+                return faulty_.td_.at("TOP.)" << port_name<< "\").get();";
+                    x << R"(
+        [[ fallthrough ]];)";
+                    ++td_nmb;
+                }
+            }
+        }
+    }
 
     x << R"(
         default:
@@ -738,9 +772,7 @@ size_t )"
 
                     auto type = var->get_cxx_type();
                     auto port_name = var->get_id();
-                    if (!util::strhelp::replace(type, "sc_out<", "sc_signal<"))
-                        if (!util::strhelp::replace(type, "sc_in<", "sc_signal<"))
-                            util::strhelp::replace(type, "sc_inout<", "sc_signal<");
+
                     x << R"(
     out << ")" << port_name
                       << "[" << name << "], 0b\";";
@@ -748,16 +780,16 @@ size_t )"
                     {
                         x << R"(
     for(size_t i = 0; i < )"
-                          << port_name << "_diff_.read().length() ; ++i)"
+                          << port_name << "_diff_.length() ; ++i)"
                           << R"(
         out << )" << port_name
-                          << R"(_diff_.read().get_bit(i) ? 1 : 0;
+                          << R"(_diff_.get_bit(i) ? 1 : 0;
     out << std::endl;)";
                     }
                     else
                     {
                         x << R"(
-    out << )" << port_name << "_diff_.read() << std::endl;";
+    out << )" << port_name << "_diff_ << std::endl;";
                     }
                 }
             }
@@ -791,9 +823,7 @@ size_t )"
 
                     auto type = var->get_cxx_type();
                     auto port_name = var->get_id();
-                    if (!util::strhelp::replace(type, "sc_out<", "sc_signal<"))
-                        if (!util::strhelp::replace(type, "sc_in<", "sc_signal<"))
-                            util::strhelp::replace(type, "sc_inout<", "sc_signal<");
+
                     x << R"(
         out << ")" << port_name
                       << "[" << name << "],\";";
@@ -827,25 +857,22 @@ size_t )"
 
                     auto type = var->get_cxx_type();
                     auto port_name = var->get_id();
-                    if (!util::strhelp::replace(type, "sc_out<", "sc_signal<"))
-                        if (!util::strhelp::replace(type, "sc_in<", "sc_signal<"))
-                            util::strhelp::replace(type, "sc_inout<", "sc_signal<");
                     x << R"(
     out << "0b";)";
                     if (type.find("sc_bv<") != std::string::npos)
                     {
                         x << R"(
     for(size_t i = 0; i < )"
-                          << port_name << "_diff_.read().length() ; ++i)"
+                          << port_name << "_diff_.length() ; ++i)"
                           << R"(
         out << )" << port_name
-                          << R"(_diff_.read().get_bit(i) ? 1 : 0;
+                          << R"(_diff_.get_bit(i) ? 1 : 0;
     out << ",";)";
                     }
                     else
                     {
                         x << R"(
-    out << )" << port_name << R"(_diff_.read() << ",";)";
+    out << )" << port_name << R"(_diff_ << ",";)";
                     }
                 }
             }
@@ -1026,12 +1053,11 @@ size_t )"
 )";
 
     td_nmb = 0;
-    fast_compare = false;
-
     x << R"(
     switch (target_idx)
     {)";
-
+    
+    fast_compare = false;
     core.foreach_module(writediffbody);
 
     if (core.is_systemc())
@@ -1046,9 +1072,6 @@ size_t )"
 
                     auto type = var->get_cxx_type();
                     auto port_name = var->get_id();
-                    if (!util::strhelp::replace(type, "sc_out<", "sc_signal<"))
-                        if (!util::strhelp::replace(type, "sc_in<", "sc_signal<"))
-                            util::strhelp::replace(type, "sc_inout<", "sc_signal<");
 
                     x << R"(
         case )" << td_nmb
@@ -1072,7 +1095,7 @@ size_t )"
                     {
                         x << R"(
             auto d = ()" << port_name
-                          << "_diff_.read().to_uint()"
+                          << "_diff_.to_uint64()"
                           << " ^ "
                           << "val"
                           << ");";
@@ -1085,6 +1108,7 @@ size_t )"
             }
         }
     }
+
     x << R"(
 
         default:
@@ -1147,7 +1171,7 @@ size_t )"
     {
         nz_triplet_list.push_back({ )"
                           << td_nmb << ", "
-                          << "static_cast<size_t>(-1)"
+                          << "static_cast<uint16_t>(-1)"
                           << ", d });"
                           << R"(
     }
@@ -1256,9 +1280,6 @@ size_t )"
 
                     auto type = var->get_cxx_type();
                     auto port_name = var->get_id();
-                    if (!util::strhelp::replace(type, "sc_out<", "sc_signal<"))
-                        if (!util::strhelp::replace(type, "sc_in<", "sc_signal<"))
-                            util::strhelp::replace(type, "sc_inout<", "sc_signal<");
 
                     x << R"(
     // )" << top_module->get_id()
@@ -1268,32 +1289,88 @@ size_t )"
                     {
                         x << R"(
     if (auto d = )"
-                          << "static_cast<uint64_t>(" << port_name << "_diff_.read()"
-                          << R"())
-    {
-        nz_triplet_list.push_back({ )"
-                          << td_nmb << ", "
-                          << "static_cast<size_t>(-1)"
-                          << ", d });"
-                          << R"(
-    }
-)";
+                          << "static_cast<uint64_t>(" << port_name << "_diff_"
+                          << R"()))";
                     }
-                    else
+                    else // is a sc_bv<> type so we need to invoke its cast methods
                     {
                         x << R"(
     if (auto d = )"
-                          << "static_cast<uint64_t>(" << port_name << "_diff_.read().to_uint()"
-                          << R"())
+                          << "static_cast<uint64_t>(" << port_name << "_diff_.to_uint64()"
+                          << R"()))";
+                    }
+                    x << R"(
     {
         nz_triplet_list.push_back({ )"
-                          << td_nmb << ", "
-                          << "static_cast<size_t>(-1)"
-                          << ", d });"
-                          << R"(
+                      << td_nmb << ", "
+                      << "static_cast<uint16_t>(-1)"
+                      << ", d });"
+                      << R"(
     }
 )";
+                    ++td_nmb;
+                }
+            }
+        }
+    }
+
+    x << R"(
+    return nz_triplet_list;
+}
+)";
+
+    x << R"(
+)"
+      << "std::vector<vrtlfi::td::UniqueElementTriplet> " << api_name << "Differential::gen_nz_triplet_vec(void) const"
+      << R"(
+{
+    std::vector<vrtlfi::td::UniqueElementTriplet> nz_triplet_list{};
+)";
+    td_nmb = 0;
+    core.foreach_module(write_triplet_push);
+
+    if (core.is_systemc())
+    {
+        if (auto top_module = core.get_module_from_cell(core.get_top_cell()))
+        {
+            for (auto const &var : top_module->variables_)
+            {
+                std::string name = var->get_type();
+                if (name == "in" || name == "out" || name == "inout")
+                {
+
+                    auto type = var->get_cxx_type();
+                    auto port_name = var->get_id();
+
+                    x << R"(
+    // )" << top_module->get_id()
+                      << "." << port_name << ":";
+
+                    if (type.find("sc_bv<") == std::string::npos)
+                    {
+                        x << R"(
+    if (auto d = )"
+                          << "static_cast<uint64_t>(" << port_name << "_diff_"
+                          << R"())
+)";
                     }
+                    else // is a sc_bv<> type so we need to invoke its cast methods
+                    {
+                        x << R"(
+    if (auto d = )"
+                          << "static_cast<uint64_t>(" << port_name << "_diff_.to_uint64()"
+                          << R"())
+)";
+                    }
+                    x << R"(
+    {
+        nz_triplet_list.push_back({ )"
+                      << td_nmb << ", "
+                      << "static_cast<uint16_t>(-1)"
+                      << ", d });"
+                      << R"(
+    }
+)";
                     ++td_nmb;
                 }
             }
