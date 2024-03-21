@@ -43,7 +43,8 @@ module fiapp
     output logic[64:0] o4
   );
   logic q1, q2, q3;
-  logic[64:0] reg_VlWide_q;
+  logic[64:0] reg_3_1_VlWide_q; // 1 overhang bits in 3 word-wide 32-bit VlWide basetype
+  logic[95:0] reg_3_0_VlWide_q; // 0 overhang bits in 3 word-wide 32-bit VlWide basetype
   logic[2:0] reg_VlUnpacked_CData_q[2];
   logic[2:0] reg_VlUnpacked_VlUnpacked_CData_q[2][2];
   logic[64:0] reg_VlUnpacked_VlWide_q[2];
@@ -65,13 +66,14 @@ module fiapp
 
   assign o1 = q1;
   assign o2 = q2;
-  assign o3 = q3 & reg_VlWide_q[64] & reg_VlUnpacked_CData_q[1][2] & reg_VlUnpacked_VlWide_q[1][64] & reg_VlUnpacked_VlUnpacked_CData_q[1][1][2] & reg_VlUnpacked_VlUnpacked_VlWide_q[1][1][64];
-  assign o4 = reg_VlWide_q;
+  assign o3 = q3 & reg_3_1_VlWide_q[64] & reg_3_0_VlWide_q[95] & reg_VlUnpacked_CData_q[1][2] & reg_VlUnpacked_VlWide_q[1][64] & reg_VlUnpacked_VlUnpacked_CData_q[1][1][2] & reg_VlUnpacked_VlUnpacked_VlWide_q[1][1][64];
+  assign o4 = reg_3_1_VlWide_q;
 
   always_ff @(posedge clk, posedge reset)
     if(reset) begin
       q1 <= 1'b0;
-      reg_VlWide_q <= 65'b0;
+      reg_3_1_VlWide_q <= 65'b0;
+      reg_3_0_VlWide_q <= 95'b0;
       reg_VlUnpacked_CData_q[0] <= 3'b0;
       reg_VlUnpacked_CData_q[1] <= 3'b0;
       reg_VlUnpacked_VlWide_q/*[64:0]*/[0] <= 65'b0;
@@ -91,7 +93,10 @@ module fiapp
       end
 
       // nonsense linear shift to test dominant injection points for multidimensional packed
-      reg_VlWide_q <= {reg_VlWide_q[63:0], a};
+      reg_3_1_VlWide_q <= {reg_3_1_VlWide_q[63:0], a};
+
+      // nonsense linear shift to test dominant injection points for multidimensional packed
+      reg_3_0_VlWide_q <= {reg_3_0_VlWide_q[94:0], a};
 
       // nonsense linear shift to test dominant injection points for multidimensional unpacked
       reg_VlUnpacked_CData_q[1] <= {reg_VlUnpacked_CData_q[1][1:0], reg_VlUnpacked_CData_q[0][2]};
