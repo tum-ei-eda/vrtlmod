@@ -62,6 +62,7 @@ struct )"
 {
     std::map<const vrtlfi::td::TDentry*, size_t> target2id_;
     std::map<size_t, const vrtlfi::td::TDentry*> id2target_;
+
 )"
       << "    " << api_name << R"((const char* name =")" << top_type << R"(");
 )"
@@ -72,135 +73,6 @@ struct )"
       << "    void operator=(" << api_name << R"( const&) = delete;
 )"
       << "    " << top_type << R"( vrtl_;
-)"
-      << R"(};
-
-struct )"
-
-      << api_name << "Differential : public " << api_name << R"(
-{
-)";
-    if (core.is_systemc())
-    {
-        if (auto top_module = core.get_module_from_cell(core.get_top_cell()))
-        {
-            for (auto const &var : top_module->variables_)
-            {
-                std::string name = var->get_type();
-                if (name == "in" || name == "out" || name == "inout")
-                {
-                    auto type = var->get_bases();
-                    util::strhelp::replace(type, "[", "");
-                    util::strhelp::replace(type, "]", "");
-                    auto base_type = type;
-
-                    auto port_name = var->get_id();
-                    // replace the systemc port type with a systemc signal type equivalent
-                    if (!util::strhelp::replace(type, "sc_out<", "sc_signal<"))
-                        if (!util::strhelp::replace(type, "sc_in<", "sc_signal<"))
-                            util::strhelp::replace(type, "sc_inout<", "sc_signal<");
-
-                    // remvove the systemc port type from the signal's type
-                    if (!util::strhelp::replace(base_type, "sc_out<", ""))
-                        if (!util::strhelp::replace(base_type, "sc_in<", ""))
-                            util::strhelp::replace(base_type, "sc_inout<", "");
-                    util::strhelp::replace(base_type, ">", "");
-
-                            x
-                        << R"(
-    )" << type << " " << port_name
-                        << "_dummy_{\"dummy_" << port_name << "\"};";
-                    x << R"(
-    )" << base_type << " "
-                      << port_name << "_diff_;"; //{\"diff_" << port_name << "\"};";
-                }
-            }
-        }
-    }
-
-    x << R"(
-    const )"
-      << api_name << "& faulty_; ///< Fault injection core"
-      << R"(
-    const )"
-      << api_name << "& reference_; ///< Reference core"
-      << R"(
-    // std::map<const vrtlfi::td::TDentry*, size_t> faulty_target2id_;
-    // std::map<size_t, const vrtlfi::td::TDentry*> faulty_id2target_;
-    // std::map<const vrtlfi::td::TDentry*, size_t> reference_target2id_;
-    // std::map<size_t, const vrtlfi::td::TDentry*> reference_id2target_;
-    // std::map<const vrtlfi::td::TDentry*, size_t> diff_target2id_;
-    // std::map<size_t, const vrtlfi::td::TDentry*> diff_id2target_;
-
-    /////////////////////////////////////////////////////////////////////////////
-    /// \brief Get faulty target entry for passed id
-    /// \param id passed target dictionary. Take care id for a target may change between vRTLmod of the same vRTL
-    vrtlfi::td::TDentry const *get_faulty_target(size_t id) const { return faulty_.id2target_.at(id); }
-    /////////////////////////////////////////////////////////////////////////////
-    /// \brief Get reference target entry for passed id
-    /// \param id passed target dictionary. Take care id for a target may change between vRTLmod of the same vRTL
-    vrtlfi::td::TDentry const *get_reference_target(size_t id) const { return reference_.id2target_.at(id); }
-    /////////////////////////////////////////////////////////////////////////////
-    /// \brief Get diff target entry for passed id
-    /// \param id passed target dictionary. Take care id for a target may change between vRTLmod of the same vRTL
-    vrtlfi::td::TDentry const *get_diff_target(size_t id) const { return this->id2target_.at(id); }
-    /////////////////////////////////////////////////////////////////////////////
-    /// \brief Get target entry for passed id
-    /// \param id passed target dictionary. Take care id for a target may change between vRTLmod of the same vRTL
-    vrtlfi::td::TDentry const *get_target(size_t id) const { return get_faulty_target(id); }
-    /////////////////////////////////////////////////////////////////////////////
-    /// \brief Get link id for passed
-    /// \param target target which can be a pointer to an element of either
-    ///        of either `faulty_`, `reference_`, or `this`
-    size_t get_id(vrtlfi::td::TDentry const *target) const;
-)";
-
-    x << R"(
-
-    /////////////////////////////////////////////////////////////////////////////
-    /// \brief Calculate diff between `faulty_` and `reference_` target dict-
-    ///        ionaries. Store diff (bitwise XOR) in )"
-      << api_name << R"( base
-    /// \return count of mismatching targets
-    int diff_target_dictionaries(void);
-
-    /////////////////////////////////////////////////////////////////////////////
-    /// \brief Dump the Diff as CSV
-    /// \param out Stream handle, may be fstream, sstream, cout, cerr, etc. ...
-    void dump_diff_csv(std::ostream& out = std::cout) const;
-    void dump_diff_csv_vertical(std::ostream& out = std::cout) const;
-
-    /////////////////////////////////////////////////////////////////////////////
-    /// \brief Compare `faulty_` with `reference_`.
-    /// \param start Begin diff loop with target default or nullptr starts at
-    ///              list entry..
-    /// \return First mismatching target `vrtlfi::td::TDentry`.
-    vrtlfi::td::TDentry const* compare_fast(vrtlfi::td::TDentry const *start = nullptr) const;
-
-    /////////////////////////////////////////////////////////////////////////////
-    /// \brief Diff a single target with a given value.
-    /// \param target_idx Target index
-    /// \param element_idx Element index of the given target (serialized multidim
-    ///                    access)
-    /// \param val value to compare with, will be masked with the element's bit
-    ///            mask
-    /// \return True on diff=0 False diff!=0
-    bool diff_target(size_t target_id, size_t element_id, uint64_t val) const;
-
-    /////////////////////////////////////////////////////////////////////////////
-    /// \brief Diff a single target with a given value.
-    /// \param diff_in tuple containing a set of indices for target and element
-    ///                and the value to diff with
-    /// \return True on diff=0 False diff!=0
-    bool diff_target(vrtlfi::td::UniqueElementTriplet const& diff_in) const { return diff_target(diff_in.target_id_, diff_in.element_id_, diff_in.val_); }
-
-    std::list<vrtlfi::td::UniqueElementTriplet> get_non_zeros(void) const;
-    std::vector<vrtlfi::td::UniqueElementTriplet> gen_nz_triplet_vec(void) const; // vector is contigiously storing data which makes it better for FILE IO with HDF5
-
-    /////////////////////////////////////////////////////////////////////////////
-    /// \brief Constructor. Attach existing VrtlmodApis to this Differential
-    )" << api_name
-      << "Differential(const " << api_name << "& faulty, const " << api_name << R"(& reference);
 )"
       << R"(
 };

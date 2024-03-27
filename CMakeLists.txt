@@ -139,6 +139,11 @@ if(LLVM_FOUND AND Clang_FOUND AND verilator_FOUND)
         src/vapi/generator.cpp
         src/vapi/templates/vrtlmodapi_header.cpp
         src/vapi/templates/vrtlmodapi_source.cpp
+        src/vapi/templates/vrtlmodapi_diffapi_source.cpp
+        src/vapi/templates/vrtlmodapi_diffapi_header.cpp
+        src/vapi/templates/vrtlmodapi_diffapi_comparefast_source.cpp
+        src/vapi/templates/vrtlmodapi_diffapi_compare_source.cpp
+        src/vapi/templates/vrtlmodapi_diffapi_compute_source.cpp
         ${CMAKE_CURRENT_BINARY_DIR}/targetdictionary_header.cpp
 
         src/core/consumer.cpp

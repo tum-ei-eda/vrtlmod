@@ -95,6 +95,7 @@ bool testinject(vrtlfi::td::TDentry &target, vrtlfi::td::TD_API &api, std::funct
 
         if (check_diff(&target) != 0)
         {
+            out << "|-> \033[0;31mFailed\033[0m - DIFF problematic." << std::endl;
             ret = false;
             continue;
         }

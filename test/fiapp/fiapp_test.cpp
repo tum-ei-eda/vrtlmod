@@ -18,6 +18,7 @@
 /// @file fiapp_test.cpp
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "Vfiapp_vrtlmod_diffapi.hpp"
 #include "Vfiapp_vrtlmodapi.hpp"
 #include "Vfiapp.h"
 #include "verilated.h"
@@ -42,8 +43,7 @@ int main(int argc, char *argv[])
 
     bool testreturn = true;
 
-    auto clockspin = [&](int n = 1) -> void
-    {
+    auto clockspin = [&](int n = 1) -> void {
         for (; n > 0; --n)
         {
             gFault.vrtl_.eval();
@@ -57,16 +57,14 @@ int main(int argc, char *argv[])
         }
     };
 
-    auto reset = [&](void) -> void
-    {
+    auto reset = [&](void) -> void {
         gFault.vrtl_.reset = 1;
         gRef.vrtl_.reset = 1;
         clockspin(3);
         gFault.vrtl_.reset = 0;
         gRef.vrtl_.reset = 0;
     };
-    auto check_diff = [&](vrtlfi::td::TDentry const *target) -> int
-    {
+    auto check_diff = [&](vrtlfi::td::TDentry const *target) -> int {
         vrtlfi::td::TDentry const *diff_target = nullptr;
         int ret = 0;
         if (diff_target = gDiff.compare_fast(target); diff_target != nullptr)
@@ -83,19 +81,45 @@ int main(int argc, char *argv[])
             {
                 std::cout << "|-> \033[0;31mFailed\033[0m DIFF on other target {" << diff_target->get_name()
                           << "} than the injected {" << target->get_name() << "}" << std::endl;
-                ret = 1;
+                ret |= 0x1;
             }
         }
         else
         {
             std::cout << "|-> \033[0;31mFailed\033[0m DIFF no difference between faulty and reference RTLs: "
                       << std::endl;
-            ret = 2;
+            ret |= 0x2;
         }
 
         gDiff.diff_target_dictionaries();
         gDiff.dump_diff_csv(std::cout);
         gDiff.dump_diff_csv_vertical(fout);
+
+        // auto triplet_vec_unrolled_masked_calc = gDiff.gen_nz_triplet_vec();
+        auto triplet_vec = gDiff.compute_diff_vector();
+        gDiff.diff_target_dictionaries(); // recalculate with hard unrolled and masked
+        for (auto const &a : triplet_vec)
+        {
+            std::cout << "X{" << a.target_id_ << "," << a.element_id_ << "," << a.val_ << "}" << std::endl;
+            if (gDiff.diff_target(a) == false)
+            {
+                std::cout << "|-> \033[0;31mFailed\033[0m X DIFF unrolled+masked mismatches rolled+non-masked: {"
+                          << a.target_id_ << "," << a.element_id_ << "," << a.val_ << "}" << std::endl;
+                ret |= 0x4;
+            }
+        }
+        auto triplet_vec_unrolled_masked_calc = gDiff.gen_nz_triplet_vec();
+        gDiff.compute_diff_vector(); // recalculate with hard unrolled and masked
+        for (auto const &a : triplet_vec_unrolled_masked_calc)
+        {
+            std::cout << "Y{" << a.target_id_ << "," << a.element_id_ << "," << a.val_ << "}" << std::endl;
+            if (gDiff.diff_target(a) == false)
+            {
+                std::cout << "|-> \033[0;31mFailed\033[0m Y DIFF unrolled+masked mismatches rolled+non-masked: {"
+                          << a.target_id_ << "," << a.element_id_ << "," << a.val_ << "}" << std::endl;
+                ret |= 0x8;
+            }
+        }
 
         return ret;
     };

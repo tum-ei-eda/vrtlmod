@@ -18,6 +18,7 @@
 /// @file sc_fiapp_test.cpp
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "Vfiapp_vrtlmod_diffapi.hpp"
 #include "Vfiapp_vrtlmodapi.hpp"
 #include "verilated.h"
 #include "systemc.h"
@@ -102,6 +103,32 @@ int sc_main(int argc, char *argv[])
         gDiff.diff_target_dictionaries();
         gDiff.dump_diff_csv(std::cout);
         gDiff.dump_diff_csv_vertical(fout);
+
+        // auto triplet_vec_unrolled_masked_calc = gDiff.gen_nz_triplet_vec();
+        auto triplet_vec = gDiff.compute_diff_vector();
+        gDiff.diff_target_dictionaries(); // recalculate with hard unrolled and masked
+        for (auto const &a : triplet_vec)
+        {
+            std::cout << "X{" << a.target_id_ << "," << a.element_id_ << "," << a.val_ << "}" << std::endl;
+            if (gDiff.diff_target(a) == false)
+            {
+                std::cout << "|-> \033[0;31mFailed\033[0m X DIFF unrolled+masked mismatches rolled+non-masked: {"
+                          << a.target_id_ << "," << a.element_id_ << "," << a.val_ << "}" << std::endl;
+                ret |= 0x4;
+            }
+        }
+        auto triplet_vec_unrolled_masked_calc = gDiff.gen_nz_triplet_vec();
+        gDiff.compute_diff_vector(); // recalculate with hard unrolled and masked
+        for (auto const &a : triplet_vec_unrolled_masked_calc)
+        {
+            std::cout << "Y{" << a.target_id_ << "," << a.element_id_ << "," << a.val_ << "}" << std::endl;
+            if (gDiff.diff_target(a) == false)
+            {
+                std::cout << "|-> \033[0;31mFailed\033[0m Y DIFF unrolled+masked mismatches rolled+non-masked: {"
+                          << a.target_id_ << "," << a.element_id_ << "," << a.val_ << "}" << std::endl;
+                ret |= 0x8;
+            }
+        }
 
         return ret;
     };

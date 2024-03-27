@@ -52,12 +52,16 @@ class VapiGenerator
 #define API_TD_HEADER_NAME "targetdictionary.hpp"
 #define API_HEADER_NAME "vrtlmodapi.hpp"
 #define API_SOURCE_NAME "vrtlmodapi.cpp"
+#define API_DIFF_HEADER_NAME "vrtlmod_diffapi.hpp"
+#define API_DIFF_SOURCE_NAME "vrtlmod_diffapi.cpp"
+#define API_DIFF_COMPARE_FAST_SOURCE_NAME "vrtlmod_diffapi_compare_fast.cpp"
+#define API_DIFF_COMPARE_SOURCE_NAME "vrtlmod_diffapi_compare.cpp"
+#define API_DIFF_COMPUTE_SOURCE_NAME "vrtlmod_diffapi_compute.cpp"
 
-    class VapiSource final : public TemplateFile
+
+    struct VapiSource final : public TemplateFile
     {
         VapiGenerator &gen_;
-
-      public:
         VapiSource(VapiGenerator &gen) : gen_(gen) {}
         std::string get_brief(void) const { return "vrtlmod api source"; }
         std::string get_details(void) const { return "automatically generated file"; }
@@ -65,11 +69,9 @@ class VapiGenerator
         std::string generate_body(void) const;
     } vapisrc_{ *this };
 
-    class VapiHeader final : public TemplateFile
+    struct VapiHeader final : public TemplateFile
     {
         VapiGenerator &gen_;
-
-      public:
         VapiHeader(VapiGenerator &gen) : gen_(gen) {}
         std::string get_brief(void) const { return "vrtlmod api header"; }
         std::string get_details(void) const { return "automatically generated file"; }
@@ -77,11 +79,10 @@ class VapiGenerator
         std::string generate_body(void) const;
     } vapiheader_{ *this };
 
-    class TDHeader final : public TemplateFile
+    struct TDHeader final : public TemplateFile
     {
         VapiGenerator &gen_;
 
-      public:
         TDHeader(VapiGenerator &gen) : gen_(gen) {}
         std::string get_brief(void) const { return "vrtlmod target dictionary header"; }
         std::string get_details(void) const
@@ -93,6 +94,61 @@ class VapiGenerator
         std::string generate_header(std::string filename) const;
         std::string generate_body(void) const;
     } tdheader_{ *this };
+
+    struct VapiDiffSource final : public TemplateFile
+    {
+        VapiGenerator &gen_;
+        VapiDiffSource(VapiGenerator &gen) : gen_(gen) {}
+        std::string get_brief(void) const { return "vrtlmod api diff source"; }
+        std::string get_details(void) const { return "automatically generated file"; }
+        std::string get_author(void) const { return util::concat("vrtlmod::vapi::VapiDiffSource v", get_version()); }
+        std::string generate_body(void) const;
+        std::string get_filename(void) const;
+    } vapi_diff_cpp_{ *this };
+
+    struct VapiDiffHeader final : public TemplateFile
+    {
+        VapiGenerator &gen_;
+        VapiDiffHeader(VapiGenerator &gen) : gen_(gen) {}
+        std::string get_brief(void) const { return "vrtlmod api diff module header"; }
+        std::string get_details(void) const { return "automatically generated file"; }
+        std::string get_author(void) const { return util::concat("vrtlmod::vapi::VapiDiffHeader v", get_version()); }
+        std::string generate_body(void) const;
+        std::string get_filename(void) const;
+    } vapi_diff_hpp_{ *this };
+
+    struct VapiDiffCompareFastSource final : public TemplateFile
+    {
+        VapiGenerator &gen_;
+        VapiDiffCompareFastSource(VapiGenerator &gen) : gen_(gen) {}
+        std::string get_brief(void) const { return "vrtlmod api diff compare source"; }
+        std::string get_details(void) const { return "automatically generated file"; }
+        std::string get_author(void) const { return util::concat("vrtlmod::vapi::VapiDiffCompareFastSource v", get_version()); }
+        std::string generate_body(void) const;
+        std::string get_filename(void) const;
+    } vapi_diff_compare_fast_cpp_{ *this };
+
+    struct VapiDiffCompareSource final : public TemplateFile
+    {
+        VapiGenerator &gen_;
+        VapiDiffCompareSource(VapiGenerator &gen) : gen_(gen) {}
+        std::string get_brief(void) const { return "vrtlmod api diff compare source"; }
+        std::string get_details(void) const { return "automatically generated file"; }
+        std::string get_author(void) const { return util::concat("vrtlmod::vapi::VapiDiffCompareSource v", get_version()); }
+        std::string generate_body(void) const;
+        std::string get_filename(void) const;
+    } vapi_diff_compare_cpp_{ *this };
+
+    struct VapiDiffComputeSource final : public TemplateFile
+    {
+        VapiGenerator &gen_;
+        VapiDiffComputeSource(VapiGenerator &gen) : gen_(gen) {}
+        std::string get_brief(void) const { return "vrtlmod api diff compute source"; }
+        std::string get_details(void) const { return "automatically generated file"; }
+        std::string get_author(void) const { return util::concat("vrtlmod::vapi::VapiDiffComputeSource v", get_version()); }
+        std::string generate_body(void) const;
+        std::string get_filename(void) const;
+    } vapi_diff_compute_cpp_{ *this };
 
     std::vector<std::string> prepare_files(const std::vector<std::string> &files,
                                            const std::vector<std::string> &file_ext_matchers, bool overwrite);
@@ -106,6 +162,7 @@ class VapiGenerator
     std::string get_targetdictionary_relpath(void) const;
     std::string get_apiheader_filename(void) const;
     std::string get_apisource_filename(void) const;
+    std::string get_diffapiheader_filename(void) const;
     ///////////////////////////////////////////////////////////////////////
     /// \brief Returns String containing the include macros for API
     std::string getInludeStrings(void) const;

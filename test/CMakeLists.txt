@@ -121,8 +121,17 @@ if(BUILD_TESTING)
     file(GLOB CC_SOURCES ${CC_SUBDIR}/*)
 
     string(REPLACE ";" " " CIN_STR "${CIN}")
+
+    set(GENERATED_API_SRCS
+        ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp
+        ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmod_diffapi.cpp
+        ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmod_diffapi_compare_fast.cpp
+        ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmod_diffapi_compare.cpp
+        ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmod_diffapi_compute.cpp
+    )
+
     add_custom_command(
-        OUTPUT ${COUT} ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.hpp
+        OUTPUT ${COUT} ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.hpp ${GENERATED_API_SRCS}
         DEPENDS null ${PROJECT_NAME}-bin
         COMMAND ${PROJECT_BINARY_DIR}/${PROJECT_NAME} ARGS --out=${CC_SUBDIR}/vrtlmod/ ${CIN} -v -- clang++ -v -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} -I${CC_SUBDIR}/vrtlmod/ -I${VERILATOR_INCLUDE_DIRECTORY} -I${VERILATOR_INCLUDE_DIRECTORY}/vltstd -I${CLANG_INCLUDE_DIRS}
         COMMENT "executing vrtlmod: ..  ${PROJECT_BINARY_DIR}/${PROJECT_NAME} --out=${CC_SUBDIR}/vrtlmod ${CIN_STR} -v -- clang++ -v -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} -I${CC_SUBDIR}/vrtlmod/ -I${VERILATOR_INCLUDE_DIRECTORY} -I${VERILATOR_INCLUDE_DIRECTORY}/vltstd -I${CLANG_INCLUDE_DIRS}"
@@ -133,7 +142,7 @@ if(BUILD_TESTING)
         EXCLUDE_FROM_ALL
         ${COUT}
         ${VERILATOR_INCLUDE_DIRECTORY}/verilated.cpp
-        ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp
+        ${GENERATED_API_SRCS}
     )
     target_include_directories(${PROJECT_NAME}-test-cc_vrtlmod PUBLIC
         ${CC_SUBDIR}/vrtlmod
@@ -177,9 +186,17 @@ if(BUILD_TESTING)
 
     file(GLOB CC_SOURCES ${SC_SUBDIR}/*)
 
+    set(GENERATED_API_SRCS
+        ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp
+        ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmod_diffapi.cpp
+        ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmod_diffapi_compare_fast.cpp
+        ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmod_diffapi_compare.cpp
+        ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmod_diffapi_compute.cpp
+    )
+
     string(REPLACE ";" " " SCIN_STR "${SCIN}")
     add_custom_command(
-        OUTPUT ${SCOUT} ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.hpp
+        OUTPUT ${SCOUT} ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.hpp ${GENERATED_API_SRCS}
         DEPENDS sc-null ${PROJECT_NAME}-bin
         COMMAND ${PROJECT_BINARY_DIR}/${PROJECT_NAME} ARGS --systemc --out=${SC_SUBDIR}/vrtlmod ${SCIN} -v -- clang++ -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} -I${SC_SUBDIR}/vrtlmod -I${VERILATOR_INCLUDE_DIRECTORY} -I${VERILATOR_INCLUDE_DIRECTORY}/vltstd -I${CLANG_INCLUDE_DIRS} -I${SYSTEMC_INCLUDE_DIRS}
         COMMENT "executing vrtlmod: .. ${PROJECT_BINARY_DIR}/${PROJECT_NAME} --systemc --out=${SC_SUBDIR}/vrtlmod ${SCIN_STR} -v -- clang++ -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} -I${SC_SUBDIR}/vrtlmod -I${VERILATOR_INCLUDE_DIRECTORY} -I${VERILATOR_INCLUDE_DIRECTORY}/vltstd -I${CLANG_INCLUDE_DIRS} -I${SYSTEMC_INCLUDE_DIRS}"
@@ -190,7 +207,7 @@ if(BUILD_TESTING)
         EXCLUDE_FROM_ALL
         ${SCOUT}
         ${VERILATOR_INCLUDE_DIRECTORY}/verilated.cpp
-        ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp
+        ${GENERATED_API_SRCS}
     )
     target_include_directories(${PROJECT_NAME}-test-sc_vrtlmod PUBLIC
         ${SC_SUBDIR}/vrtlmod

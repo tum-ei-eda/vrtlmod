@@ -160,10 +160,18 @@ endif()
 
 message("run vrtlmod: " ${MAKE_VRTLMOD})
 
+set(GENERATED_API_SRCS
+    ${CMAKE_CURRENT_BINARY_DIR}/${VRTLMOD_OUT_DIR}/V${TOP_NAME}_vrtlmodapi.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/${VRTLMOD_OUT_DIR}/V${TOP_NAME}_vrtlmod_diffapi.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/${VRTLMOD_OUT_DIR}/V${TOP_NAME}_vrtlmod_diffapi_compare_fast.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/${VRTLMOD_OUT_DIR}/V${TOP_NAME}_vrtlmod_diffapi_compare.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/${VRTLMOD_OUT_DIR}/V${TOP_NAME}_vrtlmod_diffapi_compute.cpp
+)
+
 if(MAKE_VRTLMOD)
     vrtlmod(
         SOURCES ${CC_SOURCES}
-        OUTPUT ${VRTLMOD_OUTSOURCES} ${CMAKE_CURRENT_BINARY_DIR}/${VRTLMOD_OUT_DIR}/V${TOP_NAME}_vrtlmodapi.cpp
+        OUTPUT ${VRTLMOD_OUTSOURCES} ${GENERATED_API_SRCS} 
         VERBOSE
         SYSTEMC
         OUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/${VRTLMOD_OUT_DIR}
@@ -176,7 +184,7 @@ add_library(V${TOP_NAME}_vrtlmod SHARED
     ${CMAKE_CURRENT_BINARY_DIR}/null.cpp
     ${VRTLMOD_OUTSOURCES}
     ${VERILATOR_INCLUDE_DIRECTORY}/verilated.cpp
-    ${CMAKE_CURRENT_BINARY_DIR}/${VRTLMOD_OUT_DIR}/V${TOP_NAME}_vrtlmodapi.cpp
+    ${GENERATED_API_SRCS}
 )
 target_include_directories(V${TOP_NAME}_vrtlmod PUBLIC
     ${VERILATOR_INCLUDE_DIRECTORY}

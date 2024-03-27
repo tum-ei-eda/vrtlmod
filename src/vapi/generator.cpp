@@ -51,6 +51,7 @@ std::string VapiGenerator::get_targetdictionary_relpath(void) const
     ret += get_targetdictionary_filename();
     return ret;
 }
+
 std::string VapiGenerator::get_apiheader_filename(void) const
 {
     std::string top_name = get_core().get_top_cell().get_type();
@@ -61,6 +62,7 @@ std::string VapiGenerator::get_apiheader_filename(void) const
 #endif
     return util::concat(top_name, "_", API_HEADER_NAME);
 }
+
 std::string VapiGenerator::get_apisource_filename(void) const
 {
     std::string top_name = get_core().get_top_cell().get_type();
@@ -71,6 +73,12 @@ std::string VapiGenerator::get_apisource_filename(void) const
 #endif
 
     return util::concat(top_name, "_", API_SOURCE_NAME);
+}
+
+
+std::string VapiGenerator::get_diffapiheader_filename(void) const
+{
+    return vapi_diff_hpp_.get_filename();
 }
 
 int VapiGenerator::build_targetdictionary(void) const
@@ -94,6 +102,11 @@ int VapiGenerator::build_api(void) const
     }
     vapisrc_.write(api_dir / get_apisource_filename());
     vapiheader_.write(api_dir / get_apiheader_filename());
+    vapi_diff_cpp_.write(api_dir / vapi_diff_cpp_.get_filename());
+    vapi_diff_hpp_.write(api_dir / vapi_diff_hpp_.get_filename());
+    vapi_diff_compare_fast_cpp_.write(api_dir / vapi_diff_compare_fast_cpp_.get_filename());
+    vapi_diff_compare_cpp_.write(api_dir / vapi_diff_compare_cpp_.get_filename());
+    vapi_diff_compute_cpp_.write(api_dir / vapi_diff_compute_cpp_.get_filename());
 
     unsigned int failed = get_core().get_ctx().toinj_targets_.size();
 
