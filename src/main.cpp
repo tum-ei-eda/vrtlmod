@@ -198,6 +198,15 @@ int main(int argc, const char **argv)
 
     core.initialize_injection_targets(WhiteListXmlFilename);
 
+    clang::tooling::ClangTool stage3_InjectionExprRewriterTool(op->getCompilations(), sources);
+    if (!bool(NoAutoInclude))
+    {
+        auto_argument_adjust(stage3_InjectionExprRewriterTool);
+    }
+    LOG_INFO("Rewrite VRTL sources for injection points ...");
+    err = stage3_InjectionExprRewriterTool.run(vrtlmod::CreateInjectionPass(core).get());
+    LOG_INFO("... done");
+
     LOG_INFO("Rewrite VRTL headers for injectable signals ...");
     for (auto const &header_file : headers)
     {
@@ -208,15 +217,6 @@ int main(int argc, const char **argv)
         }
         err = stage3_SigDeclRewriterTool.run(vrtlmod::CreateSignalDeclPass(core).get());
     }
-    LOG_INFO("... done");
-
-    clang::tooling::ClangTool stage3_InjectionExprRewriterTool(op->getCompilations(), sources);
-    if (!bool(NoAutoInclude))
-    {
-        auto_argument_adjust(stage3_InjectionExprRewriterTool);
-    }
-    LOG_INFO("Rewrite VRTL sources for injection points ...");
-    err = stage3_InjectionExprRewriterTool.run(vrtlmod::CreateInjectionPass(core).get());
     LOG_INFO("... done");
 
     LOG_INFO("Generate API ...");
