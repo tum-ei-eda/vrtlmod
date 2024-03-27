@@ -168,7 +168,11 @@ int main(int argc, const char **argv)
     err = MacroTool.run(vrtlmod::CreateMacroRewritePass(core).get());
     LOG_INFO("... done");
 
-    // create a new Clang Tool instance for Macro cleanup in source files
+    // postprocess *.h / *.hpp files: Remove anonymous structs
+    LOG_INFO("Pre-process headers ...");
+    core.preprocess_headers(headers);
+    LOG_INFO("... done");
+
     clang::tooling::ClangTool stage1_ParserTool(op->getCompilations(), srcs_and_headers);
     if (!bool(NoAutoInclude))
     {
@@ -217,6 +221,11 @@ int main(int argc, const char **argv)
 
     LOG_INFO("Generate API ...");
     core.build_api();
+    LOG_INFO("... done");
+
+    // postprocess *.h / *.hpp files: Reintroduce anonymous structs
+    LOG_INFO("Postprocess modified sources ...");
+    core.postprocess_headers(headers);
     LOG_INFO("... done");
 
     return err;
