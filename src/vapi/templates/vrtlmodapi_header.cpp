@@ -61,6 +61,24 @@ struct )"
       << api_name << R"( : public vrtlfi::td::TD_API
 {
     std::map<const vrtlfi::td::TDentry*, size_t> target2id_;
+    //
+    )" << api_name << R"((const char* name =")" << top_type << R"(");
+    //
+    virtual ~)" << api_name << R"((void) = default;
+    //
+    )" << api_name << "(" << api_name << R"( const&) = delete;
+    //
+    void operator=()" << api_name << R"( const&) = delete;
+    //
+    )" << top_type << R"( vrtl_;
+    //
+    void connect_vrtl2api(void);
+    /////////////////////////////////////////////////////////////////////////////
+    /// \brief Dump the Diff as CSV
+    /// \param out Stream handle, may be fstream, sstream, cout, cerr, etc. ...
+    void dump_diff_csv(std::ostream& out = std::cout) const;
+    void dump_diff_csv_vertical(std::ostream& out = std::cout) const;
+    )";
     std::map<size_t, const vrtlfi::td::TDentry*> id2target_;
 
 )"

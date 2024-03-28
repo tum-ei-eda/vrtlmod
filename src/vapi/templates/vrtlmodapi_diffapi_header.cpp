@@ -148,12 +148,6 @@ struct )"
     int diff_target_dictionaries(void);
 
     /////////////////////////////////////////////////////////////////////////////
-    /// \brief Dump the Diff as CSV
-    /// \param out Stream handle, may be fstream, sstream, cout, cerr, etc. ...
-    void dump_diff_csv(std::ostream& out = std::cout) const;
-    void dump_diff_csv_vertical(std::ostream& out = std::cout) const;
-
-    /////////////////////////////////////////////////////////////////////////////
     /// \brief Compare `faulty_` with `reference_`.
     /// \param start Begin diff loop with target default or nullptr starts at
     ///              list entry..
