@@ -22,6 +22,7 @@
 #include <array>
 #include <memory>
 #include <sstream>
+#include <fstream>
 
 #include "vrtlmod/util/utility.hpp"
 #include "vrtlmod/util/logging.hpp"
