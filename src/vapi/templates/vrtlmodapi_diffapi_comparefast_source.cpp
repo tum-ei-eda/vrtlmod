@@ -289,8 +289,13 @@ compare_rotate_switch_entry:
                                                     // where id is the XML node type
                 if (name == "in" || name == "out" || name == "inout")
                 {
+                    
                     auto type = var->get_cxx_type();
                     auto port_name = var->get_id();
+                    std::string prefix_str = "TOP";
+                    std::string member_name = util::concat(prefix_str, "__DOT__", var->get_id(), "_");
+                    util::strhelp::replaceAll(member_name, ".", "__DOT__");
+                    util::strhelp::replaceAll(member_name, "->", "__REF__");
                     auto diff_expr =
                         util::concat("faulty_.vrtl_.", port_name, ".read() ^ reference_.vrtl_.", port_name, ".read()");
 
@@ -301,8 +306,7 @@ compare_rotate_switch_entry:
             if(__UNLIKELY(()"
                       << diff_expr << ") != 0))"
                       << R"(
-                return faulty_.td_.at("TOP.)"
-                      << port_name << "\").get();";
+                return &(faulty_.)" << member_name << ");";
                     x << R"(
         [[ fallthrough ]];)";
                     ++td_nmb;

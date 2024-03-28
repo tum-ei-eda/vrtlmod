@@ -395,7 +395,7 @@ class TD_API
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// \brief List of TDentry dictionary entries
-    std::map<std::string, std::shared_ptr<TDentry>> td_{};
+    std::map<std::string, TDentry*> td_{};
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// \brief Prepare an injection: Set bits accordingly and arm target
@@ -514,7 +514,7 @@ class TD_API
     {
         try
         {
-            return td_.at(targetname).get();
+            return td_.at(targetname);
         }
         catch (const std::out_of_range &e)
         {

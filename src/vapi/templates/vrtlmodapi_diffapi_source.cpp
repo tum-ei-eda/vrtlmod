@@ -225,7 +225,7 @@ size_t )"
             nz_triplet_list.push_back({ )"
                               << td_nmb << ", "
                               << "static_cast<uint16_t>(k)"
-                              << ", " << util::concat("static_cast<uint64_t>(", xor_str, "[k]", ")") << R"()});"
+                              << ", " << util::concat("static_cast<uint64_t>(", xor_str, "[k]", ")") << R"(});
 )";
                         }
                     }
@@ -264,7 +264,7 @@ size_t )"
                 nz_triplet_list.push_back({ )"
                               << td_nmb << ", "
                               << util::concat("static_cast<uint16_t>(l * ", std::to_string(cxxdim[1]), "/*K*/ + k)")
-                              << ", " << util::concat("static_cast<uint64_t>(", xor_str, "[l][k]", ")") << R"()});"
+                              << ", " << util::concat("static_cast<uint64_t>(", xor_str, "[l][k]", ")") << R"(});
 )";
                         }
                     }
@@ -309,7 +309,7 @@ size_t )"
                               << td_nmb << ", "
                               << util::concat("static_cast<uint16_t>((m*", std::to_string(cxxdim[1]), "/*L*/ + l) * ",
                                               std::to_string(cxxdim[2]), "/*K*/ + k)")
-                              << ", " << util::concat("static_cast<uint64_t>(", xor_str, "[m][l][k]", ")") << R"()});"
+                              << ", " << util::concat("static_cast<uint64_t>(", xor_str, "[m][l][k]", ")") << R"(});
 )";
                         }
                     }

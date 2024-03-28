@@ -66,16 +66,13 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
       << "::" << api_name << R"((const char* name)
     : vrtlfi::td::TD_API()
     , vrtl_(name)
-{
 )";
 
-    auto write_init_td = [&](const types::Module &M) -> bool
-    {
+    auto write_init_td = [&](const types::Module &M) -> bool {
         types::Module const *m = &M;
         types::Cell const *c = nullptr;
 
-        auto celliter = [&](const types::Cell &C) -> bool
-        {
+        auto celliter = [&](const types::Cell &C) -> bool {
             if (m == core.get_module_from_cell(C))
             {
                 c = &C;
@@ -90,60 +87,33 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
             LOG_FATAL("Can not find parent Cell of Module ", m->get_id(), " [", m->get_name(), "]");
         }
 
-        auto targetiterf = [&](const types::Target &t) -> bool
-        {
+        auto targetiterf = [&](const types::Target &t) -> bool {
             if (t.get_parent() == *m)
             {
                 for (const auto &module_instance : t.get_parent().symboltable_instances_)
                 {
-                    std::stringstream smart_type, initializer;
-                    std::string type_str, initializer_str;
                     auto prefix_str = core.get_prefix(c, module_instance);
-                    auto member_str = util::concat("vrtl_.", core.get_memberstr(c, t, prefix_str));
 
-                    std::string map_key = util::concat(prefix_str, ".", t.get_id());
+                    std::string initializer_str = util::concat(
+                        // clang-format off
+                          "{ "
+                        , util::concat("\"", prefix_str, ".", t.get_id(), "\"")
+                        , ", "
+                        , util::concat("vrtl_.", core.get_memberstr(c, t, prefix_str))
+                        , ", "
+                        , std::to_string(t.get_bits())
+                        , ", "
+                        , std::to_string(t.get_one_dim_bits())
+                        , " }"
+                        // clang-format on
+                    );
 
-                    smart_type << "vrtlfi::td::";
-
-                    auto cxxdim = t.get_cxx_dimension_lengths();
-                    auto one_dim_bits = t.get_one_dim_bits();
-                    auto cxxdimtypes = t.get_cxx_dimension_types();
-
-                    switch (cxxdim.size())
-                    {
-                    case 0:
-                        smart_type << "ZeroD_TDentry<" << t.get_cxx_type() << ">";
-                        initializer << "(\"" << prefix_str << "." << t.get_id() << "\", " << member_str << ", "
-                                    << t.get_bits() << ", " << one_dim_bits << ")";
-                        break;
-                    case 1:
-                        smart_type << "OneD_TDentry<" << t.get_cxx_type() << ", " << cxxdimtypes.back() << ", "
-                                   << cxxdim[0] << ">";
-                        initializer << "(\"" << prefix_str << "." << t.get_id() << "\", " << member_str << ", "
-                                    << t.get_bits() << ", " << one_dim_bits << ")";
-                        break;
-                    case 2:
-                        smart_type << "TwoD_TDentry<" << t.get_cxx_type() << ", " << cxxdimtypes.back() << ", "
-                                   << cxxdim[0] << ", " << cxxdim[1] << ">";
-                        initializer << "(\"" << prefix_str << "." << t.get_id() << "\", " << member_str << ", "
-                                    << t.get_bits() << ", " << one_dim_bits << ")";
-                        break;
-                    case 3:
-                        smart_type << "ThreeD_TDentry<" << t.get_cxx_type() << ", " << cxxdimtypes.back() << ", "
-                                   << cxxdim[0] << ", " << cxxdim[1] << ", " << cxxdim[2] << ">";
-                        initializer << "(\"" << prefix_str << "." << t.get_id() << "\", " << member_str << ", "
-                                    << t.get_bits() << ", " << one_dim_bits << ")";
-                        break;
-                    default:
-                        LOG_ERROR("CType dimensions of injection target not supported: ", t.get_cxx_type());
-                        break;
-                    }
-                    x << "    td_[ \"" << map_key << "\" ]"
-                      << " = "
-                      << "std::make_shared< " << smart_type.str() << " >" << initializer.str() << ";\n";
-                    x << "    " << member_str << "__td_"
-                      << " = std::static_pointer_cast< " << smart_type.str() << ">(td_.at(\"" << map_key
-                      << "\")).get();\n\n";
+                    std::string member_name = util::concat(prefix_str, "__DOT__", t.get_id(), "_");
+                    util::strhelp::replaceAll(member_name, ".", "__DOT__");
+                    util::strhelp::replaceAll(member_name, "->", "__REF__");
+                    x << R"(
+    , )" << member_name
+                      << initializer_str;
                 }
             }
             return true;
@@ -162,23 +132,26 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
         {
             for (auto const &var : top_module->variables_)
             {
-                std::string name = var->get_type(); //< seems odd to get name by get_type, but the name is the XML type where id is the XML node type
+                std::string name = var->get_type(); //< seems odd to get name by get_type, but the name is the XML type
+                                                    // where id is the XML node type
                 if (name == "in" || name == "out" || name == "inout")
                 {
-                    auto type = var->get_bases();
-                    util::strhelp::replace(type, "[", "");
-                    util::strhelp::replace(type, "]", "");
-                    auto port_type_str = type; //util::concat("sc_", name, "<", type, ">");
-                    auto port_name = var->get_id();
-                    std::string prefix_str = "TOP";
-                    std::string map_key = util::concat(prefix_str, ".", port_name);
+                    std::string decl_name = util::concat("TOP", "__DOT__", var->get_id(), "_");
+                    util::strhelp::replaceAll(decl_name, ".", "__DOT__");
+                    util::strhelp::replaceAll(decl_name, "->", "__REF__");
+                    std::string initializer_str = util::concat(
+                        // clang-format off
+                          "{ "
+                        , util::concat("/*name:*/", "\"", "TOP", ".", var->get_id(), "\"")
+                        , ", "
+                        , util::concat("/*data:*/", "vrtl_", ".", var->get_id())
+                        , ", "
+                        , util::concat("/*bits:*/", std::to_string(var->get_bits()))
+                        , " }"
+                        // clang-format on
+                    );
                     x << R"(
-    td_[")" << map_key << "\"]" << " = " << "std::make_shared< " << "vrtlfi::td::SystemC_Port_TDentry< "
-                      << port_type_str << " >" << " >" << "(" << R"(
-          /*name:*/    ")" << map_key << R"("
-        , /*dataRef:*/ vrtl_.)" << port_name << R"(
-        , /*bits:*/    )" << var->get_bits()
-                      << ")" << ";\n";
+    , )" << decl_name << initializer_str;
                 }
             }
         }
@@ -186,16 +159,17 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
     x << R"(
 )";
 
+    x << R"(
+)";
+
     std::string map_prefix = "";
     std::string retr_prefix = "";
     bool reverse_map = false;
-    auto writetarget2idinitializer = [&](const types::Module &M) -> bool
-    {
+    auto writetarget2idinitializer = [&](const types::Module &M) -> bool {
         types::Module const *m = &M;
         types::Cell const *c = nullptr;
 
-        auto celliter = [&](const types::Cell &C) -> bool
-        {
+        auto celliter = [&](const types::Cell &C) -> bool {
             if (m == core.get_module_from_cell(C))
             {
                 c = &C;
@@ -210,15 +184,19 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
             LOG_FATAL("Can not find parent Cell of Module ", m->get_id(), " [", m->get_name(), "]");
         }
 
-        auto targetiterf = [&](const types::Target &t) -> bool
-        {
+        auto targetiterf = [&](const types::Target &t) -> bool {
             if (t.get_parent() == *m)
             {
                 for (const auto &module_instance : t.get_parent().symboltable_instances_)
                 {
                     auto prefix_str = core.get_prefix(c, module_instance);
-                    auto member_str = util::concat("vrtl_.", core.get_memberstr(c, t, prefix_str));
-                    auto element_0 = member_str + "__td_";
+                    // auto member_str = util::concat("vrtl_.", core.get_memberstr(c, t, prefix_str));
+                    // auto element_0 = member_str + "__td_";
+
+                    std::string member_name = util::concat(prefix_str, "__DOT__", t.get_id(), "_");
+                    util::strhelp::replaceAll(member_name, ".", "__DOT__");
+                    util::strhelp::replaceAll(member_name, "->", "__REF__");
+                    auto element_0 = util::concat("&", member_name);
                     auto element_1 = std::to_string(td_nmb);
                     x << "\n        ";
                     if (td_nmb == 0)
@@ -239,6 +217,7 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
         core.foreach_injection_target(targetiterf);
         return true;
     };
+
     auto write_systemc_target2id = [&](void) -> void {
         if (core.is_systemc())
         {
@@ -246,12 +225,15 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
             {
                 for (auto const &var : top_module->variables_)
                 {
-                    std::string name = var->get_type(); //< seems odd to get name by get_type, but the name is the XML type where id is the XML node type
+                    std::string name = var->get_type(); //< seems odd to get name by get_type, but the name is the XML
+                                                        // type where id is the XML node type
                     if (name == "in" || name == "out" || name == "inout")
                     {
-                        auto port_name = var->get_id();
-                        std::string prefix_str = "TOP";
-                        auto element_0 = util::concat("td_.at(\"", prefix_str, ".", port_name, "\").get()");
+                        std::string decl_name = util::concat("TOP", "__DOT__", var->get_id(), "_");
+                        util::strhelp::replaceAll(decl_name, ".", "__DOT__");
+                        util::strhelp::replaceAll(decl_name, "->", "__REF__");
+                        // auto port_name = var->get_id();
+                        auto element_0 = util::concat("&", decl_name); // util::concat("vrtl_.", port_name, "__td_");
                         auto element_1 = std::to_string(td_nmb);
                         x << "\n        ";
                         if (td_nmb == 0)
@@ -262,8 +244,8 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
                         {
                             x << ", ";
                         }
-                        x << "{ " << (reverse_map ? element_1 : element_0) << ", " << (reverse_map ? element_0 : element_1)
-                        << " }";
+                        x << "{ " << (reverse_map ? element_1 : element_0) << ", "
+                          << (reverse_map ? element_0 : element_1) << " }";
                         ++td_nmb;
                     }
                 }
@@ -271,26 +253,115 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
         }
     };
 
-    map_prefix = "";
     retr_prefix = "";
     reverse_map = true;
     td_nmb = 0;
-    x << "    " << map_prefix << (reverse_map ? "id2target_ = {" : "target2id_ = {");
+    x << R"(
+    , )"
+      << (reverse_map ? "id2target_{" : "target2id_{"); //(reverse_map ? "id2target_ = {" : "target2id_ = {");
     core.foreach_module(writetarget2idinitializer);
     write_systemc_target2id();
     x << R"(
-    };
-)";
+    })";
 
-    map_prefix = "";
     retr_prefix = "";
     reverse_map = false;
     td_nmb = 0;
-    x << "    " << map_prefix << (reverse_map ? "id2target_ = {" : "target2id_ = {");
+    x << R"(
+    , )"
+      << (reverse_map ? "id2target_{" : "target2id_{"); //(reverse_map ? "id2target_ = {" : "target2id_ = {");
     core.foreach_module(writetarget2idinitializer);
     write_systemc_target2id();
     x << R"(
+    })";
+    x << R"(
+{
+    connect_vrtl2api();
+}
+)";
+
+    auto write_connect_vrtl2api = [&](const types::Module &M) -> bool {
+        types::Module const *m = &M;
+        types::Cell const *c = nullptr;
+
+        auto celliter = [&](const types::Cell &C) -> bool {
+            if (m == core.get_module_from_cell(C))
+            {
+                c = &C;
+                return false;
+            }
+            return true;
+        };
+        core.foreach_cell(celliter);
+
+        if (c == nullptr)
+        {
+            LOG_FATAL("Can not find parent Cell of Module ", m->get_id(), " [", m->get_name(), "]");
+        }
+
+        auto targetiterf = [&](const types::Target &t) -> bool {
+            if (t.get_parent() == *m)
+            {
+                for (const auto &module_instance : t.get_parent().symboltable_instances_)
+                {
+                    auto prefix_str = core.get_prefix(c, module_instance);
+                    std::string vrtl_decl_name = util::concat("vrtl_.", core.get_memberstr(c, t, prefix_str));
+                    std::string member_name = util::concat(prefix_str, "__DOT__", t.get_id(), "_");
+                    util::strhelp::replaceAll(member_name, ".", "__DOT__");
+                    util::strhelp::replaceAll(member_name, "->", "__REF__");
+                    std::string map_key = util::concat(prefix_str, ".", t.get_id());
+                    x << R"(
+    )" << vrtl_decl_name
+                      << "__td_"
+                      << " = "
+                      << "&" << member_name << ";";
+                    x << R"(
+    )"
+                      << "td_[\"" << map_key << "\"] = "
+                      << "&" << member_name << ";";
+                }
+            }
+            return true;
+        };
+        core.foreach_injection_target(targetiterf);
+
+        return true;
     };
+
+    x << "void " << api_name << R"(::connect_vrtl2api(void)
+{
+)";
+    td_nmb = 0;
+    core.foreach_module(write_connect_vrtl2api);
+
+    if (core.is_systemc())
+    {
+        if (auto top_module = core.get_module_from_cell(core.get_top_cell()))
+        {
+            for (auto const &var : top_module->variables_)
+            {
+                std::string name = var->get_type(); //< seems odd to get name by get_type, but the name is the XML type
+                                                    // where id is the XML node type
+                if (name == "in" || name == "out" || name == "inout")
+                {
+                    std::string prefix_str = "TOP";
+                    std::string member_name = util::concat(prefix_str, "__DOT__", var->get_id(), "_");
+                    util::strhelp::replaceAll(member_name, ".", "__DOT__");
+                    util::strhelp::replaceAll(member_name, "->", "__REF__");
+                    std::string map_key = util::concat(prefix_str, ".", var->get_id());
+                    x << R"(
+    )"
+                      << "td_[\"" << map_key << "\"] = "
+                      << "&" << member_name << ";";
+                    ++td_nmb;
+                }
+            }
+        }
+    }
+
+    x << R"(
+}
+
 )";
 
     x << R"(void )" << api_name << R"(::dump_diff_csv(std::ostream& out) const
