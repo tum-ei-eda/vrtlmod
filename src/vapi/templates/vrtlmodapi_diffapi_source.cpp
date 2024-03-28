@@ -197,33 +197,14 @@ size_t )"
                     break;
                     case 1:
                     {
-                        auto element_ctr = 0;
-                        for (size_t k = 0; k < cxxdim[0]; ++k)
+                        if (hard_unroll)
                         {
-                            x << R"(
-    if (auto d = )"
-                              << "static_cast<uint64_t>(" << xor_str << "[" << k << "]"
-                              << R"())
-    {
-        nz_triplet_list.push_back({ )"
-                              << td_nmb << ", " << element_ctr << ", d });"
-                              << R"(
-    }
-)";
-                            ++element_ctr;
-                        }
-                    }
-                    break;
-                    case 2:
-                    {
-                        auto element_ctr = 0;
-                        for (size_t l = 0; l < cxxdim[0]; ++l)
-                            for (size_t k = 0; k < cxxdim[1]; ++k)
+                            auto element_ctr = 0;
+                            for (size_t k = 0; k < cxxdim[0]; ++k)
                             {
                                 x << R"(
     if (auto d = )"
-                                  << "static_cast<uint64_t>(" << xor_str << "[" << l << "]"
-                                  << "[" << k << "]"
+                                  << "static_cast<uint64_t>(" << xor_str << "[" << k << "]"
                                   << R"())
     {
         nz_triplet_list.push_back({ )"
@@ -233,19 +214,33 @@ size_t )"
 )";
                                 ++element_ctr;
                             }
+                        }
+                        else
+                        {
+                            x << R"(
+    for(size_t k = 0; k < )" << cxxdim[0]
+                              << R"(/*K*/; ++k)
+        if()" << xor_str << "[k] != 0)"
+                              << R"(
+            nz_triplet_list.push_back({ )"
+                              << td_nmb << ", "
+                              << "static_cast<uint16_t>(k)"
+                              << ", " << util::concat("static_cast<uint64_t>(", xor_str, "[k]", ")") << R"()});"
+)";
+                        }
                     }
                     break;
-                    case 3:
+                    case 2:
                     {
-                        auto element_ctr = 0;
-                        for (size_t m = 0; m < cxxdim[0]; ++m)
-                            for (size_t l = 0; l < cxxdim[1]; ++l)
-                                for (size_t k = 0; k < cxxdim[2]; ++k)
+                        if (hard_unroll)
+                        {
+                            auto element_ctr = 0;
+                            for (size_t l = 0; l < cxxdim[0]; ++l)
+                                for (size_t k = 0; k < cxxdim[1]; ++k)
                                 {
                                     x << R"(
     if (auto d = )"
-                                      << "static_cast<uint64_t>(" << xor_str << "[" << m << "]"
-                                      << "[" << l << "]"
+                                      << "static_cast<uint64_t>(" << xor_str << "[" << l << "]"
                                       << "[" << k << "]"
                                       << R"())
     {
@@ -256,6 +251,67 @@ size_t )"
 )";
                                     ++element_ctr;
                                 }
+                        }
+                        else
+                        {
+                            x << R"(
+    for(size_t l = 0; l < )" << cxxdim[0]
+                              << R"(/*L*/; ++l)
+        for(size_t k = 0; k < )"
+                              << cxxdim[1] << R"(/*K*/; ++k)
+            if()" << xor_str << "[l][k] != 0)"
+                              << R"(
+                nz_triplet_list.push_back({ )"
+                              << td_nmb << ", "
+                              << util::concat("static_cast<uint16_t>(l * ", std::to_string(cxxdim[1]), "/*K*/ + k)")
+                              << ", " << util::concat("static_cast<uint64_t>(", xor_str, "[l][k]", ")") << R"()});"
+)";
+                        }
+                    }
+                    break;
+                    case 3:
+                    {
+                        if (hard_unroll)
+                        {
+                            auto element_ctr = 0;
+                            for (size_t m = 0; m < cxxdim[0]; ++m)
+                                for (size_t l = 0; l < cxxdim[1]; ++l)
+                                    for (size_t k = 0; k < cxxdim[2]; ++k)
+                                    {
+                                        x << R"(
+    if (auto d = )"
+                                          << "static_cast<uint64_t>(" << xor_str << "[" << m << "]"
+                                          << "[" << l << "]"
+                                          << "[" << k << "]"
+                                          << R"())
+    {
+        nz_triplet_list.push_back({ )" << td_nmb
+                                          << ", " << element_ctr << ", d });"
+                                          << R"(
+    }
+)";
+                                        ++element_ctr;
+                                    }
+                        }
+                        else
+                        {
+                            x << R"(
+    for(size_t m = 0; m < )" << cxxdim[0]
+                              << R"(/*M*/; ++m)
+        for(size_t l = 0; l < )"
+                              << cxxdim[1] << R"(/*L*/; ++l)
+            for(size_t k = 0; k < )"
+                              << cxxdim[2] << R"(/*K*/; ++k)
+                if()" << xor_str
+                              << "[m][l][k] != 0)"
+                              << R"(
+                    nz_triplet_list.push_back({ )"
+                              << td_nmb << ", "
+                              << util::concat("static_cast<uint16_t>((m*", std::to_string(cxxdim[1]), "/*L*/ + l) * ",
+                                              std::to_string(cxxdim[2]), "/*K*/ + k)")
+                              << ", " << util::concat("static_cast<uint64_t>(", xor_str, "[m][l][k]", ")") << R"()});"
+)";
+                        }
                     }
                     break;
                     default:
@@ -281,6 +337,7 @@ size_t )"
 {
     std::vector<vrtlfi::td::UniqueElementTriplet> nz_triplet_list{};
 )";
+
     td_nmb = 0;
     core.foreach_module(write_triplet_push);
 
@@ -307,8 +364,6 @@ size_t )"
     if (auto d = )"
                           << "static_cast<uint64_t>(" << port_name << "_diff_"
                           << R"())
-)";
-                        x << R"(
     {
         nz_triplet_list.push_back({ )"
                           << td_nmb << ", "

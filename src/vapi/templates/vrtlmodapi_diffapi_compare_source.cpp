@@ -23,6 +23,7 @@
 
 #include "llvm/Support/CommandLine.h"
 extern llvm::cl::opt<bool> DiffApiHardUnroll;
+
 namespace vrtlmod
 {
 namespace vapi
@@ -131,39 +132,13 @@ std::string VapiGenerator::VapiDiffCompareSource::generate_body(void) const
                     case 1:
                     {
                         x << R"(
-        {
-            switch (element_idx)
-            {)";
-                        for (size_t k = 0; k < cxxdim[0]; ++k)
+        {)";
+                        if (hard_unroll)
                         {
                             x << R"(
-                case )" << element_idx
-                              << ":"
-                              << R"(
-                {
-                    auto d = ()"
-                              << xor_str << "[" << k << "]"
-                              << " ^ "
-                              << "val"
-                              << ") & 0x" << std::hex << t.get_element_mask({ k }) << std::dec << ";";
-                            x << R"(
-                    return d == 0 ? true : false;
-                })";
-                            ++element_idx;
-                        }
-                        x << R"(
-            }
-        })";
-                    }
-                    break;
-                    case 2:
-                    {
-                        x << R"(
-        {
             switch (element_idx)
             {)";
-                        for (size_t l = 0; l < cxxdim[0]; ++l)
-                            for (size_t k = 0; k < cxxdim[1]; ++k)
+                            for (size_t k = 0; k < cxxdim[0]; ++k)
                             {
                                 x << R"(
                 case )" << element_idx
@@ -171,51 +146,122 @@ std::string VapiGenerator::VapiDiffCompareSource::generate_body(void) const
                                   << R"(
                 {
                     auto d = ()" << xor_str
-                                  << "[" << l << "]"
                                   << "[" << k << "]"
                                   << " ^ "
                                   << "val"
-                                  << ") & 0x" << std::hex << t.get_element_mask({ l, k }) << std::dec << ";";
+                                  << ") & 0x" << std::hex << t.get_element_mask({ k }) << std::dec << ";";
                                 x << R"(
                     return d == 0 ? true : false;
                 })";
                                 ++element_idx;
                             }
+                            x << R"(
+            })";
+                        }
+                        else
+                        {
+                            x << R"(
+            size_t k = element_idx;
+            return ((val ^ )" << xor_str
+                              << "[k]) == 0) ? true : false;";
+                        }
                         x << R"(
-            }
         })";
                     }
                     break;
-                    case 3:
+                    case 2:
                     {
                         x << R"(
-        {
+        {)";
+                        if (hard_unroll)
+                        {
+                            x << R"(
             switch (element_idx)
             {)";
-                        for (size_t m = 0; m < cxxdim[0]; ++m)
-                            for (size_t l = 0; l < cxxdim[1]; ++l)
-                                for (size_t k = 0; k < cxxdim[2]; ++k)
+                            for (size_t l = 0; l < cxxdim[0]; ++l)
+                                for (size_t k = 0; k < cxxdim[1]; ++k)
                                 {
                                     x << R"(
                 case )" << element_idx << ":"
                                       << R"(
                 {
                     auto d = ()" << xor_str
-                                      << "[" << m << "]"
                                       << "[" << l << "]"
                                       << "[" << k << "]"
                                       << " ^ "
                                       << "val"
-                                      << ") & 0x" << std::hex << t.get_element_mask({ m, l, k }) << std::dec << ";";
+                                      << ") & 0x" << std::hex << t.get_element_mask({ l, k }) << std::dec << ";";
                                     x << R"(
                     return d == 0 ? true : false;
                 })";
                                     ++element_idx;
                                 }
+                            x << R"(
+            })";
+                        }
+                        else
+                        {
+                            x << R"(
+            size_t l = element_idx / )"
+                              << cxxdim[1] << R"(/*K*/;
+            size_t k = element_idx % )"
+                              << cxxdim[1] << R"(/*K*/;
+            return ((val ^ )" << xor_str
+                              << "[l][k]) == 0) ? true : false;";
+                        }
                         x << R"(
-            }
-        }
-)";
+        })";
+                    }
+                    break;
+                    case 3:
+                    {
+                        x << R"(
+        {)";
+                        if (hard_unroll)
+                        {
+                            x << R"(
+            switch (element_idx)
+            {)";
+                            for (size_t m = 0; m < cxxdim[0]; ++m)
+                                for (size_t l = 0; l < cxxdim[1]; ++l)
+                                    for (size_t k = 0; k < cxxdim[2]; ++k)
+                                    {
+                                        x << R"(
+                case )" << element_idx << ":"
+                                          << R"(
+                {
+                    auto d = ()" << xor_str
+                                          << "[" << m << "]"
+                                          << "[" << l << "]"
+                                          << "[" << k << "]"
+                                          << " ^ "
+                                          << "val"
+                                          << ") & 0x" << std::hex << t.get_element_mask({ m, l, k }) << std::dec << ";";
+                                        x << R"(
+                    return d == 0 ? true : false;
+                })";
+                                        ++element_idx;
+                                    }
+                            x << R"(
+            })";
+                        }
+                        else
+                        {
+                            x << R"(
+            size_t m = (element_idx / )"
+                              << cxxdim[2] << "/*K*/) / " << cxxdim[1] << "/*L*/;"
+                              << R"(
+            size_t l = (element_idx / )"
+                              << cxxdim[2] << "/*K*/) % " << cxxdim[1] << "/*L*/;"
+                              << R"(
+            size_t k = element_idx % )"
+                              << cxxdim[2] << "/*K*/;"
+                              << R"(
+            return ((val ^ )" << xor_str
+                              << "[m][l][k]) == 0) ? true : false;";
+                        }
+                        x << R"(
+        })";
                     }
                     break;
                     default:
@@ -281,8 +327,8 @@ std::string VapiGenerator::VapiDiffCompareSource::generate_body(void) const
                     else
                     {
                         x << R"(
-            auto d = (static_cast<uint64_t>()" << port_name
-                          << "_diff_.get_word(element_idx))"
+            auto d = (static_cast<uint64_t>()"
+                          << port_name << "_diff_.get_word(element_idx))"
                           << " ^ "
                           << "val"
                           << ");";
