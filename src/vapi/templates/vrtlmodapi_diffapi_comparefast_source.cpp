@@ -21,6 +21,9 @@
 
 #include <boost/algorithm/string/replace.hpp>
 
+#include "llvm/Support/CommandLine.h"
+extern llvm::cl::opt<bool> DiffApiHardUnroll;
+
 namespace vrtlmod
 {
 namespace vapi
@@ -69,7 +72,7 @@ std::string VapiGenerator::VapiDiffCompareFastSource::generate_body(void) const
       << gen_.get_diffapiheader_filename() << R"("
 
 )";
-    bool hard_unroll = false;
+    bool hard_unroll = bool(DiffApiHardUnroll);
 
     auto writecomparebody_for_module = [&](const types::Module &M) -> bool {
         types::Module const *m = &M;

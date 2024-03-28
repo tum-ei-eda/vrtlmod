@@ -26,6 +26,9 @@
 
 #include <boost/algorithm/string/replace.hpp>
 
+#include "llvm/Support/CommandLine.h"
+extern llvm::cl::opt<bool> DiffApiHardUnroll;
+
 namespace vrtlmod
 {
 namespace vapi
@@ -135,6 +138,8 @@ size_t )"
 }
 
 )";
+
+    bool hard_unroll = bool(DiffApiHardUnroll);
 
     auto write_triplet_push = [&](const types::Module &M) -> bool {
         types::Module const *m = &M;

@@ -81,6 +81,11 @@ static llvm::cl::opt<bool> NoAutoInclude(
     "no-auto-include", llvm::cl::Optional,
     llvm::cl::desc("Execute without automatic include paths for Verilator and Clang"), llvm::cl::cat(UserCat));
 ////////////////////////////////////////////////////////////////////////////////
+/// \brief Frontend user option "diff-unroll".
+llvm::cl::opt<bool> DiffApiHardUnroll(
+    "diff-unroll", llvm::cl::Optional,
+    llvm::cl::desc("When generating the Diff-API code, unroll all multi-dimensional accesses."), llvm::cl::cat(UserCat));
+////////////////////////////////////////////////////////////////////////////////
 /// \brief Frontend user option "verbose".
 static llvm::cl::opt<bool> Verbose("verbose", llvm::cl::Optional, llvm::cl::desc("Execute with Verbose output"),
                                    llvm::cl::cat(UserCat));

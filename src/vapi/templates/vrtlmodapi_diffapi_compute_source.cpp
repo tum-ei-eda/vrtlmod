@@ -21,6 +21,9 @@
 
 #include <boost/algorithm/string/replace.hpp>
 
+#include "llvm/Support/CommandLine.h"
+extern llvm::cl::opt<bool> DiffApiHardUnroll;
+
 namespace vrtlmod
 {
 namespace vapi
@@ -70,7 +73,7 @@ std::string VapiGenerator::VapiDiffComputeSource::generate_body(void) const
 
 )";
     bool hard_unroll =
-        false; // one statement for basic Ctype element XOR for complex data types a[M][L][K] -> unroll M-L-K
+        bool(DiffApiHardUnroll); // one statement for basic Ctype element XOR for complex data types a[M][L][K] -> unroll M-L-K
     bool hard_mask = false; // after XOR bit-wise AND with bit-vector to ensure Ctypes are aliased to RTL bits
 
     auto writecomparebody = [&](const types::Module &M) -> bool {
