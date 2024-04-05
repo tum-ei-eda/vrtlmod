@@ -75,7 +75,6 @@ std::string VapiGenerator::get_apisource_filename(void) const
     return util::concat(top_name, "_", API_SOURCE_NAME);
 }
 
-
 std::string VapiGenerator::get_diffapiheader_filename(void) const
 {
     return vapi_diff_hpp_.get_filename();
@@ -107,6 +106,7 @@ int VapiGenerator::build_api(void) const
     vapi_diff_compare_fast_cpp_.write(api_dir / vapi_diff_compare_fast_cpp_.get_filename());
     vapi_diff_compare_cpp_.write(api_dir / vapi_diff_compare_cpp_.get_filename());
     vapi_diff_compute_cpp_.write(api_dir / vapi_diff_compute_cpp_.get_filename());
+    vapi_td_python_module_.write(api_dir / vapi_td_python_module_.get_filename());
 
     unsigned int failed = get_core().get_ctx().toinj_targets_.size();
 

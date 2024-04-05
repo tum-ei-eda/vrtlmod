@@ -57,7 +57,7 @@ class VapiGenerator
 #define API_DIFF_COMPARE_FAST_SOURCE_NAME "vrtlmod_diffapi_compare_fast.cpp"
 #define API_DIFF_COMPARE_SOURCE_NAME "vrtlmod_diffapi_compare.cpp"
 #define API_DIFF_COMPUTE_SOURCE_NAME "vrtlmod_diffapi_compute.cpp"
-
+#define API_PYTHON_TD_NAME "vrtlmod_td_module.py"
 
     struct VapiSource final : public TemplateFile
     {
@@ -149,6 +149,18 @@ class VapiGenerator
         std::string generate_body(void) const;
         std::string get_filename(void) const;
     } vapi_diff_compute_cpp_{ *this };
+
+    struct VapiTargetDictionaryPythonModule final: public TemplateFile
+    {
+        VapiGenerator &gen_;
+        VapiTargetDictionaryPythonModule(VapiGenerator &gen) : gen_(gen) {}
+        std::string get_brief(void) const { return "vrtlmod api target dictionary python module"; }
+        std::string get_details(void) const { return "automatically generated file"; }
+        std::string get_author(void) const { return util::concat("vrtlmod::vapi::VapiTargetDictionaryPythonModule v", get_version()); }
+        std::string generate_body(void) const;
+        std::string get_filename(void) const;
+        std::string generate_header(std::string filename) const override;
+    } vapi_td_python_module_{ *this };
 
     std::vector<std::string> prepare_files(const std::vector<std::string> &files,
                                            const std::vector<std::string> &file_ext_matchers, bool overwrite);

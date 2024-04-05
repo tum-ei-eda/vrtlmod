@@ -144,6 +144,7 @@ if(LLVM_FOUND AND Clang_FOUND AND verilator_FOUND)
         src/vapi/templates/vrtlmodapi_diffapi_comparefast_source.cpp
         src/vapi/templates/vrtlmodapi_diffapi_compare_source.cpp
         src/vapi/templates/vrtlmodapi_diffapi_compute_source.cpp
+        src/vapi/templates/targetdictionary_python_module.cpp
         ${CMAKE_CURRENT_BINARY_DIR}/targetdictionary_header.cpp
 
         src/core/consumer.cpp
