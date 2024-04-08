@@ -173,8 +173,7 @@ std::string VapiGenerator::VapiTargetDictionaryPythonModule::generate_body(void)
             target = self.get_id(target)
 
         _, __, injectable = self.data_[target]
-        return injectable;
-
+        return injectable
 
     def get_target_ubit_map(self):
         """
