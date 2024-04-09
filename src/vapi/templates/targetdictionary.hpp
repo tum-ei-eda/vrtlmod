@@ -563,6 +563,7 @@ class TD_API
     }
 
     TD_API(void) = default;
+    TD_API(std::map<std::string, TDentry*>&& td) : td_{std::move(td)} {}
     virtual ~TD_API(void) = default;
 };
 

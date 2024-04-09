@@ -14,11 +14,6 @@
  * limitations under the License.
  */
 
-////////////////////////////////////////////////////////////////////////////////
-/// @file vrtlmodapi_source.cpp
-/// @date Created on Wed Dec 09 13:32:12 2020
-////////////////////////////////////////////////////////////////////////////////
-
 #include "vrtlmod/vapi/generator.hpp"
 #include "vrtlmod/core/core.hpp"
 #include "vrtlmod/core/types.hpp"

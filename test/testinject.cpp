@@ -14,11 +14,6 @@
  * limitations under the License.
  */
 
-////////////////////////////////////////////////////////////////////////////////
-/// @file testinject.cpp
-/// @date 2022-23-12
-////////////////////////////////////////////////////////////////////////////////
-
 #include <sstream>
 #include "testinject.hpp"
 
@@ -33,12 +28,13 @@ bool testinject(vrtlfi::td::TDentry &target, vrtlfi::td::TD_API &api, std::funct
         out << "\033[1;37mTesting Injection in:\033[0m " << target.get_name() << " bitflip [" << i << "]" << std::endl;
         int cntrsum = 0, cntrsum_new = 0;
         target.reset_mask();
-        if (api.prep_inject(target.get_name(), i) != 0)
+        if (api.prep_inject(target, i) != 0)
         {
             out << "|-> \033[0;31mFailed\033[0m - Target not found. Dictionary in corrupt state" << std::endl;
             ret = false;
             continue;
         }
+        // sim until FI
         target.arm();
         std::vector<int> cntr = target.get_cntr();
         auto pre_data = target.read_data();

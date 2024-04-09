@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Chair of EDA, Technical University of Munich
+ * Copyright 2024 Chair of EDA, Technical University of Munich
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,11 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-////////////////////////////////////////////////////////////////////////////////
-/// @file vrtlmodapi_diff_source.cpp
-/// @date Created on Wed Dec 09 13:32:12 2020
-////////////////////////////////////////////////////////////////////////////////
 
 #include "vrtlmod/vapi/generator.hpp"
 #include "vrtlmod/core/core.hpp"
