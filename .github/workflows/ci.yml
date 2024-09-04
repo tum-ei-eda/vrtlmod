@@ -331,11 +331,11 @@ jobs:
       shell: bash
       working-directory: ${{runner.workspace}}
       run: |
-        build-${{matrix.duts}}/SC_TEST_VRTLMOD ${GITHUB_WORKSPACE}/test/benchmark/${{matrix.duts}}/dhry.elf 5 10 > ${{matrix.duts}}-${{matrix.config.name}}-log.txt
-        cat ${{matrix.duts}}-${{matrix.config.name}}-log.txt
+        build-${{matrix.duts}}/SC_TEST_VRTLMOD ${GITHUB_WORKSPACE}/test/benchmark/${{matrix.duts}}/dhry.elf 5 10 > ${{matrix.duts}}.log
+        cat ${{matrix.duts}}.log
 
     - name: Save Benchmark Results
       uses: actions/upload-artifact@v4
       with:
-        name: ${{matrix.duts}}-${{matrix.config.name}}-log.txt
-        path: ${{runner.workspace}}/${{matrix.duts}}-${{matrix.config.name}}-log.txt
+        name: ${{matrix.config.name}}-verilator_${{matrix.verilator}}-${{matrix.duts}}.log
+        path: ${{runner.workspace}}/${{matrix.duts}}.log
