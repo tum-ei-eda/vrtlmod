@@ -211,7 +211,7 @@ jobs:
       run: tar -C ${{runner.workspace}} -czvf ${{runner.workspace}}/vrtlmod-failed-test.tar.gz ${{runner.workspace}}/${BUILD_DIR}/Testing
 
     - name: (CTest) Upload Artifacts on Failure
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       if: ${{ failure() }}
       with:
         name: vrtlmod-failed-test-${{matrix.config.name}}.tar.gz
@@ -225,7 +225,7 @@ jobs:
 
     - name: Upload Compiled System
       if: runner.os == 'Linux'
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: vrtlmod-${{matrix.config.name}}-verilator_${{ matrix.verilator }}.tar.gz
         path: ${{runner.workspace}}/vrtlmod.tar.gz
@@ -271,7 +271,7 @@ jobs:
           ${{ matrix.config.name }}-conan_${{ matrix.config.conan }}
 
     - name: Fetch Compiled System
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4.1.7
       with:
         name: vrtlmod-${{matrix.config.name}}-verilator_${{ matrix.verilator }}.tar.gz
         path: ${{runner.workspace}}
@@ -331,11 +331,11 @@ jobs:
       shell: bash
       working-directory: ${{runner.workspace}}
       run: |
-        build-${{matrix.duts}}/SC_TEST_VRTLMOD ${GITHUB_WORKSPACE}/test/benchmark/${{matrix.duts}}/dhry.elf 5 10 > ${{matrix.duts}}-log.txt
-        cat ${{matrix.duts}}-log.txt
+        build-${{matrix.duts}}/SC_TEST_VRTLMOD ${GITHUB_WORKSPACE}/test/benchmark/${{matrix.duts}}/dhry.elf 5 10 > ${{matrix.duts}}.log
+        cat ${{matrix.duts}}.log
 
     - name: Save Benchmark Results
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
-        name: ${{matrix.duts}}-log.txt
-        path: ${{runner.workspace}}/${{matrix.duts}}-log.txt
+        name: ${{matrix.config.name}}-verilator_${{matrix.verilator}}-${{matrix.duts}}.log
+        path: ${{runner.workspace}}/${{matrix.duts}}.log
