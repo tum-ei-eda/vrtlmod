@@ -24,6 +24,17 @@ If you use vRTLmod in your academic work you can cite it like this:
   url = {https://doi.org/10.1145/3587135.3591435},
   year = {2023}
 }
+@INPROCEEDINGS{Geier_diff_2025,
+  author={Geier, Johannes and Kontopoulos, Leonidas and Mueller-Gritschneder, Daniel and Schlichtmann, Ulf},
+  booktitle={2025 Design, Automation & Test in Europe Conference (DATE)}, 
+  title={Rapid Fault Injection Simulation by Hash-Based Differential Fault Effect Equivalence Checks}, 
+  year={2025},
+  volume={},
+  number={},
+  pages={1-7},
+  keywords={Fault tolerance;Accuracy;Software design;Europe;Closed box;Benchmark testing;Register transfer level;Hardware;Safety;Fault injection;Simulation;Checkpoints;Register-transfer-level;Fault effect equivalence},
+  doi={10.23919/DATE64628.2025.10993266}
+}
 ```
 
 </p>
