@@ -71,7 +71,7 @@ jobs:
       shell: bash
       run: |
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
-        setup_systemc "./systemc_src" "./systemc_build" "./systemc_install" "${{ matrix.config.systemc_version }}"
+        setup_systemc "${{runner.workspace}}/systemc_src" "${{runner.workspace}}/systemc_build" "${{runner.workspace}}/systemc_install" "${{ matrix.config.systemc_version }}"
 
     - if: ${{ steps.cache-llvm.outputs.cache-hit != 'true' }}
       name: Requirements LLVM+Clang
@@ -79,7 +79,7 @@ jobs:
       shell: bash
       run: |
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
-        setup_llvm "./llvm_src" "./llvm_build" "./llvm_install" "${{ matrix.config.llvm_version }}"
+        setup_llvm "${{runner.workspace}}/llvm_src" "${{runner.workspace}}/llvm_build" "${{runner.workspace}}/llvm_install" "${{ matrix.config.llvm_version }}"
 
     - name: Check (cached) Clang
       continue-on-error: false
@@ -94,14 +94,14 @@ jobs:
       shell: bash
       run: |
         . "./vrtlmod/vrtlmod_src/docker/setup_debian.sh"
-        setup_verilator "./verilator_src" "./verilator_src" "./verilator_install" "${{ matrix.config.verilator }}"
+        setup_verilator "${{runner.workspace}}/verilator_src" "${{runner.workspace}}/verilator_src" "${{runner.workspace}}/verilator_install" "${{ matrix.config.verilator }}"
 
     - name: Check (cached) Verilator
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
       run: |
-        ./verilator_install/bin/verilator --version
+        ${{runner.workspace}}/verilator_install/bin/verilator --version
 
   build:
     strategy:
@@ -162,54 +162,27 @@ jobs:
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
-      run: .verilator_install/bin/verilator --version
+      run: ${{runner.workspace}}/verilator_install/bin/verilator --version
 
     - name: Check (cached) Clang
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
-      run: ./llvm_install/bin/clang --version
+      run: ${{runner.workspace}}/llvm_install/bin/clang --version
 
-    - name: Configure CMake
+    - name: Build vRTLmod
       shell: bash
       working-directory: ${{runner.workspace}}
       run: |
         export VERILATOR_ROOT=${{runner.workspace}}/verilator_install
         export LLVM_DIR=${{runner.workspace}}/llvm_install
-        cmake -S vrtlmod_src -B ${BUILD_DIR} -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D CMAKE_INSTALL_PREFIX=${INSTALL_DIR}
-
-    - name: Build
-      working-directory: ${{runner.workspace}}
-      shell: bash
-      run: cmake --build ${BUILD_DIR} --config ${{ matrix.config.cmakegen }} --parallel $(nproc)
-
-    - name: Install
-      working-directory: ${{runner.workspace}}
-      shell: bash
-      run: cmake --install ${BUILD_DIR} --config ${{ matrix.config.cmakegen }}
-
-    - name: (CTest) Configure Build Environment
-      shell: bash
-      working-directory: ${{runner.workspace}}
-      run: |
         export SYSTEMC_HOME=${{runner.workspace}}/systemc_install
-        export VERILATOR_ROOT=${{runner.workspace}}/verilator_install
-        export LLVM_DIR=${{runner.workspace}}/llvm_install
-        cmake -S vrtlmod_src -B ${BUILD_DIR} -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D CMAKE_INSTALL_PREFIX=${INSTALL_DIR} -D BUILD_TESTING=On
-
-    - name: (CTest) Build Environment
-      shell: bash
-      working-directory: ${{runner.workspace}}
-      run: |
-        cmake --build ${BUILD_DIR} --config ${{ matrix.config.cmakegen }} --parallel $(nproc)
-        cd ${BUILD_DIR}
-        ctest -C ${{ matrix.config.cmakegen }} --parallel $(nproc) --rerun-failed --output-on-failure
-        cat Testing/Temporary/LastTest.log
-        cat Testing/Temporary/CTestCostData.txt
+        . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
+        setup_vrtlmod "${{runner.workspace}}/vrtlmod/vrtlmod_src" "${{runner.workspace}}/vrtlmod_build" "${{runner.workspace}}/vrtlmod_install"
 
     - name: (CTest) Pack Test Artifacts on Failure
       if: ${{ failure() }}
-      run: tar -C ${{runner.workspace}} -czvf ${{runner.workspace}}/vrtlmod-failed-test.tar.gz ${{runner.workspace}}/${BUILD_DIR}/Testing
+      run: tar -C ${{runner.workspace}} -czvf ${{runner.workspace}}/vrtlmod-failed-test.tar.gz ${{runner.workspace}}/vrtlmod_build/Testing
 
     - name: (CTest) Upload Artifacts on Failure
       uses: actions/upload-artifact@v4
@@ -222,14 +195,14 @@ jobs:
 
     - name: Compress Compiled System
       if: runner.os == 'Linux'
-      run: tar -C ${{runner.workspace}} -czvf ${{runner.workspace}}/vrtlmod.tar.gz ${INSTALL_DIR}
+      run: tar -C ${{runner.workspace}}/ -czvf "${{runner.workspace}}/vrtlmod.tar.gz" "${{runner.workspace}}/vrtlmod_installed"
 
     - name: Upload Compiled System
       if: runner.os == 'Linux'
       uses: actions/upload-artifact@v4
       with:
-        name: vrtlmod-${{matrix.config.name}}-verilator_${{ matrix.verilator }}.tar.gz
-        path: ${{runner.workspace}}/vrtlmod.tar.gz
+        name: vrtlmod-${{matrix.config.name}}-verilator_${{ matrix.config.verilator_version }}.tar.gz
+        path: "${{runner.workspace}}/vrtlmod.tar.gz"
 
   benchmark:
     strategy:
@@ -291,13 +264,13 @@ jobs:
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
-      run: .verilator_install/bin/verilator --version
+      run: ${{runner.workspace}}/verilator_install/bin/verilator --version
 
     - name: Check (cached) Clang
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
-      run: ./llvm_install/bin/clang --version
+      run: ${{runner.workspace}}/llvm_install/bin/clang --version
 
     - name: Fetch Compiled System
       uses: actions/download-artifact@v4.1.7
@@ -308,18 +281,6 @@ jobs:
     - name: Unpack Compiled System
       working-directory: ${{runner.workspace}}
       run: tar -xf vrtlmod.tar.gz
-
-    - name: Check (cached) Verilator
-      continue-on-error: false
-      shell: bash
-      working-directory: ${{runner.workspace}}
-      run: ${{runner.workspace}}/verilator/bin/verilator --version
-
-    - name: Check (cached) Clang
-      continue-on-error: false
-      shell: bash
-      working-directory: ${{runner.workspace}}
-      run: ${{runner.workspace}}/llvm/bin/clang --version
 
     - name: Configure Benchmarks
       shell: bash
@@ -346,5 +307,5 @@ jobs:
     - name: Save Benchmark Results
       uses: actions/upload-artifact@v4
       with:
-        name: ${{matrix.config.name}}-verilator_${{matrix.verilator}}-${{matrix.duts}}.log
+        name: ${{matrix.config.name}}-verilator_${{matrix.config.verilator_version}}-${{matrix.duts}}.log
         path: ${{runner.workspace}}/${{matrix.duts}}.log
