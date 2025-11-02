@@ -30,9 +30,6 @@
 
 #include <pugixml.hpp>
 
-#include "boost/filesystem.hpp"
-namespace fs = boost::filesystem;
-
 namespace vrtlmod
 {
 namespace vapi

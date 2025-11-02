@@ -99,11 +99,13 @@ find_package(Clang REQUIRED CONFIG
     PATHS ${Clang_DIR_SEARCH}
 )
 
+if(CMAKE_CXX_STANDARD LESS_EQUAL 17)
 find_package(Boost 1.70 REQUIRED
     COMPONENTS filesystem
 )
-
 message("Boost Version: ${Boost_VERSION}")
+endif()
+
 message("Using LLVM_DIR: ${LLVM_DIR}")
 message("LLVM Version: ${LLVM_VERSION} at ${LLVM_INSTALL_PREFIX}")
 message("LLVM INCLUDE DIRS: ${LLVM_INCLUDE_DIRS}")
@@ -166,13 +168,19 @@ if(LLVM_FOUND AND Clang_FOUND AND verilator_FOUND)
     list(TRANSFORM AUTO_INCLUDE_DIRS APPEND "\"")
     string(REPLACE ";" ",\n    " AUTO_INCLUDE_DIRS "${AUTO_INCLUDE_DIRS}")
     configure_file(include/vrtlmod/util/utility.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/include/vrtlmod/util/utility.hpp @ONLY)
-
-    target_link_libraries(${PROJECT_NAME}-core PRIVATE
+    
+    set(VRTLMOD_PRIVATE_LINK_LIBRARIES
         pugixml
-        Boost::filesystem
         ${CLANG_LIBS}
         ${LLVM_LIBS}
     )
+    if(CMAKE_CXX_STANDARD LESS_EQUAL 17)
+        set(VRTLMOD_PRIVATE_LINK_LIBRARIES ${VRTLMOD_PRIVATE_LINK_LIBRARIES} Boost::filesystem)
+    endif()
+    target_link_libraries(${PROJECT_NAME}-core PRIVATE
+        ${VRTLMOD_PRIVATE_LINK_LIBRARIES}
+    )
+
     target_include_directories(${PROJECT_NAME}-core PUBLIC
         include
         ${CMAKE_CURRENT_BINARY_DIR}/include

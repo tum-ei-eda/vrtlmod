@@ -117,15 +117,17 @@ std::vector<std::string> VrtlmodCore::prepare_files(const std::vector<std::strin
     {
         for (auto &nfile : nfiles)
         {
-
-            std::string srcName;
-            auto lSl = nfile.rfind("/");
-            auto dext = std::string::npos;
-            std::string file_ext = "";
-            fs::path tmp = outdir / nfile.substr(lSl); // << file_ext_matchers[0];
-            LOG_INFO("Accepted file [", tmp.string(), "]");
-            fs::copy_file(fs::path(nfile), tmp, fs::copy_option::overwrite_if_exists);
-            nfile = tmp.string();
+            if (nfile == "")
+                continue;
+            auto src = fs::path(nfile);
+            auto dst = outdir / src.filename(); // << file_ext_matchers[0];
+            LOG_INFO("Accepted file [", dst.string(), "]");
+            if (outdir.is_absolute() && outdir == "/")
+            {
+                throw std::runtime_error("Refusing to copy to root directory!");
+            }
+            fs::copy_file(src, dst, copy_options::overwrite_existing);
+            nfile = dst.string();
         }
     }
     return nfiles;

@@ -25,8 +25,8 @@
 #include <memory>
 #include <vector>
 #include <set>
-#include <boost/filesystem.hpp>
-namespace fs = boost::filesystem;
+#include <functional>
+#include "vrtlmod/util/utility.hpp"
 
 namespace pugi
 {

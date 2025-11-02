@@ -24,8 +24,20 @@
 
 #include <string>
 #include <cstring>
+#include <array>
+#if __cplusplus >= 202002L
+#include <filesystem>
+namespace fs = std::filesystem;
+using copy_options = fs::copy_options;
+#else
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
+#if BOOST_VERSION < 106000
+using copy_options = boost::filesystem::copy_option;
+#else
+using copy_options = boost::filesystem::copy_options;
+#endif
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief General utility functions

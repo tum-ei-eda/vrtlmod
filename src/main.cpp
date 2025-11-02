@@ -30,9 +30,6 @@
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
 
-#include "boost/filesystem.hpp"
-namespace fs = boost::filesystem;
-
 #include "vrtlmod/vrtlmod.hpp"
 #include "vrtlmod/core/core.hpp"
 
