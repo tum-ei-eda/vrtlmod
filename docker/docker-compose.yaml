@@ -1,0 +1,13 @@
+services:
+  fivpworkspace:
+    build:
+      context: ..
+      dockerfile: docker/dockerfile
+      args:
+        workspace_dir: "${workspace_dir}"
+    environment:
+      workspace_dir: "${workspace_dir}"
+    volumes:
+      - type: bind
+        source: ..
+        target: ${workspace_dir}
