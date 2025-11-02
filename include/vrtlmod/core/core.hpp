@@ -25,8 +25,8 @@
 #include <memory>
 #include <vector>
 #include <set>
-#include <boost/filesystem.hpp>
-namespace fs = boost::filesystem;
+#include <functional>
+#include "vrtlmod/util/utility.hpp"
 
 namespace pugi
 {
@@ -150,6 +150,13 @@ class VrtlmodCore
     /// \return A new vector of sources file paths (path is generated on call)
     /// \details Copies (or overwrites - corresponding to cmd line options) sources
     std::vector<std::string> prepare_headers(const std::vector<std::string> &files, bool overwrite);
+    /// \brief Preprocess headers according to the API
+    /// \param files file paths to files ( will sort out *.h/*.hpp and ignore rest)
+    void preprocess_headers(const std::vector<std::string> &header_files);
+    ///////////////////////////////////////////////////////////////////////
+    /// \brief Postprocess headers according to the API
+    /// \param files file paths to files ( will sort out *.h/*.hpp and ignore rest)
+    void postprocess_headers(const std::vector<std::string> &header_files);
     ///////////////////////////////////////////////////////////////////////
     /// \brief Get the header file name of VRTL top module
     std::string get_vrtltopheader_filename(void) const;
@@ -189,6 +196,8 @@ class VrtlmodCore
     /// \brief Applies the given xml file as a whitelist to injectable targets upodating to-inject internal target list
     int initialize_injection_targets(std::string file = "");
 
+    std::string get_prefix(types::Cell const *c, std::string module_instance) const;
+    std::string get_memberstr(types::Cell const *c, const types::Target &t, const std::string &prefix) const;
   protected: // only friends of VrtlmodCore or itself shall use these methods, bc. they return non-const reference to
     // context members or alter them
     std::vector<std::string> prepare_files(const std::vector<std::string> &files,

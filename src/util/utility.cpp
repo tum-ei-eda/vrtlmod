@@ -21,6 +21,8 @@
 
 #include <array>
 #include <memory>
+#include <sstream>
+#include <fstream>
 
 #include "vrtlmod/util/utility.hpp"
 #include "vrtlmod/util/logging.hpp"
@@ -36,6 +38,47 @@ int check_file(const fs::path &fpath)
         return 1; // not a valid file path
     }
     return 0;
+}
+
+std::string file2string(const fs::path &fpath)
+{
+    if(check_file(fpath) != 0)
+    {
+        LOG_FATAL("file2string(): File at [", fpath.c_str(), "] does not exist!");
+        return "";
+    }
+    
+    std::ifstream in(fpath.c_str());
+    if (!in.is_open())
+    {
+        LOG_FATAL("file2string(): Could not open file path [", fpath.c_str(), "]");
+        return "";
+    }
+
+    std::stringstream ss;
+
+    while (in.good())
+    {
+        char c;
+        in.get(c);
+        ss << c;
+    }
+    in.close();
+
+    return(ss.str());
+}
+
+void string2file(const fs::path &fpath, std::string const& data)
+{
+    std::ofstream out(fpath.c_str());
+    if (!out.is_open())
+    {
+        LOG_FATAL("string2file(): Could not create file at [", fpath.c_str(), "]");
+        return;
+    }
+    out << data;
+    out.flush();
+    out.close();
 }
 
 namespace strhelp

@@ -72,7 +72,8 @@ void VrtlParser::addMatcher(clang::ast_matchers::MatchFinder &finder)
         matchesName("__Vfunc__"),
         matchesName("__Vilp__"),
         matchesName("__Vdpiimwrap__"),
-        matchesName("__Vconst__")
+        matchesName("__Vconst__"),
+        matchesName("__Vdpi_")
     );
 
     const auto sc_module_decl =

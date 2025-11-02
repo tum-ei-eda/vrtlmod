@@ -1,0 +1,86 @@
+FROM debian:stable
+
+# Overall build config for cmake dependencies
+ARG build_config="Release"
+ARG GLOBAL_BUILD_CONFIG="${build_config}"
+
+ARG workspace_dir=${workspace_dir}
+# Prerequisite packages
+RUN \
+  --mount=type=bind,source=".",target=${workspace_dir} \
+  . "${workspace_dir}/docker/setup_debian.sh" && \
+  setup_env \
+    && \
+    rm -rf /var/lib/apt/lists/*
+
+###########
+# SystemC #
+###########
+ARG systemc_srcdir="/systemc-src"
+ARG systemc_builddir="/systemc-build"
+ARG systemc_destdir="/systemc-install"
+ARG systemc_version="2.3.3"
+
+RUN \
+  --mount=type=bind,source=".",target=${workspace_dir} \
+  . "${workspace_dir}/docker/setup_debian.sh" && \
+  setup systemc ${systemc_srcdir} ${systemc_builddir} ${systemc_destdir} ${systemc_version}
+
+ENV SYSTEMC_HOME="${systemc_destdir}"
+
+#############
+# Verilator #
+#############
+ARG verilator_srcdir="/verilator-src"
+ARG verilator_builddir="${verilator_srcdir}"
+ARG verilator_destdir="/verilator-install"
+ARG verilator_version="4.228"
+
+RUN \
+  --mount=type=bind,source=".",target=${workspace_dir} \
+  . "${workspace_dir}/docker/setup_debian.sh" && \
+  setup verilator ${verilator_srcdir} ${verilator_builddir} ${verilator_destdir} ${verilator_version}
+
+########
+# LLVM #
+########
+ARG llvm_srcdir="/llvm-src"
+ARG llvm_builddir="/llvm-build"
+ARG llvm_destdir="/llvm-install"
+ARG llvm_version="13.0.1"
+
+RUN \
+  --mount=type=bind,source=".",target=${workspace_dir} \
+  . "${workspace_dir}/docker/setup_debian.sh" && \
+  setup llvm ${llvm_srcdir} ${llvm_builddir} ${llvm_destdir} ${llvm_version}
+
+########
+# VENV #
+########
+ARG venvdir="/.venv"
+ARG py_requirements_file="${workspace_dir}/requirements_dev.txt"
+
+RUN \
+  --mount=type=bind,source=".",target=${workspace_dir} \
+  . "${workspace_dir}/docker/setup_debian.sh" && \
+  setup pyvenv "${venvdir}" "${py_requirements_file}"
+
+###########
+# vRTLmod #
+###########
+ARG vrtlmod_srcdir="${workspace_dir}"
+ARG vrtlmod_builddir="/vrtlmod-build"
+ARG vrtlmod_destdir="/vrtlmod-install"
+
+ENV LLVM_DIR="${llvm_destdir}"
+ENV VERILATOR_ROOT="${verilator_destdir}"
+ENV VRTLMOD_BUILD_CONFIG="${build_config}"
+ENV SYSTEMC_HOME="${systemc_destdir}"
+
+RUN mkdir -p ${vrtlmod_srcdir}
+
+RUN \
+  --mount=type=bind,source=".",target="${workspace_dir}" \
+  . "${venvdir}/bin/activate" && \
+  . "${workspace_dir}/docker/setup_debian.sh" && \
+  setup vrtlmod ${vrtlmod_srcdir} ${vrtlmod_builddir} ${vrtlmod_destdir}

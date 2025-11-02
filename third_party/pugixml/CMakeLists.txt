@@ -19,7 +19,7 @@ include(FetchContent)
 
 FetchContent_Declare(pugixml_dep
 	GIT_REPOSITORY https://github.com/zeux/pugixml.git
-	GIT_TAG v1.11.4
+	GIT_TAG v1.15
 )
 if(NOT pugixml_dep_POPULATED)
 	FetchContent_Populate(pugixml_dep)

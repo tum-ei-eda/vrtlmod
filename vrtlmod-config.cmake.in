@@ -60,6 +60,7 @@ function(vrtlmod)
         WHITELIST_XML
         CLANG_INCLUDE_DIR
         SYSTEMC_INCLUDE_DIRS
+        LLVM_TOOLS_BINARY_DIR
     )
     set(multiValueArgs
         INCLUDE_DIRS
@@ -102,6 +103,12 @@ function(vrtlmod)
         set(SYSTEMC_INCLUDE_DIRS "@SYSTEMC_INCLUDE_DIRS@")
     endif()
 
+    if(VRTLMOD_LLVM_TOOLS_BINARY_DIR)
+        set(LLVM_TOOLS_BINARY_DIR "${VRTLMOD_LLVM_TOOLS_BINARY_DIR}")
+    else()
+        set(LLVM_TOOLS_BINARY_DIR "@LLVM_TOOLS_BINARY_DIR@")
+    endif()
+
     if(VRTLMOD_SILENT)
         set(SILENT --silent)
     endif()
@@ -128,14 +135,14 @@ function(vrtlmod)
     set(CLANG_ARGS ${VERBOSE} -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} ${INCLUDE_DIRS})
     set(ARGS_FILE ${CMAKE_CURRENT_BINARY_DIR}/vrtlmod-args.txt)
 
-    string(REPLACE ";" " " COMMAND_SPACES "${VRTLMOD} ${VRTLMOD_ARGS} -- clang++ ${CLANG_ARGS}")
+    string(REPLACE ";" " " COMMAND_SPACES "${VRTLMOD} ${VRTLMOD_ARGS} -- ${LLVM_TOOLS_BINARY_DIR}/clang++ ${CLANG_ARGS}")
 
     file(WRITE ${ARGS_FILE} "${COMMAND_SPACES}")
 
     add_custom_command(
         OUTPUT ${OUTPUT}
         DEPENDS ${SOURCES}
-        COMMAND ${VRTLMOD} ${VRTLMOD_ARGS} -- clang++ ${CLANG_ARGS}
+        COMMAND ${VRTLMOD} ${VRTLMOD_ARGS} -- ${LLVM_TOOLS_BINARY_DIR}/clang++ ${CLANG_ARGS}
         COMMENT "executing vrtlmod: .. ${COMMAND_SPACES}"
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
