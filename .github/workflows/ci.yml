@@ -62,7 +62,7 @@ jobs:
       working-directory: ${{runner.workspace}}
       run: |
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
-        setup_env
+        sudo setup_env
 
     - if: ${{ steps.cache-systemc.outputs.cache-hit != 'true' }}
       name: Requirements SystemC
@@ -127,7 +127,7 @@ jobs:
       working-directory: ${{runner.workspace}}
       run: |
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
-        setup_env
+        sudo setup_env
 
     - name: Cache (LLVM)
       uses: actions/cache@v3
@@ -255,7 +255,7 @@ jobs:
       working-directory: ${{runner.workspace}}
       run: |
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
-        setup_env
+        sudo setup_env
 
     - name: Cache (LLVM)
       uses: actions/cache@v3
