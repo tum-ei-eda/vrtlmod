@@ -33,49 +33,9 @@ set(VERILATOR_ROOT $ENV{VERILATOR_ROOT})
 message(STATUS "VERILATOR_ROOT: ${VERILATOR_ROOT}")
 find_package(VERILATOR REQUIRED)
 
-####################################################################################################
-# SystemC by conan package manager settings
-if(NOT SYSTEMC_INCLUDE_DIRS AND NOT SystemC_LIBRARIES)
-
-    if(NOT USE_CWR_SYSTEMC AND NOT USE_NCSC_SYSTEMC AND NOT DEFINED ENV{SYSTEMC_HOME})
-
-        set(CONAN_CMAKE_LIST_DIR ${CMAKE_CURRENT_BINARY_DIR})
-        if(NOT EXISTS ${CONAN_CMAKE_LIST_DIR}/ConanInline.cmake)
-            message("Downloading ConanInline to ${CONAN_CMAKE_LIST_DIR}")
-            set(URL https://raw.githubusercontent.com/VP-Vibes/SystemC-Components/main/cmake/ConanInline.cmake)
-            file(DOWNLOAD ${URL} ${CONAN_CMAKE_LIST_DIR}/ConanInline.cmake TIMEOUT 60)
-            set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_BINARY_DIR})
-        endif()
-
-        include(ConanInline)
-
-        set(CONAN_PACKAGE_LIST ${CONAN_PACKAGE_LIST} systemc/2.3.3 systemc-cci/1.0.0)
-        set(CONAN_PACKAGE_OPTIONS ${CONAN_PACKAGE_OPTIONS} systemc:shared=True systemc-cci:shared=True systemc:disable_virtual_bind=False)
-
-        conan_check()
-        conan_cmake_configure(
-            REQUIRES ${CONAN_PACKAGE_LIST}
-            GENERATORS cmake_find_package
-            OPTIONS ${CONAN_PACKAGE_OPTIONS}
-        )
-
-        conan_cmake_autodetect(settings)
-
-        set(settings ${settings} compiler.cppstd=${CMAKE_CXX_STANDARD})
-
-        message("Conan settings are ${settings}")
-        conan_cmake_install(
-            PATH_OR_REFERENCE ${CMAKE_CURRENT_BINARY_DIR}
-            BUILD missing
-            SETTINGS ${settings}
-        )
-
-    endif()
-
-    find_package(SystemCLanguage REQUIRED)
-    get_target_property(SYSTEMC_INCLUDE_DIRS SystemC::systemc INTERFACE_INCLUDE_DIRECTORIES)
-
-endif()
+find_package(SystemCLanguage REQUIRED)
+get_target_property(SYSTEMC_INCLUDE_DIRS SystemC::systemc INTERFACE_INCLUDE_DIRECTORIES)
+set(SystemC_LIBRARIES SystemC::systemc)
 
 # rtl sources: set RTL_SOURCES, RTL_INCLUDE_DIRS, and VERILATE_ARGS in PARENT_SCOPE:
 set(RTL_SRCS
@@ -119,7 +79,7 @@ verilate(dummy_proj
     SYSTEMC
     TOP_MODULE ${TOP_NAME}
     INCLUDE_DIRS ${RTL_INCLUDE_DIRS}
-    DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${VRTL_NAME}/obj_dir
+    DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${VRTL_NAME}/sc_obj_dir
     VERILATOR_ARGS ${VERILATE_ARGS}
     SOURCES ${RTL_SRCS}
 )
@@ -131,11 +91,11 @@ target_include_directories(dummy_proj PRIVATE
     ${SYSTEMC_INCLUDE_DIRS}
 )
 
-file(GLOB CC_SOURCES ${CMAKE_CURRENT_BINARY_DIR}/${VRTL_NAME}/obj_dir/*)
+file(GLOB CC_SOURCES ${CMAKE_CURRENT_BINARY_DIR}/${VRTL_NAME}/sc_obj_dir/*)
 
 find_package(vrtlmod HINTS $ENV{VRTLMOD_ROOT} ${VRTLMOD_ROOT} REQUIRED)
 
-set(VRTL_DIR ${VRTL_NAME}/obj_dir)
+set(VRTL_DIR ${VRTL_NAME}/sc_obj_dir)
 
 file( GLOB VRTL_SRCS ${CMAKE_CURRENT_BINARY_DIR}/${VRTL_DIR}/*.cpp)
 
@@ -186,23 +146,25 @@ add_library(V${TOP_NAME}_vrtlmod SHARED
     ${VERILATOR_INCLUDE_DIRECTORY}/verilated.cpp
     ${GENERATED_API_SRCS}
 )
+target_link_libraries(V${TOP_NAME}_vrtlmod PUBLIC
+    ${SystemC_LIBRARIES}
+)
 target_include_directories(V${TOP_NAME}_vrtlmod PUBLIC
     ${VERILATOR_INCLUDE_DIRECTORY}
     ${VERILATOR_INCLUDE_DIRECTORY}/vltstd
     ${CMAKE_CURRENT_BINARY_DIR}/${VRTLMOD_OUT_DIR}
     ${SYSTEMC_INCLUDE_DIRS}
 )
-
+message("SYSTEMC_INCLUDE_DIRS: ${SYSTEMC_INCLUDE_DIRS}")
+message("SystemC_LIBRARIES: ${SystemC_LIBRARIES}")
 add_executable(${PROJECT_NAME}
     sc_fiapp_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../testinject.cpp
 )
 target_link_libraries(${PROJECT_NAME} PUBLIC
     V${TOP_NAME}_vrtlmod
-    ${SystemC_LIBRARIES}
 )
 target_include_directories(${PROJECT_NAME} PUBLIC
-    ${SYSTEMC_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/../
 )
 

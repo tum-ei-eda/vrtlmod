@@ -32,10 +32,10 @@ If you use vRTLmod in your academic work you can cite it like this:
 ## Dependencies
 Besides standard (gmake, cmake, gcc, ...)
 
-1. Verilator  - tested with v4.204 (see: https://www.veripool.org/wiki/verilator and install guide)
-2. LLVM - tested v13.0.1 built with `-D LLVM_ENABLE_PROJECTS="clang;clang-tools-extra"`
+1. Verilator  - tested with v4.228 (see: https://www.veripool.org/wiki/verilator and install guide)
+2. LLVM - tested v13.0.1 built with `-D LLVM_ENABLE_PROJECTS="clang;clang-tools-extra"`. In case GCC>13, patch LLVM with `deps/llvm/patches/*.path`
 3. Boost filesystem
-4. For Tests: Conan v<2.0, tested with 1.59.0 (`pip install --force-reinstall "conan==1.59.0"`)
+4. For Tests: SystemC>=2.3.3 (set environment variable before CMake, `export SYSTEMC_HOME=/path/to/systemc/`)
 
 ## Build
 
@@ -44,14 +44,15 @@ Besides standard (gmake, cmake, gcc, ...)
 ```
 	[BUILD]: export LLVM_DIR=<path/to/llvm/install/dir>/lib/cmake/llvm
 	[BUILD]: export VERILATOR_ROOT=<path/to/verilator/build/or/install/directory>
+	[BUILD]: export SYSTEMC_HOME=<path/to/systemc/install> # only for BUILD_TESTING
 ```
 
 2. **Or via CMake command line arguments:**
 
 ```
-mkdir build && cd build
 cmake -S . -B build -D LLVM_DIR=<path/to/llvm/install/dir> -D VERILATOR_ROOT=<path/to/verilator/build/or/install/directory> [-D BUILD_TESTING=Off]
-cmake --build build
+cmake --build build [--target test] 
+cmake --build build [--target install] 
 ```
 
 ## Usage

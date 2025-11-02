@@ -19,43 +19,6 @@ cmake_minimum_required(VERSION 3.15)
 if(BUILD_TESTING)
     list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_BINARY_DIR})
     list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_BINARY_DIR})
-    ####################################################################################################
-    # conan package manager settings
-    set(CONAN_CMAKE_LIST_DIR ${CMAKE_CURRENT_BINARY_DIR})
-    if(NOT EXISTS ${CONAN_CMAKE_LIST_DIR}/ConanInline.cmake)
-        message("Downloading ConanInline to ${CONAN_CMAKE_LIST_DIR}")
-        set(URL https://raw.githubusercontent.com/VP-Vibes/SystemC-Components/main/cmake/ConanInline.cmake)
-        file(DOWNLOAD ${URL} ${CONAN_CMAKE_LIST_DIR}/ConanInline.cmake TIMEOUT 60)
-        set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_BINARY_DIR})
-    endif()
-
-    include(ConanInline)
-
-    set(CONAN_PACKAGE_OPTIONS ${CONAN_OPTIONS})
-
-    if(NOT USE_CWR_SYSTEMC AND NOT USE_NCSC_SYSTEMC AND NOT DEFINED ENV{SYSTEMC_HOME})
-        set(CONAN_PACKAGE_LIST ${CONAN_PACKAGE_LIST} systemc/2.3.3 systemc-cci/1.0.0)
-        set(CONAN_PACKAGE_OPTIONS ${CONAN_PACKAGE_OPTIONS} systemc:shared=True systemc-cci:shared=True systemc:disable_virtual_bind=False)
-    endif()
-
-    conan_check()
-    conan_cmake_configure(
-        REQUIRES ${CONAN_PACKAGE_LIST}
-        GENERATORS cmake_find_package
-        OPTIONS ${CONAN_PACKAGE_OPTIONS}
-    )
-
-    conan_cmake_autodetect(settings)
-
-    set(settings ${settings} compiler.cppstd=${CMAKE_CXX_STANDARD})
-
-    message("Conan settings are ${settings}")
-    conan_cmake_install(
-        PATH_OR_REFERENCE ${CMAKE_CURRENT_BINARY_DIR}
-        BUILD missing
-        SETTINGS ${settings}
-    )
-    ####################################################################################################
 
     include(ProcessorCount)
     ProcessorCount(NCORES)
@@ -165,8 +128,8 @@ if(BUILD_TESTING)
     set(SC_SUBDIR ${CMAKE_CURRENT_BINARY_DIR}/sc_obj_dir)
 
     find_package(SystemCLanguage REQUIRED)
-
     get_target_property(SYSTEMC_INCLUDE_DIRS SystemC::systemc INTERFACE_INCLUDE_DIRECTORIES)
+    set(SystemC_LIBRARIES SystemC::systemc)
 
     set(DUT_NAME fiapp)
     verilate(sc-null
@@ -263,11 +226,12 @@ if(BUILD_TESTING)
     # Testing the CMake config helper scripts: ###############################################################
     set(DIR_CMAKE_TEST ${CMAKE_CURRENT_BINARY_DIR}/cmaked)
     add_test(NAME ${PROJECT_NAME}:configure:test/fiapp-cmake
-        COMMAND ${CMAKE_COMMAND} "-S${CMAKE_CURRENT_SOURCE_DIR}/fiapp" "-B${DIR_CMAKE_TEST}"
-            "-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
-            "-DVRTLMOD_ROOT=${CMAKE_BINARY_DIR}"
-            "-DSystemC_LIBRARIES=\'${SystemC_LIBRARIES}\'"
-            "-DSYSTEMC_INCLUDE_DIRS=\'${SYSTEMC_INCLUDE_DIRS}\'"
+        COMMAND ${CMAKE_COMMAND} "-S ${CMAKE_CURRENT_SOURCE_DIR}/fiapp" "-B ${DIR_CMAKE_TEST}"
+            "-D CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
+            "-D CMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}"
+            "-D VRTLMOD_ROOT=${CMAKE_BINARY_DIR}"
+            "-D SystemC_DIR=\'${SystemC_DIR}\'"
+            "-D SystemCLanguage_DIR=\'${SystemCLanguage_DIR}\'"
     )
     set_tests_properties(${PROJECT_NAME}:configure:test/fiapp-cmake
         PROPERTIES
