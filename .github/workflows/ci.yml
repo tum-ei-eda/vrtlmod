@@ -9,9 +9,6 @@ on:
   pull_request:
     branches:
       - master
-env:
-  BUILD_DIR: build
-  INSTALL_DIR: installed
 
 jobs:
 
@@ -86,7 +83,7 @@ jobs:
       shell: bash
       working-directory: ${{runner.workspace}}
       run: |
-        ./llvm_install/bin/clang --version
+        ${{runner.workspace}}/llvm_install/bin/clang --version
 
     - if: ${{ steps.cache-verilator.outputs.cache-hit != 'true' }}
       name: Requirements Verilator
@@ -195,7 +192,7 @@ jobs:
 
     - name: Compress Compiled System
       if: runner.os == 'Linux'
-      run: tar -C ${{runner.workspace}}/ -czvf "${{runner.workspace}}/vrtlmod.tar.gz" "${{runner.workspace}}/vrtlmod_installed"
+      run: tar -C ${{runner.workspace}}/ -czvf "${{runner.workspace}}/vrtlmod.tar.gz" "${{runner.workspace}}/vrtlmod_install"
 
     - name: Upload Compiled System
       if: runner.os == 'Linux'
@@ -289,7 +286,7 @@ jobs:
         export VERILATOR_ROOT=${{runner.workspace}}/verilator_install
         export LLVM_DIR=${{runner.workspace}}/systemc_install
         export SYSTEMC_HOME=${{runner.workspace}}/systemc_install
-        cmake -S vrtlmod_src/test/benchmark -B build-${{matrix.duts}} -D VP=${{matrix.duts}} -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D VRTLMOD_ROOT=${{runner.workspace}}/installed
+        cmake -S vrtlmod_src/test/benchmark -B build-${{matrix.duts}} -D VP=${{matrix.duts}} -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D VRTLMOD_ROOT=${{runner.workspace}}/vrtlmod_install
 
     - name: Compile Benchmarks
       shell: bash
