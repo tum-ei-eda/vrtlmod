@@ -19,146 +19,162 @@ jobs:
     strategy:
       matrix:
         config:
-          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", llvm: "x86_64-linux-gnu-ubuntu-18.04", llvm_prefix: "clang+llvm", llvm_version: "13.0.1", llvm_postfix: "-", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison"}
-          #- {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, python: "3.9", cmakegen: "Release", verilator: "v4.228", llvm: "src", llvm_prefix: "llvm-project",  llvm_version: "13.0.1", llvm_postfix: ".", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison libncurses5"}
-        verilator: ["v4.202", "v4.228"]
+          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", verilator_version: "4.228", llvm_version: "13.0.1"}
+          - {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", verilator_version: "4.228", llvm_version: "13.0.1"}
 
     runs-on: ${{ matrix.config.os }}
-    name: ${{ matrix.config.name }}-verilator_${{ matrix.verilator }}_requirements
+    name: ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator }}_requirements
 
     steps:
+    - name: Clone vRTLmod
+      uses: actions/checkout@v4
+      with:
+        path: vrtlmod_src
+
     - uses: actions/cache@v3
       id: cache-llvm
       with:
-        path: ${{runner.workspace}}/llvm
-        key: ${{ matrix.config.name }}-${{ matrix.config.llvm_prefix }}_${{ matrix.config.llvm_version }}_${{ matrix.config.llvm }}
+        path: ${{runner.workspace}}/llvm_install
+        key: ${{ matrix.config.name }}-llvm_llvmorg-${{ matrix.config.llvm_version }}
         restore-keys: |
-          ${{ matrix.config.name }}-${{ matrix.config.llvm_prefix }}_${{ matrix.config.llvm_version }}_${{ matrix.config.llvm }}
+          ${{ matrix.config.name }}-llvm_llvmorg-${{ matrix.config.llvm_version }}
 
     - uses: actions/cache@v3
       id: cache-verilator
       with:
-        path: ${{runner.workspace}}/verilator
-        key: ${{ matrix.config.name }}-verilator_${{ matrix.verilator }}
+        path: ${{runner.workspace}}/verilator_install
+        key: ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator_version }}
         restore-keys: |
-          ${{ matrix.config.name }}-verilator_${{ matrix.verilator }}
+          ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator_version }}
+
+    - uses: actions/cache@v3
+      id: cache-systemc
+      with:
+        path: ${{runner.workspace}}/systemc_install
+        key: ${{ matrix.config.name }}-systemc_${{ matrix.config.systemc_version }}
+        restore-keys: |
+          ${{ matrix.config.name }}-systemc_${{ matrix.config.systemc_version }}
 
     - name: Requirements (Linux)
       if: runner.os == 'Linux'
+      continue-on-error: false
+      shell: bash
+      working-directory: ${{runner.workspace}}
       run: |
-        sudo apt-get install ${{ matrix.config.packages }}
+        . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
+        setup_env
+
+    - if: ${{ steps.cache-systemc.outputs.cache-hit != 'true' }}
+      name: Requirements SystemC
+      working-directory: ${{runner.workspace}}
+      shell: bash
+      run: |
+        . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
+        setup_systemc "./systemc_src" "./systemc_build" "./systemc_install" "${{ matrix.config.systemc_version }}"
 
     - if: ${{ steps.cache-llvm.outputs.cache-hit != 'true' }}
       name: Requirements LLVM+Clang
       working-directory: ${{runner.workspace}}
       shell: bash
       run: |
-        LLVM_NAME="${{ matrix.config.llvm_prefix }}-${{ matrix.config.llvm_version }}${{ matrix.config.llvm_postfix }}${{ matrix.config.llvm }}"
-        LLVM_SOURCE="https://github.com/llvm/llvm-project/releases/download/llvmorg-${{ matrix.config.llvm_version }}"
-        wget -nv --show-progress ${LLVM_SOURCE}/${LLVM_NAME}.${{ matrix.config.llvm-ext }}
-        ${{ matrix.config.unpack }} ${LLVM_NAME}.${{ matrix.config.llvm-ext }}
-        if [[ "${{ matrix.config.llvm }}" = "src" ]]
-        then
-            cmake -S ${LLVM_NAME}/llvm -B /tmp/llvm-build -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D LLVM_ENABLE_PROJECTS="clang;clang-tools-extra" -D CMAKE_INSTALL_PREFIX=${{runner.workspace}}/llvm
-            cmake --build /tmp/llvm-build --parallel $(nproc) --target install
-        else
-            mv ${LLVM_NAME} ${{runner.workspace}}/llvm
-        fi
+        . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
+        setup_llvm "./llvm_src" "./llvm_build" "./llvm_install" "${{ matrix.config.llvm_version }}"
 
     - name: Check (cached) Clang
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
-      run: ${{runner.workspace}}/llvm/bin/clang --version
+      run: |
+        ./llvm_install/bin/clang --version
 
     - if: ${{ steps.cache-verilator.outputs.cache-hit != 'true' }}
       name: Requirements Verilator
       working-directory: ${{runner.workspace}}
       shell: bash
       run: |
-        sudo apt-get install ${{ matrix.config.packages }}
-        VERILATOR_SOURCE="https://github.com/verilator/verilator.git"
-        git clone ${VERILATOR_SOURCE} ${{runner.workspace}}/verilator-src
-        cd ${{runner.workspace}}/verilator-src
-        git checkout ${{ matrix.verilator }}
-        autoconf
-        ./configure --prefix ${{runner.workspace}}/verilator
-        make -j $(nproc)
-        make install
+        . "./vrtlmod/vrtlmod_src/docker/setup_debian.sh"
+        setup_verilator "./verilator_src" "./verilator_src" "./verilator_install" "${{ matrix.config.verilator }}"
 
     - name: Check (cached) Verilator
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
-      run: ${{runner.workspace}}/verilator/bin/verilator --version
+      run: |
+        ./verilator_install/bin/verilator --version
 
   build:
     strategy:
       matrix:
         config:
-          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", llvm: "x86_64-linux-gnu-ubuntu-18.04", llvm_prefix: "clang+llvm", llvm_version: "13.0.1", llvm_postfix: "-", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison"}
-          #- {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, python: "3.9", cmakegen: "Release", verilator: "v4.228", llvm: "src", llvm_prefix: "llvm-project",  llvm_version: "13.0.1", llvm_postfix: ".", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison libncurses5"}
-        verilator: ["v4.202", "v4.228"]
+          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", verilator_version: "4.228", llvm_version: "13.0.1"}
+          - {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", verilator_version: "4.228", llvm_version: "13.0.1"}
 
     needs: requirements
     runs-on: ${{ matrix.config.os }}
-    name: ${{ matrix.config.name }}-verilator_${{ matrix.verilator }}_build
+    name: ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator_version }}_build
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
+      with:
+        path: vrtlmod_src
+        submodules: true
 
     - name: Requirements (Linux)
       if: runner.os == 'Linux'
+      continue-on-error: false
+      shell: bash
+      working-directory: ${{runner.workspace}}
       run: |
-        sudo apt-get install ${{ matrix.config.packages }}
+        . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
+        setup_env
 
     - name: Cache (LLVM)
       uses: actions/cache@v3
       id: cache-llvm
       with:
-        path: ${{runner.workspace}}/llvm
-        key: ${{ matrix.config.name }}-${{ matrix.config.llvm_prefix }}_${{ matrix.config.llvm_version }}_${{ matrix.config.llvm }}
+        path: ${{runner.workspace}}/llvm_install
+        key: ${{ matrix.config.name }}-llvm_llvmorg-${{ matrix.config.llvm_version }}
         restore-keys: |
-          ${{ matrix.config.name }}-${{ matrix.config.llvm_prefix }}_${{ matrix.config.llvm_version }}_${{ matrix.config.llvm }}
+          ${{ matrix.config.name }}-llvm_llvmorg-${{ matrix.config.llvm_version }}
+    
+    - name: Cache (SystemC)
+      uses: actions/cache@v3
+      id: cache-llvm
+      with:
+        path: ${{runner.workspace}}/systemc_install
+        key: ${{ matrix.config.name }}-systemc_${{ matrix.config.systemc_version }}
+        restore-keys: |
+          ${{ matrix.config.name }}-systemc_${{ matrix.config.systemc_version }}
 
     - name: Cache (Verilator)
       uses: actions/cache@v3
       id: cache-verilator
       with:
-        path: ${{runner.workspace}}/verilator
-        key: ${{ matrix.config.name }}-verilator_${{ matrix.verilator }}
+        path: ${{runner.workspace}}/verilator_install
+        key: ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator_version }}
         restore-keys: |
-          ${{ matrix.config.name }}-verilator_${{ matrix.verilator }}
-
-    - name: Cache (Conan)
-      uses: actions/cache@v3
-      id: cache-conan
-      with:
-        path: ${HOME}/.conan
-        key: ${{ matrix.config.name }}-conan_${{ matrix.config.conan }}
-        restore-keys: |
-          ${{ matrix.config.name }}-conan_${{ matrix.config.conan }}
+          ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator_version }}
 
     - name: Check (cached) Verilator
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
-      run: ${{runner.workspace}}/verilator/bin/verilator --version
+      run: .verilator_install/bin/verilator --version
 
     - name: Check (cached) Clang
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
-      run: ${{runner.workspace}}/llvm/bin/clang --version
+      run: ./llvm_install/bin/clang --version
 
     - name: Configure CMake
       shell: bash
       working-directory: ${{runner.workspace}}
       run: |
-        export VERILATOR_ROOT=${{runner.workspace}}/verilator
-        export LLVM_DIR=${{runner.workspace}}/llvm
-        cmake -S ${GITHUB_WORKSPACE} -B ${BUILD_DIR} -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D CMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+        export VERILATOR_ROOT=${{runner.workspace}}/verilator_install
+        export LLVM_DIR=${{runner.workspace}}/llvm_install
+        cmake -S vrtlmod_src -B ${BUILD_DIR} -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D CMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 
     - name: Build
       working-directory: ${{runner.workspace}}
@@ -170,31 +186,14 @@ jobs:
       shell: bash
       run: cmake --install ${BUILD_DIR} --config ${{ matrix.config.cmakegen }}
 
-    - name: (CTest) Requirements (Linux) Python+Conan
-      if: runner.os == 'Linux'
-      working-directory: ${{runner.workspace}}
-      shell: bash
-      run: |
-        pip install --force-reinstall "conan==${{ matrix.config.conan }}"
-        if [[ $(conan --version | grep 'version 2.') ]]
-        then
-            conan profile detect
-        else
-            conan user
-            if ! [[ $(conan profile list) = *default* ]]
-            then
-              conan profile new default --detect
-            fi
-            conan profile update settings.compiler.libcxx=libstdc++11 default
-        fi
-
     - name: (CTest) Configure Build Environment
       shell: bash
       working-directory: ${{runner.workspace}}
       run: |
-        export VERILATOR_ROOT=${{runner.workspace}}/verilator
-        export LLVM_DIR=${{runner.workspace}}/llvm
-        cmake -S ${GITHUB_WORKSPACE} -B ${BUILD_DIR} -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D CMAKE_INSTALL_PREFIX=${INSTALL_DIR} -D BUILD_TESTING=On
+        export SYSTEMC_HOME=${{runner.workspace}}/systemc_install
+        export VERILATOR_ROOT=${{runner.workspace}}/verilator_install
+        export LLVM_DIR=${{runner.workspace}}/llvm_install
+        cmake -S vrtlmod_src -B ${BUILD_DIR} -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D CMAKE_INSTALL_PREFIX=${INSTALL_DIR} -D BUILD_TESTING=On
 
     - name: (CTest) Build Environment
       shell: bash
@@ -234,51 +233,74 @@ jobs:
     strategy:
       matrix:
         config:
-          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", llvm: "x86_64-linux-gnu-ubuntu-18.04", llvm_prefix: "clang+llvm", llvm_version: "13.0.1", llvm_postfix: "-", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison"}
-          #- {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, python: "3.9", cmakegen: "Release", verilator: "v4.228", llvm: "src", llvm_prefix: "llvm-project",  llvm_version: "13.0.1", llvm_postfix: ".", llvm-ext: "tar.xz", unpack: "tar xf", conan: "1.59.0", packages: "libboost-filesystem-dev cmake make perl g++ gdb libfl2 libfl-dev zlib1g zlib1g-dev ccache numactl perl-doc autoconf flex bison libncurses5"}
-        verilator: ["v4.202", "v4.228"]
+          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", verilator_version: "4.228", llvm_version: "13.0.1"}
+          - {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", verilator_version: "4.228", llvm_version: "13.0.1"}
         duts: ["foo", "cv32e40p", "cv32e40s", "cva6"]
 
     needs: build
     runs-on: ${{ matrix.config.os }}
-    name: ${{ matrix.config.name }}-verilator_${{ matrix.verilator }}_benchmark_${{ matrix.duts }}
+    name: ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator_version }}_benchmark_${{ matrix.duts }}
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        path: vrtlmod_src
+        submodules: true
 
-    - uses: actions/cache@v3
+    - name: Requirements (Linux)
+      if: runner.os == 'Linux'
+      continue-on-error: false
+      shell: bash
+      working-directory: ${{runner.workspace}}
+      run: |
+        . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
+        setup_env
+
+    - name: Cache (LLVM)
+      uses: actions/cache@v3
       id: cache-llvm
       with:
-        path: ${{runner.workspace}}/llvm
-        key: ${{ matrix.config.name }}-${{ matrix.config.llvm_prefix }}_${{ matrix.config.llvm_version }}_${{ matrix.config.llvm }}
+        path: ${{runner.workspace}}/llvm_install
+        key: ${{ matrix.config.name }}-llvm_llvmorg-${{ matrix.config.llvm_version }}
         restore-keys: |
-          ${{ matrix.config.name }}-${{ matrix.config.llvm_prefix }}_${{ matrix.config.llvm_version }}_${{ matrix.config.llvm }}
+          ${{ matrix.config.name }}-llvm_llvmorg-${{ matrix.config.llvm_version }}
+    
+    - name: Cache (SystemC)
+      uses: actions/cache@v3
+      id: cache-llvm
+      with:
+        path: ${{runner.workspace}}/systemc_install
+        key: ${{ matrix.config.name }}-systemc_${{ matrix.config.systemc_version }}
+        restore-keys: |
+          ${{ matrix.config.name }}-systemc_${{ matrix.config.systemc_version }}
 
-    - uses: actions/cache@v3
+    - name: Cache (Verilator)
+      uses: actions/cache@v3
       id: cache-verilator
       with:
-        path: ${{runner.workspace}}/verilator
-        key: ${{ matrix.config.name }}-verilator_${{ matrix.verilator }}
+        path: ${{runner.workspace}}/verilator_install
+        key: ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator_version }}
         restore-keys: |
-          ${{ matrix.config.name }}-verilator_${{ matrix.verilator }}
+          ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator_version }}
 
-    - uses: actions/cache@v3
-      id: cache-conan
-      with:
-        path: ${HOME}/.conan
-        key: ${{ matrix.config.name }}-conan_${{ matrix.config.conan }}
-        restore-keys: |
-          ${{ matrix.config.name }}-conan_${{ matrix.config.conan }}
+    - name: Check (cached) Verilator
+      continue-on-error: false
+      shell: bash
+      working-directory: ${{runner.workspace}}
+      run: .verilator_install/bin/verilator --version
+
+    - name: Check (cached) Clang
+      continue-on-error: false
+      shell: bash
+      working-directory: ${{runner.workspace}}
+      run: ./llvm_install/bin/clang --version
 
     - name: Fetch Compiled System
       uses: actions/download-artifact@v2
       with:
-        name: vrtlmod-${{matrix.config.name}}-verilator_${{ matrix.verilator }}.tar.gz
+        name: vrtlmod-${{matrix.config.name}}-verilator_${{ matrix.config.verilator_version }}.tar.gz
         path: ${{runner.workspace}}
-
-    - name: Requirements (Linux)
-      run: |
-        sudo apt-get install ${{ matrix.config.packages }}
 
     - name: Unpack Compiled System
       working-directory: ${{runner.workspace}}
@@ -296,30 +318,14 @@ jobs:
       working-directory: ${{runner.workspace}}
       run: ${{runner.workspace}}/llvm/bin/clang --version
 
-    - name: Requirements (Linux) Python+Conan
-      working-directory: ${{runner.workspace}}
-      shell: bash
-      run: |
-        pip install --force-reinstall "conan==${{ matrix.config.conan }}"
-        if [[ $(conan --version | grep 'version 2.') ]]
-        then
-            conan profile detect
-        else
-            conan user
-            if ! [[ $(conan profile list) = *default* ]]
-            then
-              conan profile new default --detect
-            fi
-            conan profile update settings.compiler.libcxx=libstdc++11 default
-        fi
-
     - name: Configure Benchmarks
       shell: bash
       working-directory: ${{runner.workspace}}
       run: |
-        export VERILATOR_ROOT=${{runner.workspace}}/verilator
-        export LLVM_DIR=${{runner.workspace}}/llvm
-        cmake -S ${GITHUB_WORKSPACE}/test/benchmark -B build-${{matrix.duts}} -D VP=${{matrix.duts}} -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D VRTLMOD_ROOT=${{runner.workspace}}/installed
+        export VERILATOR_ROOT=${{runner.workspace}}/verilator_install
+        export LLVM_DIR=${{runner.workspace}}/systemc_install
+        export SYSTEMC_HOME=${{runner.workspace}}/systemc_install
+        cmake -S vrtlmod_src/test/benchmark -B build-${{matrix.duts}} -D VP=${{matrix.duts}} -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D VRTLMOD_ROOT=${{runner.workspace}}/installed
 
     - name: Compile Benchmarks
       shell: bash
@@ -331,7 +337,7 @@ jobs:
       shell: bash
       working-directory: ${{runner.workspace}}
       run: |
-        build-${{matrix.duts}}/SC_TEST_VRTLMOD ${GITHUB_WORKSPACE}/test/benchmark/${{matrix.duts}}/dhry.elf 5 10 > ${{matrix.duts}}-log.txt
+        build-${{matrix.duts}}/SC_TEST_VRTLMOD vrtlmod_src/test/benchmark/${{matrix.duts}}/dhry.elf 5 10 > ${{matrix.duts}}-log.txt
         cat ${{matrix.duts}}-log.txt
 
     - name: Save Benchmark Results
