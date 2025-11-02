@@ -268,7 +268,7 @@ jobs:
     
     - name: Cache (SystemC)
       uses: actions/cache@v3
-      id: cache-llvm
+      id: cache-systemc
       with:
         path: ${{runner.workspace}}/systemc_install
         key: ${{ matrix.config.name }}-systemc_${{ matrix.config.systemc_version }}
