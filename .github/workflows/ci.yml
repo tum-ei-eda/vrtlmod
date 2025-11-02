@@ -24,6 +24,11 @@ jobs:
     name: ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator }}_requirements
 
     steps:
+    - name: Install git on container
+      run: |
+        apt update
+        apt install -y git
+
     - name: Clone vRTLmod
       uses: actions/checkout@v4
       with:
@@ -114,6 +119,11 @@ jobs:
     name: ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator_version }}_build
 
     steps:
+    - name: Install git on container
+      run: |
+        apt update
+        apt install -y git
+
     - name: Checkout
       uses: actions/checkout@v4
       with:
@@ -216,6 +226,11 @@ jobs:
     name: ${{ matrix.config.name }}-verilator_${{ matrix.config.verilator_version }}_benchmark_${{ matrix.duts }}
 
     steps:
+    - name: Install git on container
+      run: |
+        apt update
+        apt install -y git
+
     - name: Checkout
       uses: actions/checkout@v4
       with:
