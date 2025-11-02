@@ -28,6 +28,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         path: vrtlmod_src
+        submodules: true
 
     - uses: actions/cache@v3
       id: cache-llvm

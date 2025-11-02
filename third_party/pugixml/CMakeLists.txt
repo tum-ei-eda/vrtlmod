@@ -15,14 +15,5 @@
 ####################################################################################################
 
 cmake_minimum_required(VERSION 3.15)
-include(FetchContent)
 
-FetchContent_Declare(pugixml_dep
-	GIT_REPOSITORY https://github.com/zeux/pugixml.git
-	GIT_TAG v1.15
-)
-if(NOT pugixml_dep_POPULATED)
-	FetchContent_Populate(pugixml_dep)
-	FetchContent_GetProperties(pugixml_dep)
-endif()
-add_subdirectory(${pugixml_dep_SOURCE_DIR} ${pugixml_dep_BINARY_DIR} EXCLUDE_FROM_ALL)
+add_subdirectory(pugixml_src EXCLUDE_FROM_ALL)

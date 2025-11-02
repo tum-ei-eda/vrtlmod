@@ -1,0 +1,3 @@
+[submodule "third_party/pugixml/pugixml_src"]
+	path = third_party/pugixml/pugixml_src
+	url = https://github.com/zeux/pugixml.git
