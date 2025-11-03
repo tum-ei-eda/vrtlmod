@@ -31,6 +31,7 @@ setup_pyvenv() {
 ########################################################################################################################
 # LLVM
 fetch_llvm() {
+  _home_=$PWD
   src_dir="$1"
   build_dir="$2"
   install_dir="$3"
@@ -50,6 +51,7 @@ fetch_llvm() {
     cd ${src_dir}
     echo "applying patch: ${llvm_patch_file} from [${llvm_patches_dir}]."
     git apply "${llvm_patches_dir}/${llvm_patch_file}"
+    cd ${_home_}
   fi
 }
 configure_llvm() {
@@ -325,5 +327,5 @@ setup_vrtlmod() {
 
 setup() {
   _what_=$1
-  setup_${_what_} $2 $3 $4 $5
+  setup_${_what_} $2 $3 $4 $5 $6
 }
