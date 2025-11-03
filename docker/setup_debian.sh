@@ -321,12 +321,12 @@ setup_vrtlmod() {
   install_dir="$3"
 
   if [ ! -f "${install_dir}/bin/vrtlmod" ]; then
-    fetch_vrtlmod "vrtlmod" "$2" "$3" && \
-    configure_vrtlmod "vrtlmod" "$2" "$3" && \
-    build_vrtlmod "vrtlmod" "$2" "$3" && \
-    install_vrtlmod "vrtlmod" "$2" "$3" && \
-    test_vrtlmod "vrtlmod" "$2" "$3" && \
-    cleanup_vrtlmod "vrtlmod" "$2" "$3"
+    fetch_vrtlmod "${src_dir}" "${build_dir}" "${install_dir}" && \
+    configure_vrtlmod "${src_dir}" "${build_dir}" "${install_dir}" && \
+    build_vrtlmod "${src_dir}" "${build_dir}" "${install_dir}" && \
+    install_vrtlmod "${src_dir}" "${build_dir}" "${install_dir}" && \
+    test_vrtlmod "${src_dir}" "${build_dir}" "${install_dir}" && \
+    cleanup_vrtlmod "${src_dir}" "${build_dir}" "${install_dir}"
   fi
 }
 
