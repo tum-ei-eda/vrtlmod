@@ -11,12 +11,11 @@ on:
       - master
 
 jobs:
-
   requirements:
     strategy:
       matrix:
         config:
-          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, os_name: "ubuntu", os_version: "20.04", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", verilator_version: "4.228", llvm_version: "13.0.1"}
+          - {name: "Ubuntu-Latest-Release", os: ubuntu-latest, os_name: "ubuntu", os_version: "latest", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", verilator_version: "4.228", llvm_version: "13.0.1"}
           - {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, os_name: "ubuntu", os_version: "22.04", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", verilator_version: "4.228", llvm_version: "13.0.1"}
 
     runs-on: ${{ matrix.config.os }}
@@ -110,7 +109,7 @@ jobs:
     strategy:
       matrix:
         config:
-          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, os_name: "ubuntu", os_version: "20.04", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", verilator_version: "4.228", llvm_version: "13.0.1"}
+          - {name: "Ubuntu-Latest-Release", os: ubuntu-latest, os_name: "ubuntu", os_version: "latest", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", verilator_version: "4.228", llvm_version: "13.0.1"}
           - {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, os_name: "ubuntu", os_version: "22.04", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", verilator_version: "4.228", llvm_version: "13.0.1"}
 
     needs: requirements
@@ -216,7 +215,7 @@ jobs:
     strategy:
       matrix:
         config:
-          - {name: "Ubuntu-20.04-Release", os: ubuntu-20.04, os_name: "ubuntu", os_version: "20.04", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", verilator_version: "4.228", llvm_version: "13.0.1"}
+          - {name: "Ubuntu-Latest-Release", os: ubuntu-latest, os_name: "ubuntu", os_version: "latest", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", verilator_version: "4.228", llvm_version: "13.0.1"}
           - {name: "Ubuntu-22.04-Release", os: ubuntu-22.04, os_name: "ubuntu", os_version: "22.04", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", verilator_version: "4.228", llvm_version: "13.0.1"}
         duts: ["foo", "cv32e40p", "cv32e40s", "cva6"]
 
