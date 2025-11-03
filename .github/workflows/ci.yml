@@ -180,7 +180,7 @@ jobs:
         export LLVM_DIR=/llvm_install
         export SYSTEMC_HOME=/systemc_install
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
-        setup_vrtlmod "${{runner.workspace}}/vrtlmod/vrtlmod_src" "${{runner.workspace}}/vrtlmod_build" "${{runner.workspace}}/vrtlmod_install"
+        setup_vrtlmod "${{runner.workspace}}/vrtlmod_src" "${{runner.workspace}}/vrtlmod_build" "${{runner.workspace}}/vrtlmod_install"
 
     - name: (CTest) Pack Test Artifacts on Failure
       if: ${{ failure() }}
