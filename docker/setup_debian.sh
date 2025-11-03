@@ -35,11 +35,11 @@ fetch_llvm() {
   build_dir="$2"
   install_dir="$3"
   version="${4}"
+  llvm_patches_dir="${5}"
 
   llvm_prefix="llvm-project"
   llvm_tag="llvmorg-${version}"
   llvm_url="https://github.com/llvm/llvm-project"
-  llvm_patches_dir="${workspace}/vrtlmod/deps/llvm/patches"
   llvm_patch_file="${llvm_tag}.patch"
 
   echo "[fetch] llvm"
@@ -101,8 +101,9 @@ setup_llvm() {
   build_dir="$2"
   install_dir="$3"
   version="${4}"
+  patch_dir=$5
 
-  fetch_llvm "$1" "$2" "$3" "${4}" && \
+  fetch_llvm "$1" "$2" "$3" "${4}" ${5} && \
   configure_llvm "$1" "$2" "$3" "${4}" && \
   build_llvm "$1" "$2" "$3" "${4}" && \
   install_llvm "$1" "$2" "$3" "${4}" && \

@@ -48,11 +48,12 @@ ARG llvm_srcdir="/llvm-src"
 ARG llvm_builddir="/llvm-build"
 ARG llvm_destdir="/llvm-install"
 ARG llvm_version="13.0.1"
+ARG llvm_patch_dir="${workspace_dir}/vrtlmod/deps/llvm/patches"
 
 RUN \
   --mount=type=bind,source=".",target=${workspace_dir} \
   . "${workspace_dir}/docker/setup_debian.sh" && \
-  setup llvm ${llvm_srcdir} ${llvm_builddir} ${llvm_destdir} ${llvm_version}
+  setup llvm ${llvm_srcdir} ${llvm_builddir} ${llvm_destdir} ${llvm_version} ${llvm_patch_dir}
 
 ########
 # VENV #
