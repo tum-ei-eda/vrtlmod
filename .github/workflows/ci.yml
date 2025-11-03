@@ -215,7 +215,7 @@ jobs:
         duts: ["foo", "cv32e40p", "cv32e40s", "cva6"]
 
     needs: build
-    runs-on: ${{ matrix.config.os }}
+    runs-on: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}
     container: ${{ matrix.config.os_name }}:${{ matrix.config.os_version }}
     name: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}_benchmark_${{ matrix.duts }}
 
