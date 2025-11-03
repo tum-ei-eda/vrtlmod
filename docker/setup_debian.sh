@@ -46,6 +46,9 @@ fetch_llvm() {
   echo "[fetch] llvm"
   git clone --depth 1 --branch "${llvm_tag}" ${llvm_url}.git ${src_dir}
 
+  echo "[patch?] llvm"
+  ls -la "${llvm_patches_dir}"
+
   if [ -f "${llvm_patches_dir}/${llvm_patch_file}" ]; then
     echo "[patch] llvm"
     cd ${src_dir}
