@@ -115,10 +115,18 @@ namespace system
 
 std::string exec(std::string cmd)
 {
+    struct PCloseDeleter
+    {
+        void operator()(FILE *f) const noexcept
+        {
+            if (f)
+                pclose(f);
+        }
+    };
     std::array<char, 128> buffer;
     std::string result;
     LOG_INFO("Executing shell command: \n\t", cmd);
-    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
+    std::unique_ptr<FILE, PCloseDeleter> pipe(popen(cmd.c_str(), "r"));
     if (!pipe)
     {
         return ("");
