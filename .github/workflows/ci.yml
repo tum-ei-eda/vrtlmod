@@ -180,7 +180,7 @@ jobs:
         export LLVM_DIR=/llvm_install
         export SYSTEMC_HOME=/systemc_install
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
-        setup_vrtlmod "${{runner.workspace}}/vrtlmod_src" "${{runner.workspace}}/vrtlmod_build" "${{runner.workspace}}/vrtlmod_install"
+        setup_vrtlmod "${GITHUB_WORKSPACE}/vrtlmod_src" "${{runner.workspace}}/vrtlmod_build" "${{runner.workspace}}/vrtlmod_install"
 
     - name: (CTest) Pack Test Artifacts on Failure
       if: ${{ failure() }}
@@ -293,7 +293,7 @@ jobs:
         export VERILATOR_ROOT=/verilator_install
         export LLVM_DIR=/systemc_install
         export SYSTEMC_HOME=/systemc_install
-        cmake -S vrtlmod_src/test/benchmark -B build-${{matrix.duts}} -D VP=${{matrix.duts}} -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D VRTLMOD_ROOT=${{runner.workspace}}/vrtlmod_install
+        cmake -S ${GITHUB_WORKSPACE}/vrtlmod_src/test/benchmark -B build-${{matrix.duts}} -D VP=${{matrix.duts}} -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D VRTLMOD_ROOT=${{runner.workspace}}/vrtlmod_install
 
     - name: Compile Benchmarks
       shell: bash
