@@ -93,7 +93,7 @@ jobs:
       shell: bash
       run: |
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
-        setup_llvm "${{runner.workspace}}/llvm_src" "${{runner.workspace}}/llvm_build" "${{runner.workspace}}/llvm_install" "${{ matrix.config.llvm_version }}" "${{runner.workspace}}/vrtlmod/vrtlmod_src/deps/llvm/patches"
+        setup_llvm "${{runner.workspace}}/llvm_src" "${{runner.workspace}}/llvm_build" "${{runner.workspace}}/llvm_install" "${{ matrix.config.llvm_version }}" "${{runner.workspace}}/vrtlmod_src/deps/llvm/patches"
   
     - name: Check (cached) LLVM
       continue-on-error: false
