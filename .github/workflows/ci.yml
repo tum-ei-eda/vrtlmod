@@ -34,24 +34,27 @@ jobs:
         path: vrtlmod_src
         submodules: true
 
-    - uses: actions/cache@v3
+    - name: Cache LLVM
       id: cache-llvm
+      uses: actions/cache@v4
       with:
-        path: ${{runner.workspace}}/llvm_install
+        path: /llvm_install
         key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}
         restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}
 
-    - uses: actions/cache@v3
+    - name: Cache Verilator
       id: cache-verilator
+      uses: actions/cache@v4
       with:
-        path: ${{runner.workspace}}/verilator_install
+        path: /verilator_install
         key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}
         restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}
 
-    - uses: actions/cache@v3
+    - name: Cache SystemC
       id: cache-systemc
+      uses: actions/cache@v4
       with:
-        path: ${{runner.workspace}}/systemc_install
+        path: /systemc_install
         key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_systemc-${{ matrix.config.systemc_version }}
         restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_systemc-${{ matrix.config.systemc_version }}
 
@@ -70,7 +73,7 @@ jobs:
       shell: bash
       run: |
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
-        setup_systemc "${{runner.workspace}}/systemc_src" "${{runner.workspace}}/systemc_build" "${{runner.workspace}}/systemc_install" "${{ matrix.config.systemc_version }}"
+        setup_systemc "${{runner.workspace}}/systemc_src" "${{runner.workspace}}/systemc_build" "/systemc_install" "${{ matrix.config.systemc_version }}"
 
     - if: ${{ steps.cache-verilator.outputs.cache-hit != 'true' }}
       name: Requirements Verilator
@@ -78,14 +81,13 @@ jobs:
       shell: bash
       run: |
         . "./vrtlmod/vrtlmod_src/docker/setup_debian.sh"
-        setup_verilator "${{runner.workspace}}/verilator_src" "${{runner.workspace}}/verilator_src" "${{runner.workspace}}/verilator_install" "${{ matrix.config.verilator_version }}"
+        setup_verilator "${{runner.workspace}}/verilator_src" "${{runner.workspace}}/verilator_src" "/verilator_install" "${{ matrix.config.verilator_version }}"
 
     - name: Check (cached) Verilator
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
-      run: |
-        ${{runner.workspace}}/verilator_install/bin/verilator --version
+      run: /verilator_install/bin/verilator --version
 
     - if: ${{ steps.cache-llvm.outputs.cache-hit != 'true' }}
       name: Requirements LLVM+Clang
@@ -93,14 +95,13 @@ jobs:
       shell: bash
       run: |
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
-        setup_llvm "${{runner.workspace}}/llvm_src" "${{runner.workspace}}/llvm_build" "${{runner.workspace}}/llvm_install" "${{ matrix.config.llvm_version }}" "$PWD/vrtlmod/vrtlmod_src/deps/llvm/patches"
+        setup_llvm "${{runner.workspace}}/llvm_src" "${{runner.workspace}}/llvm_build" "/llvm_install" "${{ matrix.config.llvm_version }}" "$PWD/vrtlmod/vrtlmod_src/deps/llvm/patches"
   
     - name: Check (cached) LLVM
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
-      run: |
-        ${{runner.workspace}}/llvm_install/bin/clang --version
+      run: /llvm_install/bin/clang --version
 
   build:
     strategy:
@@ -135,49 +136,49 @@ jobs:
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
         setup_env
 
-    - name: Cache (LLVM)
-      uses: actions/cache@v3
+    - name: Cache LLVM
       id: cache-llvm
+      uses: actions/cache@v4
       with:
-        path: ${{runner.workspace}}/llvm_install
+        path: /llvm_install
         key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}
         restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}
-    
-    - name: Cache (SystemC)
-      uses: actions/cache@v3
-      id: cache-systemc
-      with:
-        path: ${{runner.workspace}}/systemc_install
-        key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_systemc-${{ matrix.config.systemc_version }}
-        restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_systemc-${{ matrix.config.systemc_version }}
 
-    - name: Cache (Verilator)
-      uses: actions/cache@v3
+    - name: Cache Verilator
       id: cache-verilator
+      uses: actions/cache@v4
       with:
-        path: ${{runner.workspace}}/verilator_install
+        path: /verilator_install
         key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}
         restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}
+
+    - name: Cache SystemC
+      id: cache-systemc
+      uses: actions/cache@v4
+      with:
+        path: /systemc_install
+        key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_systemc-${{ matrix.config.systemc_version }}
+        restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_systemc-${{ matrix.config.systemc_version }}
 
     - name: Check (cached) Verilator
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
-      run: ${{runner.workspace}}/verilator_install/bin/verilator --version
+      run: /verilator_install/bin/verilator --version
 
     - name: Check (cached) Clang
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
-      run: ${{runner.workspace}}/llvm_install/bin/clang --version
+      run: /llvm_install/bin/clang --version
 
     - name: Build vRTLmod
       shell: bash
       working-directory: ${{runner.workspace}}
       run: |
-        export VERILATOR_ROOT=${{runner.workspace}}/verilator_install
-        export LLVM_DIR=${{runner.workspace}}/llvm_install
-        export SYSTEMC_HOME=${{runner.workspace}}/systemc_install
+        export VERILATOR_ROOT=/verilator_install
+        export LLVM_DIR=/llvm_install
+        export SYSTEMC_HOME=/systemc_install
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
         setup_vrtlmod "${{runner.workspace}}/vrtlmod/vrtlmod_src" "${{runner.workspace}}/vrtlmod_build" "${{runner.workspace}}/vrtlmod_install"
 
@@ -239,41 +240,41 @@ jobs:
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
         setup_env
 
-    - name: Cache (LLVM)
-      uses: actions/cache@v3
+    - name: Cache LLVM
       id: cache-llvm
+      uses: actions/cache@v4
       with:
-        path: ${{runner.workspace}}/llvm_install
+        path: /llvm_install
         key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}
         restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}
-    
-    - name: Cache (SystemC)
-      uses: actions/cache@v3
-      id: cache-systemc
-      with:
-        path: ${{runner.workspace}}/systemc_install
-        key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_systemc-${{ matrix.config.systemc_version }}
-        restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_systemc-${{ matrix.config.systemc_version }}
 
-    - name: Cache (Verilator)
-      uses: actions/cache@v3
+    - name: Cache Verilator
       id: cache-verilator
+      uses: actions/cache@v4
       with:
-        path: ${{runner.workspace}}/verilator_install
+        path: /verilator_install
         key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}
         restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}
+
+    - name: Cache SystemC
+      id: cache-systemc
+      uses: actions/cache@v4
+      with:
+        path: /systemc_install
+        key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_systemc-${{ matrix.config.systemc_version }}
+        restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_systemc-${{ matrix.config.systemc_version }}
 
     - name: Check (cached) Verilator
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
-      run: ${{runner.workspace}}/verilator_install/bin/verilator --version
+      run: /verilator_install/bin/verilator --version
 
     - name: Check (cached) Clang
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
-      run: ${{runner.workspace}}/llvm_install/bin/clang --version
+      run: /llvm_install/bin/clang --version
 
     - name: Fetch Compiled System
       uses: actions/download-artifact@v4.1.7
@@ -289,9 +290,9 @@ jobs:
       shell: bash
       working-directory: ${{runner.workspace}}
       run: |
-        export VERILATOR_ROOT=${{runner.workspace}}/verilator_install
-        export LLVM_DIR=${{runner.workspace}}/systemc_install
-        export SYSTEMC_HOME=${{runner.workspace}}/systemc_install
+        export VERILATOR_ROOT=/verilator_install
+        export LLVM_DIR=/systemc_install
+        export SYSTEMC_HOME=/systemc_install
         cmake -S vrtlmod_src/test/benchmark -B build-${{matrix.duts}} -D VP=${{matrix.duts}} -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D VRTLMOD_ROOT=${{runner.workspace}}/vrtlmod_install
 
     - name: Compile Benchmarks
