@@ -225,10 +225,17 @@ jobs:
         apt update
         apt install -y git
 
-    - name: Checkout
+    - name: Checkout vrtlmod
       uses: actions/checkout@v4
       with:
         path: vrtlmod_src
+        submodules: true
+
+    - name: Checkout vrtlmod-test
+      uses: actions/checkout@v4
+      with:
+        path: vrtlmod-test_src
+        repository: "https://github.com/tum-ei-eda/vrtlmod-test"
         submodules: true
 
     - name: Requirements (Linux)
@@ -291,21 +298,21 @@ jobs:
       working-directory: ${{runner.workspace}}
       run: |
         export VERILATOR_ROOT=/verilator_install
-        export LLVM_DIR=/systemc_install
+        export LLVM_DIR=/llvm_install
         export SYSTEMC_HOME=/systemc_install
-        cmake -S ${GITHUB_WORKSPACE}/vrtlmod_src/test/benchmark -B build-${{matrix.duts}} -D VP=${{matrix.duts}} -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D VRTLMOD_ROOT=${{runner.workspace}}/vrtlmod_install
+        cmake -S ${GITHUB_WORKSPACE}/vrtlmod-test_src -B build -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D VRTLMOD_ROOT=${{runner.workspace}}/vrtlmod_install
 
     - name: Compile Benchmarks
       shell: bash
       working-directory: ${{runner.workspace}}
       run: |
-        cmake --build build-${{matrix.duts}} --parallel $(nproc)
+        cmake --build build --parallel $(nproc)
 
     - name: Run Benchmarks
       shell: bash
       working-directory: ${{runner.workspace}}
       run: |
-        build-${{matrix.duts}}/SC_TEST_VRTLMOD vrtlmod_src/test/benchmark/${{matrix.duts}}/dhry.elf 5 10 > ${{matrix.duts}}-log.txt
+        build/benchmark/V${{ matrix.duts }}-SC_TEST_VRTLMOD  ${GITHUB_WORKSPACE}/vrtlmod-test_src/benchmark/${{matrix.duts}}/dhry.elf 5 10 > ${{matrix.duts}}-log.txt
         cat ${{matrix.duts}}-log.txt
 
     - name: Save Benchmark Results
