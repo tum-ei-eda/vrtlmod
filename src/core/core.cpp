@@ -126,7 +126,7 @@ std::vector<std::string> VrtlmodCore::prepare_files(const std::vector<std::strin
             {
                 throw std::runtime_error("Refusing to copy to root directory!");
             }
-            fs::copy_file(src, dst, copy_options::overwrite_existing);
+            fs::copy_file(src, dst, fs_overwrite_if_existing);
             nfile = dst.string();
         }
     }

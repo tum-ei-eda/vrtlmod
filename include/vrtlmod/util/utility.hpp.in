@@ -29,13 +29,16 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 using copy_options = fs::copy_options;
+constexpr auto fs_overwrite_if_existing = copy_options::overwrite_existing;
 #else
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
-#if BOOST_VERSION < 106000
+#if BOOST_VERSION < 107400
 using copy_options = boost::filesystem::copy_option;
+constexpr auto fs_overwrite_if_existing = copy_options::overwrite_if_exists;
 #else
 using copy_options = boost::filesystem::copy_options;
+constexpr auto fs_overwrite_if_existing = copy_options::overwrite_existing;
 #endif
 #endif
 
