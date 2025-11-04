@@ -180,14 +180,14 @@ jobs:
         export LLVM_DIR=/llvm_install
         export SYSTEMC_HOME=/systemc_install
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
-        setup_vrtlmod "${GITHUB_WORKSPACE}/vrtlmod_src" "${{runner.workspace}}/vrtlmod_build" "${{runner.workspace}}/vrtlmod_install"
+        setup_vrtlmod "${GITHUB_WORKSPACE}/vrtlmod_src" "${{runner.workspace}}/vrtlmod_build" "${GITHUB_WORKSPACE}/vrtlmod_install"
 
     - name: (CTest) Upload Artifacts on Failure
       uses: actions/upload-artifact@v5
       if: ${{ failure() }}
       with:
         name: vrtlmod-failed-test-${{ matrix.config.os_name }}-${{ matrix.config.os_version }}.tar.gz
-        path: vrtlmod_build/Testing/
+        path: ${GITHUB_WORKSPACE}/vrtlmod_build/Testing/
         if-no-files-found: error
         retention-days: 15
 
@@ -196,7 +196,7 @@ jobs:
       uses: actions/upload-artifact@v5
       with:
         name: vrtlmod_${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}
-        path: vrtlmod_install/
+        path: ${GITHUB_WORKSPACE}/vrtlmod_install/
         if-no-files-found: error
 
   benchmark:
@@ -290,7 +290,7 @@ jobs:
         export VERILATOR_ROOT=/verilator_install
         export LLVM_DIR=/llvm_install
         export SYSTEMC_HOME=/systemc_install
-        cmake -S ${GITHUB_WORKSPACE}/vrtlmod-test_src -B build -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D VRTLMOD_ROOT=${{runner.workspace}}/vrtlmod_install
+        cmake -S ${GITHUB_WORKSPACE}/vrtlmod-test_src -B build -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D VRTLMOD_ROOT=${GITHUB_WORKSPACE}/vrtlmod_install
 
     - name: Compile Benchmarks
       shell: bash
