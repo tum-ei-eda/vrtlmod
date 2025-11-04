@@ -281,7 +281,7 @@ jobs:
       uses: actions/download-artifact@v5
       with:
         name: vrtlmod_${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}
-        path: /
+        path: /vrtlmod_install/
 
     - name: Configure Benchmarks
       shell: bash
