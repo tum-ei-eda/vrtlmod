@@ -235,7 +235,8 @@ jobs:
       uses: actions/checkout@v4
       with:
         path: vrtlmod-test_src
-        repository: "https://github.com/tum-ei-eda/vrtlmod-test"
+        repository: tum-ei-eda/vrtlmod-test
+        ref: master
         submodules: true
 
     - name: Requirements (Linux)
