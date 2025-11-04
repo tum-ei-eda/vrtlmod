@@ -187,7 +187,7 @@ jobs:
       if: ${{ failure() }}
       with:
         name: vrtlmod-failed-test-${{ matrix.config.os_name }}-${{ matrix.config.os_version }}.tar.gz
-        path: ${{runner.workspace}}/vrtlmod_build/Testing
+        path: vrtlmod_build/Testing/
         if-no-files-found: error
         retention-days: 15
 
@@ -196,7 +196,7 @@ jobs:
       uses: actions/upload-artifact@v5
       with:
         name: vrtlmod_${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}
-        path: "${{runner.workspace}}/vrtlmod_install"
+        path: vrtlmod_install/
         if-no-files-found: error
 
   benchmark:
@@ -281,7 +281,7 @@ jobs:
       uses: actions/download-artifact@v5
       with:
         name: vrtlmod_${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}
-        path: ${{runner.workspace}}
+        path: ${GITHUB_WORKSPACE}/
 
     - name: Configure Benchmarks
       shell: bash
