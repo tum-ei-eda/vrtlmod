@@ -291,7 +291,7 @@ jobs:
         export VERILATOR_ROOT=/verilator_install
         export LLVM_DIR=/llvm_install
         export SYSTEMC_HOME=/systemc_install
-        cmake -S ${GITHUB_WORKSPACE}/vrtlmod-test_src -B build -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D VRTLMOD_ROOT=/vrtlmod_install
+        cmake -S ${GITHUB_WORKSPACE}/vrtlmod-test_src -B build -D VRTL_NAMES="${{matrix.duts}}" -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D VRTLMOD_ROOT=/vrtlmod_install
 
     - name: Compile Benchmarks
       shell: bash
