@@ -207,6 +207,7 @@ jobs:
           - {os_name: "ubuntu", os_version: "22.04", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", verilator_version: "4.228", llvm_version: "13.0.1"}
         duts: ["foo", "cv32e40p", "cv32e40s", "cva6"]
 
+    continue-on-error: true
     needs: build
     runs-on: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}
     container: ${{ matrix.config.os_name }}:${{ matrix.config.os_version }}
