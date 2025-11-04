@@ -182,29 +182,22 @@ jobs:
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
         setup_vrtlmod "${GITHUB_WORKSPACE}/vrtlmod_src" "${{runner.workspace}}/vrtlmod_build" "${{runner.workspace}}/vrtlmod_install"
 
-    - name: (CTest) Pack Test Artifacts on Failure
-      if: ${{ failure() }}
-      run: tar -C ${{runner.workspace}} -czvf ${{runner.workspace}}/vrtlmod-failed-test.tar.gz ${{runner.workspace}}/vrtlmod_build/Testing
-
     - name: (CTest) Upload Artifacts on Failure
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       if: ${{ failure() }}
       with:
         name: vrtlmod-failed-test-${{ matrix.config.os_name }}-${{ matrix.config.os_version }}.tar.gz
-        path: ${{runner.workspace}}/vrtlmod-failed-test.tar.gz
+        path: ${{runner.workspace}}/vrtlmod_build/Testing
         if-no-files-found: error
         retention-days: 15
 
-    - name: Compress Compiled System
-      if: runner.os == 'Linux'
-      run: tar -C ${{runner.workspace}}/ -czvf "${{runner.workspace}}/vrtlmod.tar.gz" "${{runner.workspace}}/vrtlmod_install"
-
     - name: Upload Compiled System
       if: runner.os == 'Linux'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
-        name: vrtlmod_${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}.tar.gz
-        path: "${{runner.workspace}}/vrtlmod.tar.gz"
+        name: vrtlmod_${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}
+        path: "${{runner.workspace}}/vrtlmod_install"
+        if-no-files-found: error
 
   benchmark:
     strategy:
@@ -285,14 +278,10 @@ jobs:
       run: /llvm_install/bin/clang --version
 
     - name: Fetch Compiled System
-      uses: actions/download-artifact@v4.1.7
+      uses: actions/download-artifact@v5
       with:
-        name: vrtlmod_${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}.tar.gz
+        name: vrtlmod_${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}
         path: ${{runner.workspace}}
-
-    - name: Unpack Compiled System
-      working-directory: ${{runner.workspace}}
-      run: tar -xf vrtlmod.tar.gz
 
     - name: Configure Benchmarks
       shell: bash
@@ -317,7 +306,7 @@ jobs:
         cat ${{matrix.duts}}-log.txt
 
     - name: Save Benchmark Results
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: ${{matrix.duts}}_${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}.log
         path: ${{runner.workspace}}/${{matrix.duts}}.log
