@@ -242,14 +242,6 @@ jobs:
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
         setup_env
 
-    - name: Cache LLVM
-      id: cache-llvm
-      uses: actions/cache@v4
-      with:
-        path: /llvm_install
-        key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}
-        restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}
-
     - name: Cache Verilator
       id: cache-verilator
       uses: actions/cache@v4
@@ -271,12 +263,6 @@ jobs:
       shell: bash
       working-directory: ${{runner.workspace}}
       run: /verilator_install/bin/verilator --version
-
-    - name: Check (cached) Clang
-      continue-on-error: false
-      shell: bash
-      working-directory: ${{runner.workspace}}
-      run: /llvm_install/bin/clang --version
 
     - name: Fetch Compiled System
       uses: actions/download-artifact@v5
