@@ -284,6 +284,13 @@ jobs:
         name: vrtlmod_${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}
         path: /vrtlmod_install/
 
+    - name: Check pre-compiled vrtlmod
+      shell: bash
+      run: |
+        chmod +x /vrtlmod_install/bin/vrtlmod
+        chmod +x /vrtlmod_install/cmake/vrtlmod-config.cmake
+        /vrtlmod_install/bin/vrtlmod --version
+
     - name: Configure Benchmarks
       shell: bash
       working-directory: ${{runner.workspace}}
