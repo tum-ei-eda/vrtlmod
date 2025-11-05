@@ -3,7 +3,7 @@
 # Package dependencies
 get_apt_deps() {
   verilator_apt_dep="autoconf automake autotools-dev bison curl flex g++ git xz-utils wget"
-  vrtlmod_apt_dep="cmake libboost-filesystem-dev libfl-dev build-essential ccache python3 python3-virtualenv python3-dev"
+  vrtlmod_apt_dep="cmake libboost-filesystem-dev libboost-date-time-dev libfl-dev build-essential ccache python3 python3-virtualenv python3-dev"
   echo "${verilator_apt_dep} ${vrtlmod_apt_dep}"
 }
 setup_env() {
