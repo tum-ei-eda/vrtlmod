@@ -125,7 +125,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         path: vrtlmod_src
-        submodules: true
+        submodules: recursive
 
     - name: Requirements (Linux)
       if: runner.os == 'Linux'
@@ -223,7 +223,6 @@ jobs:
       uses: actions/checkout@v4
       with:
         path: vrtlmod_src
-        submodules: true
 
     - name: Checkout vrtlmod-test
       uses: actions/checkout@v4
@@ -231,7 +230,7 @@ jobs:
         path: vrtlmod-test_src
         repository: tum-ei-eda/vrtlmod-test
         ref: master
-        submodules: true
+        submodules: recursive
 
     - name: Requirements (Linux)
       if: runner.os == 'Linux'
