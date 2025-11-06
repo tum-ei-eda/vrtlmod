@@ -20,7 +20,7 @@ jobs:
 
     runs-on: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}
     container: ${{ matrix.config.os_name }}:${{ matrix.config.os_version }}
-    name: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}_requirements
+    name: requirements-${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}
 
     steps:
     - name: Install git on container
@@ -113,7 +113,7 @@ jobs:
     needs: requirements
     runs-on: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}
     container: ${{ matrix.config.os_name }}:${{ matrix.config.os_version }}
-    name: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}_build
+    name: build-${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}
 
     steps:
     - name: Install git on container
@@ -211,7 +211,7 @@ jobs:
     needs: build
     runs-on: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}
     container: ${{ matrix.config.os_name }}:${{ matrix.config.os_version }}
-    name: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}_benchmark_${{ matrix.duts }}
+    name: benchmark_${{ matrix.duts }}-${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}
 
     steps:
     - name: Install git on container
@@ -240,6 +240,14 @@ jobs:
       run: |
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
         setup_env
+
+    - name: Cache LLVM
+      id: cache-llvm
+      uses: actions/cache@v4
+      with:
+        path: /llvm_install
+        key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}
+        restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}
 
     - name: Cache Verilator
       id: cache-verilator
