@@ -241,14 +241,6 @@ jobs:
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
         setup_env
 
-    - name: Cache LLVM
-      id: cache-llvm
-      uses: actions/cache@v4
-      with:
-        path: /llvm_install
-        key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}
-        restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}
-
     - name: Cache Verilator
       id: cache-verilator
       uses: actions/cache@v4
@@ -291,6 +283,7 @@ jobs:
         export VERILATOR_ROOT=/verilator_install
         export LLVM_DIR=/llvm_install
         export SYSTEMC_HOME=/systemc_install
+        _dir_=$PWD && cd ${GITHUB_WORKSPACE}/vrtlmod-test_src/third_party/scc/scc_src && git apply ${GITHUB_WORKSPACE}/vrtlmod-test_src/patches/scc-gcc_gt_13.patch && cd ${_dir_}
         cmake -S ${GITHUB_WORKSPACE}/vrtlmod-test_src -B build -D VRTL_NAMES="${{matrix.duts}}" -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D VRTLMOD_ROOT=/vrtlmod_install
 
     - name: Compile Benchmarks
