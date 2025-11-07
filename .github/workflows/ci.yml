@@ -279,8 +279,8 @@ jobs:
     - name: Patch Submodule
       shell: bash
       run: |
-        scc_dir = "${GITHUB_WORKSPACE}/vrtlmod-test_src/third_party/scc/scc_src"
-        _dir_=$PWD
+        scc_dir="${GITHUB_WORKSPACE}/vrtlmod-test_src/third_party/scc/scc_src"
+        _dir_="$PWD"
         ls -la ${scc_dir}
         cd ${scc_dir}
         ls -la .
