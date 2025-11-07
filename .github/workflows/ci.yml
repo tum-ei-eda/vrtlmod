@@ -276,14 +276,24 @@ jobs:
         chmod +x /vrtlmod_install/cmake/vrtlmod-config.cmake
         /vrtlmod_install/bin/vrtlmod --version
 
+    - name: Patch Submodule
+      shell: bash
+      run: |
+        scc_dir = "${GITHUB_WORKSPACE}/vrtlmod-test_src/third_party/scc/scc_src"
+        _dir_=$PWD
+        ls -la ${scc_dir}
+        cd ${scc_dir}
+        ls -la .
+        git apply "../../../patches/scc-gcc_gt_13.patch" && cd ${_dir_}
+        git apply "../../../patches/scc-byteenabletransactions.patch" && cd ${_dir_}
+
     - name: Configure Benchmarks
       shell: bash
       working-directory: ${{runner.workspace}}
       run: |
         export VERILATOR_ROOT=/verilator_install
         export LLVM_DIR=/llvm_install
-        export SYSTEMC_HOME=/systemc_install
-        _dir_=$PWD && cd ${GITHUB_WORKSPACE}/vrtlmod-test_src/third_party/scc/scc_src && git apply ${GITHUB_WORKSPACE}/vrtlmod-test_src/patches/scc-gcc_gt_13.patch && cd ${_dir_}
+        export SYSTEMC_HOME=/systemc_install       
         cmake -S ${GITHUB_WORKSPACE}/vrtlmod-test_src -B build -D VRTL_NAMES="${{matrix.duts}}" -D CMAKE_BUILD_TYPE=${{ matrix.config.cmakegen }} -D VRTLMOD_ROOT=/vrtlmod_install
 
     - name: Compile Benchmarks
