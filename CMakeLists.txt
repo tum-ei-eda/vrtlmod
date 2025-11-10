@@ -119,7 +119,7 @@ add_subdirectory(third_party)
 ####################################################################################################
 
 if(LLVM_FOUND AND Clang_FOUND AND verilator_FOUND)
-    add_definitions(-DVRTLMOD_VERSION="0.9.4")
+    add_definitions(-DVRTLMOD_VERSION="0.10.0")
     add_definitions(-DVRTLMOD_VERILATOR_VERSION=${VRTLMOD_VERILATOR_VERSION})
 
     set(CLANG_INCLUDE_DIRS ${LLVM_INSTALL_PREFIX}/lib/clang/${LLVM_VERSION}/include)
