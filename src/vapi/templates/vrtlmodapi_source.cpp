@@ -14,11 +14,6 @@
  * limitations under the License.
  */
 
-////////////////////////////////////////////////////////////////////////////////
-/// @file vrtlmodapi_source.cpp
-/// @date Created on Wed Dec 09 13:32:12 2020
-////////////////////////////////////////////////////////////////////////////////
-
 #include "vrtlmod/vapi/generator.hpp"
 #include "vrtlmod/core/core.hpp"
 #include "vrtlmod/core/types.hpp"
@@ -54,7 +49,7 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
 
     std::string api_name = top_type + "VRTLmodAPI";
 
-    x << R"(// Vrtl-specific includes:
+    x << R"(// vRTL-specific includes:
 #include ")"
       << core.get_vrtltopheader_filename() << R"("
 #include ")"
@@ -72,7 +67,6 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
       << "::" << api_name << R"((const char* name)
     : vrtlfi::td::TD_API()
     , vrtl_(name)
-{
 )";
 
     auto get_prefix = [&](types::Cell const *c, std::string module_instance) -> std::string
@@ -95,13 +89,11 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
             , t.get_id());
     };
 
-    auto write_init_td = [&](const types::Module &M) -> bool
-    {
+    auto write_init_td = [&](const types::Module &M) -> bool {
         types::Module const *m = &M;
         types::Cell const *c = nullptr;
 
-        auto celliter = [&](const types::Cell &C) -> bool
-        {
+        auto celliter = [&](const types::Cell &C) -> bool {
             if (m == core.get_module_from_cell(C))
             {
                 c = &C;
@@ -116,60 +108,33 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
             LOG_FATAL("Can not find parent Cell of Module ", m->get_id(), " [", m->get_name(), "]");
         }
 
-        auto targetiterf = [&](const types::Target &t) -> bool
-        {
+        auto targetiterf = [&](const types::Target &t) -> bool {
             if (t.get_parent() == *m)
             {
                 for (const auto &module_instance : t.get_parent().symboltable_instances_)
                 {
-                    std::stringstream smart_type, initializer;
-                    std::string type_str, initializer_str;
-                    auto prefix_str = get_prefix(c, module_instance);
-                    auto member_str = util::concat("vrtl_.", get_memberstr(c, t, prefix_str));
+                    auto prefix_str = core.get_prefix(c, module_instance);
 
-                    std::string map_key = util::concat(prefix_str, ".", t.get_id());
+                    std::string initializer_str = util::concat(
+                        // clang-format off
+                          "{ "
+                        , util::concat("\"", prefix_str, ".", t.get_id(), "\"")
+                        , ", "
+                        , util::concat("vrtl_.", core.get_memberstr(c, t, prefix_str))
+                        , ", "
+                        , std::to_string(t.get_bits())
+                        , ", "
+                        , std::to_string(t.get_one_dim_bits())
+                        , " }"
+                        // clang-format on
+                    );
 
-                    smart_type << "vrtlfi::td::";
-
-                    auto cxxdim = t.get_cxx_dimension_lengths();
-                    auto one_dim_bits = t.get_one_dim_bits();
-                    auto cxxdimtypes = t.get_cxx_dimension_types();
-
-                    switch (cxxdim.size())
-                    {
-                    case 0:
-                        smart_type << "ZeroD_TDentry<" << t.get_cxx_type() << ">";
-                        initializer << "(\"" << prefix_str << "." << t.get_id() << "\", " << member_str << ", "
-                                    << t.get_bits() << ", " << one_dim_bits << ")";
-                        break;
-                    case 1:
-                        smart_type << "OneD_TDentry<" << t.get_cxx_type() << ", " << cxxdimtypes.back() << ", "
-                                   << cxxdim[0] << ">";
-                        initializer << "(\"" << prefix_str << "." << t.get_id() << "\", " << member_str << ", "
-                                    << t.get_bits() << ", " << one_dim_bits << ")";
-                        break;
-                    case 2:
-                        smart_type << "TwoD_TDentry<" << t.get_cxx_type() << ", " << cxxdimtypes.back() << ", "
-                                   << cxxdim[0] << ", " << cxxdim[1] << ">";
-                        initializer << "(\"" << prefix_str << "." << t.get_id() << "\", " << member_str << ", "
-                                    << t.get_bits() << ", " << one_dim_bits << ")";
-                        break;
-                    case 3:
-                        smart_type << "ThreeD_TDentry<" << t.get_cxx_type() << ", " << cxxdimtypes.back() << ", "
-                                   << cxxdim[0] << ", " << cxxdim[1] << ", " << cxxdim[2] << ">";
-                        initializer << "(\"" << prefix_str << "." << t.get_id() << "\", " << member_str << ", "
-                                    << t.get_bits() << ", " << one_dim_bits << ")";
-                        break;
-                    default:
-                        LOG_ERROR("CType dimensions of injection target not supported: ", t.get_cxx_type());
-                        break;
-                    }
-                    x << "    td_[ \"" << map_key << "\" ]"
-                      << " = "
-                      << "std::make_shared< " << smart_type.str() << " >" << initializer.str() << ";\n";
-                    x << "    " << member_str << "__td_"
-                      << " = std::static_pointer_cast< " << smart_type.str() << ">(td_.at(\"" << map_key
-                      << "\")).get();\n\n";
+                    std::string member_name = util::concat(prefix_str, "__DOT__", t.get_id(), "_");
+                    util::strhelp::replaceAll(member_name, ".", "__DOT__");
+                    util::strhelp::replaceAll(member_name, "->", "__REF__");
+                    x << R"(
+    , )" << member_name
+                      << initializer_str;
                 }
             }
             return true;
@@ -182,49 +147,50 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
     td_nmb = 0;
     core.foreach_module(write_init_td);
 
-    x << "}" << std::endl;
-    x << top_type << "VRTLmodAPI::~" << top_type << "VRTLmodAPI(void) { \n\
-}\n" << std::endl;
-
-    x << api_name << "Differential::" << api_name << "Differential(const " << api_name << "& faulty, const " << api_name
-      << R"(& reference)
-    : )"
-      << api_name << "(\"Differential\")"
-      << R"(
-    , faulty_(faulty)
-    , reference_(reference)
-{)";
-
     if (core.is_systemc())
     {
         if (auto top_module = core.get_module_from_cell(core.get_top_cell()))
         {
             for (auto const &var : top_module->variables_)
             {
-                std::string name = var->get_type();
+                std::string name = var->get_type(); //< seems odd to get name by get_type, but the name is the XML type
+                                                    // where id is the XML node type
                 if (name == "in" || name == "out" || name == "inout")
                 {
-                    auto type = var->get_cxx_type();
-                    auto port_name = var->get_id();
-                    if (!util::strhelp::replace(type, "sc_out<", "sc_signal<"))
-                        if (!util::strhelp::replace(type, "sc_in<", "sc_signal<"))
-                            util::strhelp::replace(type, "sc_inout<", "sc_signal<");
-
+                    std::string decl_name = util::concat("TOP", "__DOT__", var->get_id(), "_");
+                    util::strhelp::replaceAll(decl_name, ".", "__DOT__");
+                    util::strhelp::replaceAll(decl_name, "->", "__REF__");
+                    std::string initializer_str = util::concat(
+                        // clang-format off
+                          "{ "
+                        , util::concat("/*name:*/", "\"", "TOP", ".", var->get_id(), "\"")
+                        , ", "
+                        , util::concat("/*data:*/", "vrtl_", ".", var->get_id())
+                        , ", "
+                        , util::concat("/*bits:*/", std::to_string(var->get_bits()))
+                        , " }"
+                        // clang-format on
+                    );
                     x << R"(
-    )"
-                      << "vrtl_." << port_name << "(" << port_name << "_dummy_);";
+    , )" << decl_name << initializer_str;
                 }
             }
         }
     }
+    x << R"(
+)";
 
-    auto writetarget2idinit = [&](const types::Module &M) -> bool
-    {
+    x << R"(
+)";
+
+    std::string map_prefix = "";
+    std::string retr_prefix = "";
+    bool reverse_map = false;
+    auto writetarget2idinitializer = [&](const types::Module &M) -> bool {
         types::Module const *m = &M;
         types::Cell const *c = nullptr;
 
-        auto celliter = [&](const types::Cell &C) -> bool
-        {
+        auto celliter = [&](const types::Cell &C) -> bool {
             if (m == core.get_module_from_cell(C))
             {
                 c = &C;
@@ -239,233 +205,141 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
             LOG_FATAL("Can not find parent Cell of Module ", m->get_id(), " [", m->get_name(), "]");
         }
 
-        auto targetiterf = [&](const types::Target &t) -> bool
-        {
+        auto targetiterf = [&](const types::Target &t) -> bool {
             if (t.get_parent() == *m)
             {
                 for (const auto &module_instance : t.get_parent().symboltable_instances_)
                 {
-                    auto prefix_str = get_prefix(c, module_instance);
-                    auto member_str = get_memberstr(c, t, prefix_str);
+                    auto prefix_str = core.get_prefix(c, module_instance);
+                    // auto member_str = util::concat("vrtl_.", core.get_memberstr(c, t, prefix_str));
+                    // auto element_0 = member_str + "__td_";
 
-                    auto lhs_str = "faulty_.vrtl_." + member_str;
-                    auto rhs_str = "reference_.vrtl_." + member_str;
-                    auto xor_str = "this->vrtl_." + member_str;
-
-                    x << R"(
-    // )" << prefix_str
-                      << "." << t.get_id() << ":"
-                      << R"(
-    faulty_target2id_[faulty_.get_target)"
-                      << "(\"" << prefix_str << "." << t.get_id() << "\")] = " << td_nmb << R"(;
-    reference_target2id_[reference_.get_target)"
-                      << "(\"" << prefix_str << "." << t.get_id() << "\")] = " << td_nmb << R"(;
-    diff_target2id_[get_target)"
-                      << "(\"" << prefix_str << "." << t.get_id() << "\")] = " << td_nmb << R"(;
-)";
+                    std::string member_name = util::concat(prefix_str, "__DOT__", t.get_id(), "_");
+                    util::strhelp::replaceAll(member_name, ".", "__DOT__");
+                    util::strhelp::replaceAll(member_name, "->", "__REF__");
+                    auto element_0 = util::concat("&", member_name);
+                    auto element_1 = std::to_string(td_nmb);
+                    x << "\n        ";
+                    if (td_nmb == 0)
+                    {
+                        x << "  ";
+                    }
+                    else
+                    {
+                        x << ", ";
+                    }
+                    x << "{ " << (reverse_map ? element_1 : element_0) << ", " << (reverse_map ? element_0 : element_1)
+                      << " }";
                     ++td_nmb;
                 }
             }
             return true;
         };
         core.foreach_injection_target(targetiterf);
-
         return true;
     };
 
-    td_nmb = 0;
-    core.foreach_module(writetarget2idinit);
-    x << R"(
-}
-)";
-
-    auto writecomparebody = [&](const types::Module &M) -> bool
-    {
-        types::Module const *m = &M;
-        types::Cell const *c = nullptr;
-
-        auto celliter = [&](const types::Cell &C) -> bool
+    auto write_systemc_target2id = [&](void) -> void {
+        if (core.is_systemc())
         {
-            if (m == core.get_module_from_cell(C))
+            if (auto top_module = core.get_module_from_cell(core.get_top_cell()))
             {
-                c = &C;
-                return false;
-            }
-            return true;
-        };
-        core.foreach_cell(celliter);
-
-        if (c == nullptr)
-        {
-            LOG_FATAL("Can not find parent Cell of Module ", m->get_id(), " [", m->get_name(), "]");
-        }
-        auto targetiterf = [&](const types::Target &t) -> bool
-        {
-            if (t.get_parent() == *m)
-            {
-                for (const auto &module_instance : t.get_parent().symboltable_instances_)
+                for (auto const &var : top_module->variables_)
                 {
-                    auto prefix_str = get_prefix(c, module_instance);
-                    auto member_str = get_memberstr(c, t, prefix_str);
-
-                    auto cxxdim = t.get_cxx_dimension_lengths();
-
-                    auto lhs_str = "faulty_.vrtl_." + member_str;
-                    auto rhs_str = "reference_.vrtl_." + member_str;
-                    auto xor_str = "this->vrtl_." + member_str;
-
-                    if (!fast_compare)
+                    std::string name = var->get_type(); //< seems odd to get name by get_type, but the name is the XML
+                                                        // type where id is the XML node type
+                    if (name == "in" || name == "out" || name == "inout")
                     {
-                        x << R"(
-    )";
-                    }
-                    else
-                    {
-                        x << R"(
-        case )" << td_nmb << ": ";
-                    }
-                    x << "// )" << prefix_str << "." << t.get_id() << ":";
-
-                    switch (cxxdim.size())
-                    {
-                    case 0:
-                    {
-                        if (!fast_compare)
+                        std::string decl_name = util::concat("TOP", "__DOT__", var->get_id(), "_");
+                        util::strhelp::replaceAll(decl_name, ".", "__DOT__");
+                        util::strhelp::replaceAll(decl_name, "->", "__REF__");
+                        // auto port_name = var->get_id();
+                        auto element_0 = util::concat("&", decl_name); // util::concat("vrtl_.", port_name, "__td_");
+                        auto element_1 = std::to_string(td_nmb);
+                        x << "\n        ";
+                        if (td_nmb == 0)
                         {
-                            x << R"(
-    )" << xor_str << " = (" << lhs_str
-                              << " ^ " << rhs_str << ") & 0x" << std::hex << t.get_element_mask({}) << std::dec << ";";
-                            x << R"(
-    ret += )" << xor_str << "? 1 : 0;";
+                            x << "  ";
                         }
                         else
                         {
-                            x << R"(
-            if(__UNLIKELY(()" << lhs_str
-                              << " ^ " << rhs_str << ") & 0x" << std::hex << t.get_element_mask({}) << std::dec << "))"
-                              << R"(
-                return faulty_.td_.at)"
-                              << "(\"" << prefix_str << "." << t.get_id() << "\").get();";
+                            x << ", ";
                         }
+                        x << "{ " << (reverse_map ? element_1 : element_0) << ", "
+                          << (reverse_map ? element_0 : element_1) << " }";
+                        ++td_nmb;
                     }
-                    break;
-                    case 1:
-                    {
-                        for (size_t m = 0; m < cxxdim[0]; ++m)
-                        {
-                            if (!fast_compare)
-                            {
-                                x << R"(
-    )" << xor_str << "[" << m << "]"
-                                  << " = (" << lhs_str << "[" << m << "]"
-                                  << " ^ " << rhs_str << "[" << m << "])"
-                                  << " & 0x" << std::hex << t.get_element_mask({ m }) << std::dec << ";";
-                                x << R"(
-                                        ret += )"
-                                  << xor_str << "[" << m << "] ? 1 : 0;";
-                            }
-                            else
-                            {
-                                x << R"(
-            if(__UNLIKELY(()" << lhs_str
-                                  << "[" << m << "]"
-                                  << " ^ " << rhs_str << "[" << m << "]) & 0x" << std::hex << t.get_element_mask({ m })
-                                  << std::dec << "))"
-                                  << R"(
-                return faulty_.td_.at)"
-                                  << "(\"" << prefix_str << "." << t.get_id() << "\").get();";
-                            }
-                        }
-                    }
-                    break;
-                    case 2:
-                    {
-                        for (size_t l = 0; l < cxxdim[1]; ++l)
-                            for (size_t m = 0; m < cxxdim[0]; ++m)
-                            {
-                                if (!fast_compare)
-                                {
-                                    x << R"(
-    )" << xor_str << "[" << m << "]"
-                                      << "[" << l << "]"
-                                      << " = (" << lhs_str << "[" << m << "]"
-                                      << "[" << l << "]"
-                                      << " ^ " << rhs_str << "[" << m << "]"
-                                      << "[" << l << "]) & 0x" << std::hex << t.get_element_mask({ l, m }) << std::dec
-                                      << ";";
-                                    x << R"(
-    ret += )" << xor_str << "[" << m << "]"
-                                      << "[" << l << "] ? 1 : 0;";
-                                }
-                                else
-                                {
-                                    x << R"(
-            if(__UNLIKELY(()" << lhs_str
-                                      << "[" << m << "]"
-                                      << "[" << l << "]"
-                                      << " ^ " << rhs_str << "[" << m << "]"
-                                      << "[" << l << "]) & 0x" << std::hex << t.get_element_mask({ l, m }) << std::dec
-                                      << " ))"
-                                      << R"(
-                return faulty_.td_.at)"
-                                      << "(\"" << prefix_str << "." << t.get_id() << "\").get();";
-                                }
-                            }
-                    }
-                    break;
-                    case 3:
-                    {
-                        for (size_t k = 0; k < cxxdim[2]; ++k)
-                            for (size_t l = 0; l < cxxdim[1]; ++l)
-                                for (size_t m = 0; m < cxxdim[0]; ++m)
-                                {
-                                    if (!fast_compare)
-                                    {
-                                        x << R"(
-    )" << xor_str << "[" << m << "]"
-                                          << "[" << l << "]"
-                                          << "[" << k << "]"
-                                          << " = (" << lhs_str << "[" << m << "]"
-                                          << "[" << l << "]"
-                                          << "[" << k << "]"
-                                          << " ^ " << rhs_str << "[" << m << "]"
-                                          << "[" << l << "]"
-                                          << "[" << k << "]) & 0x" << std::hex << t.get_element_mask({ k, l, m })
-                                          << std::dec << ";";
-                                        x << R"(
-    ret += )" << xor_str << "[" << m << "]"
-                                          << "[" << l << "]"
-                                          << "[" << k << "] ? 1 : 0;";
-                                    }
-                                    else
-                                    {
-                                        x << R"(
-            if(__UNLIKELY(()" << lhs_str << "["
-                                          << m << "]"
-                                          << "[" << l << "]"
-                                          << "[" << k << "]"
-                                          << " ^ " << rhs_str << "[" << m << "]"
-                                          << "[" << l << "]"
-                                          << "[" << k << "]) & 0x" << std::hex << t.get_element_mask({ k, l, m })
-                                          << std::dec << "))"
-                                          << R"(
-                return faulty_.td_.at)"
-                                          << "(\"" << prefix_str << "." << t.get_id() << "\").get();";
-                                    }
-                                }
-                    }
-                    break;
-                    default:
-                        LOG_ERROR("CType dimensions of injection target not supported: ", t.get_cxx_type());
-                        break;
-                    }
-                    if (fast_compare)
-                    {
-                        x << R"(
-        [[ fallthrough ]];)";
-                    }
-                    x << std::endl;
-                    ++td_nmb;
+                }
+            }
+        }
+    };
+
+    retr_prefix = "";
+    reverse_map = true;
+    td_nmb = 0;
+    x << R"(
+    , )"
+      << (reverse_map ? "id2target_{" : "target2id_{"); //(reverse_map ? "id2target_ = {" : "target2id_ = {");
+    core.foreach_module(writetarget2idinitializer);
+    write_systemc_target2id();
+    x << R"(
+    })";
+
+    retr_prefix = "";
+    reverse_map = false;
+    td_nmb = 0;
+    x << R"(
+    , )"
+      << (reverse_map ? "id2target_{" : "target2id_{"); //(reverse_map ? "id2target_ = {" : "target2id_ = {");
+    core.foreach_module(writetarget2idinitializer);
+    write_systemc_target2id();
+    x << R"(
+    })";
+    x << R"(
+{
+    connect_vrtl2api();
+}
+)";
+
+    auto write_connect_vrtl2api = [&](const types::Module &M) -> bool {
+        types::Module const *m = &M;
+        types::Cell const *c = nullptr;
+
+        auto celliter = [&](const types::Cell &C) -> bool {
+            if (m == core.get_module_from_cell(C))
+            {
+                c = &C;
+                return false;
+            }
+            return true;
+        };
+        core.foreach_cell(celliter);
+
+        if (c == nullptr)
+        {
+            LOG_FATAL("Can not find parent Cell of Module ", m->get_id(), " [", m->get_name(), "]");
+        }
+
+        auto targetiterf = [&](const types::Target &t) -> bool {
+            if (t.get_parent() == *m)
+            {
+                for (const auto &module_instance : t.get_parent().symboltable_instances_)
+                {
+                    auto prefix_str = core.get_prefix(c, module_instance);
+                    std::string vrtl_decl_name = util::concat("vrtl_.", core.get_memberstr(c, t, prefix_str));
+                    std::string member_name = util::concat(prefix_str, "__DOT__", t.get_id(), "_");
+                    util::strhelp::replaceAll(member_name, ".", "__DOT__");
+                    util::strhelp::replaceAll(member_name, "->", "__REF__");
+                    std::string map_key = util::concat(prefix_str, ".", t.get_id());
+                    x << R"(
+    )" << vrtl_decl_name
+                      << "__td_"
+                      << " = "
+                      << "&" << member_name << ";";
+                    x << R"(
+    )"
+                      << "td_[\"" << map_key << "\"] = "
+                      << "&" << member_name << ";";
                 }
             }
             return true;
@@ -475,17 +349,11 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
         return true;
     };
 
-    x << R"(
-)"
-      << "int " << api_name << "Differential::diff_target_dictionaries(void)"
-      << R"(
+    x << "void " << api_name << R"(::connect_vrtl2api(void)
 {
-    int ret = 0;
 )";
-
     td_nmb = 0;
-    fast_compare = false;
-    core.foreach_module(writecomparebody);
+    core.foreach_module(write_connect_vrtl2api);
 
     if (core.is_systemc())
     {
@@ -493,101 +361,33 @@ std::string VapiGenerator::VapiSource::generate_body(void) const
         {
             for (auto const &var : top_module->variables_)
             {
-                std::string name = var->get_type();
+                std::string name = var->get_type(); //< seems odd to get name by get_type, but the name is the XML type
+                                                    // where id is the XML node type
                 if (name == "in" || name == "out" || name == "inout")
                 {
-
-                    auto type = var->get_cxx_type();
-                    auto port_name = var->get_id();
-                    if (!util::strhelp::replace(type, "sc_out<", "sc_signal<"))
-                        if (!util::strhelp::replace(type, "sc_in<", "sc_signal<"))
-                            util::strhelp::replace(type, "sc_inout<", "sc_signal<");
-
+                    std::string prefix_str = "TOP";
+                    std::string member_name = util::concat(prefix_str, "__DOT__", var->get_id(), "_");
+                    util::strhelp::replaceAll(member_name, ".", "__DOT__");
+                    util::strhelp::replaceAll(member_name, "->", "__REF__");
+                    std::string map_key = util::concat(prefix_str, ".", var->get_id());
                     x << R"(
-    )" << port_name << "_diff_ = faulty_.vrtl_."
-                      << port_name << ".read() ^ reference_.vrtl_." << port_name << ".read();"
-                      << R"(
-    )";
-                    if (type.find("sc_bv<") != std::string::npos)
-                    {
-                        x << "for(size_t i = 0; i < " << port_name << "_diff_.read().size() ; ++i)"
-                          << R"(
-        ret += )" << port_name
-                          << "_diff_.read().get_word(i) ? 1 : 0;";
-                    }
-                    else
-                    {
-                        x << "ret += " << port_name << "_diff_.read() ? 1 : 0;";
-                    }
+    )"
+                      << "td_[\"" << map_key << "\"] = "
+                      << "&" << member_name << ";";
+                    ++td_nmb;
                 }
             }
         }
     }
 
     x << R"(
-    return ret;
 }
 
 )";
 
-    x << R"(
-)"
-      << "vrtlfi::td::TDentry const*" << api_name
-      << "Differential::compare_fast(vrtlfi::td::TDentry const *start) const"
-      << R"(
+    x << R"(void )" << api_name << R"(::dump_diff_csv(std::ostream& out) const
 {
-    size_t id = get_id(start);
-    bool break_ = (id == 0);
-
-compare_rotate_switch_entry:
-    switch(id)
-    {
-)";
-    td_nmb = 0;
-    fast_compare = true;
-    core.foreach_module(writecomparebody);
-
-    x << R"(
-        default:
-        {
-            if (!break_)
-            {
-                id = 0;
-                break_ = true;
-                goto compare_rotate_switch_entry;
-            }
-        }
-        break;
-    }
-    return nullptr;
-}
-
-)";
-
-    x << R"(
-size_t )"
-      << api_name << R"(Differential::get_id(vrtlfi::td::TDentry const *target) const
-{
-    if(auto pos = faulty_target2id_.find(target); pos != faulty_target2id_.end())
-    {
-        return pos->second;
-    }
-    if(auto pos = reference_target2id_.find(target); pos != reference_target2id_.end())
-    {
-        return pos->second;
-    }
-    if(auto pos = diff_target2id_.find(target); pos != diff_target2id_.end())
-    {
-        return pos->second;
-    }
-    return 0;
-}
-
-)";
-
-    x << R"(void )" << api_name << R"(Differential::dump_diff_csv(std::ostream& out) const
-{
-    for(auto const& it: diff_target2id_)
+    for(auto const& it: this->target2id_)
     {
         out << (it.first)->get_name() << ", 0b";
 
@@ -611,26 +411,25 @@ size_t )"
 
                     auto type = var->get_cxx_type();
                     auto port_name = var->get_id();
-                    if (!util::strhelp::replace(type, "sc_out<", "sc_signal<"))
-                        if (!util::strhelp::replace(type, "sc_in<", "sc_signal<"))
-                            util::strhelp::replace(type, "sc_inout<", "sc_signal<");
+
                     x << R"(
     out << ")" << port_name
                       << "[" << name << "], 0b\";";
                     if (type.find("sc_bv<") != std::string::npos)
                     {
                         x << R"(
-    for(size_t i = 0; i < )"
-                          << port_name << "_diff_.read().length() ; ++i)"
+    for(size_t i = 0; i < vrtl_.)"
+                          << port_name << ".read().length() ; ++i)"
                           << R"(
-        out << )" << port_name
-                          << R"(_diff_.read().get_bit(i) ? 1 : 0;
+        out << vrtl_.)" << port_name
+                          << R"(.read().get_bit(i) ? 1 : 0;
     out << std::endl;)";
                     }
                     else
                     {
                         x << R"(
-    out << )" << port_name << "_diff_.read() << std::endl;";
+    out << vrtl_.)" << port_name
+                          << ".read() << std::endl;";
                     }
                 }
             }
@@ -641,13 +440,13 @@ size_t )"
 
 )";
 
-    x << R"(void )" << api_name << R"(Differential::dump_diff_csv_vertical(std::ostream& out) const
+    x << R"(void )" << api_name << R"(::dump_diff_csv_vertical(std::ostream& out) const
 {
     static bool header = true;
     if(header)
     {
         header = false;
-        for(auto it = diff_target2id_.begin(); it != diff_target2id_.end(); ++it)
+        for(auto it = this->target2id_.begin(); it != this->target2id_.end(); ++it)
         {
             out << (it->first)->get_name() << ",";
         }
@@ -664,9 +463,7 @@ size_t )"
 
                     auto type = var->get_cxx_type();
                     auto port_name = var->get_id();
-                    if (!util::strhelp::replace(type, "sc_out<", "sc_signal<"))
-                        if (!util::strhelp::replace(type, "sc_in<", "sc_signal<"))
-                            util::strhelp::replace(type, "sc_inout<", "sc_signal<");
+
                     x << R"(
         out << ")" << port_name
                       << "[" << name << "],\";";
@@ -678,7 +475,7 @@ size_t )"
         out << std::endl;
     }
 
-    for(auto it = diff_target2id_.begin(); it != diff_target2id_.end(); ++it)
+    for(auto it = this->target2id_.begin(); it != this->target2id_.end(); ++it)
     {
         auto bitvector = (it->first)->read_data();
         for (auto bit = bitvector.rbegin(); bit != bitvector.rend(); ++bit)
@@ -700,25 +497,23 @@ size_t )"
 
                     auto type = var->get_cxx_type();
                     auto port_name = var->get_id();
-                    if (!util::strhelp::replace(type, "sc_out<", "sc_signal<"))
-                        if (!util::strhelp::replace(type, "sc_in<", "sc_signal<"))
-                            util::strhelp::replace(type, "sc_inout<", "sc_signal<");
                     x << R"(
     out << "0b";)";
                     if (type.find("sc_bv<") != std::string::npos)
                     {
                         x << R"(
-    for(size_t i = 0; i < )"
-                          << port_name << "_diff_.read().length() ; ++i)"
+    for(size_t i = 0; i < vrtl_.)"
+                          << port_name << ".read().length() ; ++i)"
                           << R"(
-        out << )" << port_name
-                          << R"(_diff_.read().get_bit(i) ? 1 : 0;
+        out << vrtl_.)" << port_name
+                          << R"(.read().get_bit(i) ? 1 : 0;
     out << ",";)";
                     }
                     else
                     {
                         x << R"(
-    out << )" << port_name << R"(_diff_.read() << ",";)";
+    out << vrtl_.)" << port_name
+                          << R"(.read() << ",";)";
                     }
                 }
             }

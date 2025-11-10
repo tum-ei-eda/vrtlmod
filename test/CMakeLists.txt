@@ -19,43 +19,6 @@ cmake_minimum_required(VERSION 3.15)
 if(BUILD_TESTING)
     list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_BINARY_DIR})
     list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_BINARY_DIR})
-    ####################################################################################################
-    # conan package manager settings
-    set(CONAN_CMAKE_LIST_DIR ${CMAKE_CURRENT_BINARY_DIR})
-    if(NOT EXISTS ${CONAN_CMAKE_LIST_DIR}/ConanInline.cmake)
-        message("Downloading ConanInline to ${CONAN_CMAKE_LIST_DIR}")
-        set(URL https://raw.githubusercontent.com/VP-Vibes/SystemC-Components/main/cmake/ConanInline.cmake)
-        file(DOWNLOAD ${URL} ${CONAN_CMAKE_LIST_DIR}/ConanInline.cmake TIMEOUT 60)
-        set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_BINARY_DIR})
-    endif()
-
-    include(ConanInline)
-
-    set(CONAN_PACKAGE_OPTIONS ${CONAN_OPTIONS})
-
-    if(NOT USE_CWR_SYSTEMC AND NOT USE_NCSC_SYSTEMC AND NOT DEFINED ENV{SYSTEMC_HOME})
-        set(CONAN_PACKAGE_LIST ${CONAN_PACKAGE_LIST} systemc/2.3.3 systemc-cci/1.0.0)
-        set(CONAN_PACKAGE_OPTIONS ${CONAN_PACKAGE_OPTIONS} systemc:shared=True systemc-cci:shared=True systemc:disable_virtual_bind=False)
-    endif()
-
-    conan_check()
-    conan_cmake_configure(
-        REQUIRES ${CONAN_PACKAGE_LIST}
-        GENERATORS cmake_find_package
-        OPTIONS ${CONAN_PACKAGE_OPTIONS}
-    )
-
-    conan_cmake_autodetect(settings)
-
-    set(settings ${settings} compiler.cppstd=${CMAKE_CXX_STANDARD})
-
-    message("Conan settings are ${settings}")
-    conan_cmake_install(
-        PATH_OR_REFERENCE ${CMAKE_CURRENT_BINARY_DIR}
-        BUILD missing
-        SETTINGS ${settings}
-    )
-    ####################################################################################################
 
     include(ProcessorCount)
     ProcessorCount(NCORES)
@@ -121,11 +84,20 @@ if(BUILD_TESTING)
     file(GLOB CC_SOURCES ${CC_SUBDIR}/*)
 
     string(REPLACE ";" " " CIN_STR "${CIN}")
+
+    set(GENERATED_API_SRCS
+        ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp
+        ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmod_diffapi.cpp
+        ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmod_diffapi_compare_fast.cpp
+        ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmod_diffapi_compare.cpp
+        ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmod_diffapi_compute.cpp
+    )
+
     add_custom_command(
-        OUTPUT ${COUT} ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.hpp
+        OUTPUT ${COUT} ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.hpp ${GENERATED_API_SRCS}
         DEPENDS null ${PROJECT_NAME}-bin
-        COMMAND ${PROJECT_BINARY_DIR}/${PROJECT_NAME} ARGS --out=${CC_SUBDIR}/vrtlmod/ ${CIN} -v -- clang++ -v -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} -I${CC_SUBDIR}/vrtlmod/ -I${VERILATOR_INCLUDE_DIRECTORY} -I${VERILATOR_INCLUDE_DIRECTORY}/vltstd -I${CLANG_INCLUDE_DIRS}
-        COMMENT "executing vrtlmod: ..  ${PROJECT_BINARY_DIR}/${PROJECT_NAME} --out=${CC_SUBDIR}/vrtlmod ${CIN_STR} -v -- clang++ -v -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} -I${CC_SUBDIR}/vrtlmod/ -I${VERILATOR_INCLUDE_DIRECTORY} -I${VERILATOR_INCLUDE_DIRECTORY}/vltstd -I${CLANG_INCLUDE_DIRS}"
+        COMMAND ${PROJECT_BINARY_DIR}/${PROJECT_NAME} ARGS --out=${CC_SUBDIR}/vrtlmod/ ${CIN} -v -- ${LLVM_TOOLS_BINARY_DIR}/clang++ -v -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} -I${CC_SUBDIR}/vrtlmod/ -I${VERILATOR_INCLUDE_DIRECTORY} -I${VERILATOR_INCLUDE_DIRECTORY}/vltstd -I${CLANG_INCLUDE_DIRS}
+        COMMENT "executing vrtlmod: ..  ${PROJECT_BINARY_DIR}/${PROJECT_NAME} --out=${CC_SUBDIR}/vrtlmod ${CIN_STR} -v -- ${LLVM_TOOLS_BINARY_DIR}/clang++ -v -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} -I${CC_SUBDIR}/vrtlmod/ -I${VERILATOR_INCLUDE_DIRECTORY} -I${VERILATOR_INCLUDE_DIRECTORY}/vltstd -I${CLANG_INCLUDE_DIRS}"
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
 
@@ -133,7 +105,7 @@ if(BUILD_TESTING)
         EXCLUDE_FROM_ALL
         ${COUT}
         ${VERILATOR_INCLUDE_DIRECTORY}/verilated.cpp
-        ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp
+        ${GENERATED_API_SRCS}
     )
     target_include_directories(${PROJECT_NAME}-test-cc_vrtlmod PUBLIC
         ${CC_SUBDIR}/vrtlmod
@@ -156,8 +128,9 @@ if(BUILD_TESTING)
     set(SC_SUBDIR ${CMAKE_CURRENT_BINARY_DIR}/sc_obj_dir)
 
     find_package(SystemCLanguage REQUIRED)
-
     get_target_property(SYSTEMC_INCLUDE_DIRS SystemC::systemc INTERFACE_INCLUDE_DIRECTORIES)
+    set(SystemC_LIBRARIES SystemC::systemc)
+    set(SYSTEMC_INCLUDE_DIRS ${SYSTEMC_INCLUDE_DIRS} PARENT_SCOPE) # <-- allow propagation of vrtlmod-buildtime-systemc into vrtlmod-config.cmake script 
 
     set(DUT_NAME fiapp)
     verilate(sc-null
@@ -177,11 +150,19 @@ if(BUILD_TESTING)
 
     file(GLOB CC_SOURCES ${SC_SUBDIR}/*)
 
+    set(GENERATED_API_SRCS
+        ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp
+        ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmod_diffapi.cpp
+        ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmod_diffapi_compare_fast.cpp
+        ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmod_diffapi_compare.cpp
+        ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmod_diffapi_compute.cpp
+    )
+
     string(REPLACE ";" " " SCIN_STR "${SCIN}")
     add_custom_command(
-        OUTPUT ${SCOUT} ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.hpp
+        OUTPUT ${SCOUT} ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.hpp ${GENERATED_API_SRCS}
         DEPENDS sc-null ${PROJECT_NAME}-bin
-        COMMAND ${PROJECT_BINARY_DIR}/${PROJECT_NAME} ARGS --systemc --out=${SC_SUBDIR}/vrtlmod ${SCIN} -v -- clang++ -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} -I${SC_SUBDIR}/vrtlmod -I${VERILATOR_INCLUDE_DIRECTORY} -I${VERILATOR_INCLUDE_DIRECTORY}/vltstd -I${CLANG_INCLUDE_DIRS} -I${SYSTEMC_INCLUDE_DIRS}
+        COMMAND ${PROJECT_BINARY_DIR}/${PROJECT_NAME} ARGS --systemc --out=${SC_SUBDIR}/vrtlmod ${SCIN} -v -- ${LLVM_TOOLS_BINARY_DIR}/clang++ -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} -I${SC_SUBDIR}/vrtlmod -I${VERILATOR_INCLUDE_DIRECTORY} -I${VERILATOR_INCLUDE_DIRECTORY}/vltstd -I${CLANG_INCLUDE_DIRS} -I${SYSTEMC_INCLUDE_DIRS}
         COMMENT "executing vrtlmod: .. ${PROJECT_BINARY_DIR}/${PROJECT_NAME} --systemc --out=${SC_SUBDIR}/vrtlmod ${SCIN_STR} -v -- clang++ -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} -I${SC_SUBDIR}/vrtlmod -I${VERILATOR_INCLUDE_DIRECTORY} -I${VERILATOR_INCLUDE_DIRECTORY}/vltstd -I${CLANG_INCLUDE_DIRS} -I${SYSTEMC_INCLUDE_DIRS}"
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
@@ -190,7 +171,7 @@ if(BUILD_TESTING)
         EXCLUDE_FROM_ALL
         ${SCOUT}
         ${VERILATOR_INCLUDE_DIRECTORY}/verilated.cpp
-        ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp
+        ${GENERATED_API_SRCS}
     )
     target_include_directories(${PROJECT_NAME}-test-sc_vrtlmod PUBLIC
         ${SC_SUBDIR}/vrtlmod
@@ -246,11 +227,12 @@ if(BUILD_TESTING)
     # Testing the CMake config helper scripts: ###############################################################
     set(DIR_CMAKE_TEST ${CMAKE_CURRENT_BINARY_DIR}/cmaked)
     add_test(NAME ${PROJECT_NAME}:configure:test/fiapp-cmake
-        COMMAND ${CMAKE_COMMAND} "-S${CMAKE_CURRENT_SOURCE_DIR}/fiapp" "-B${DIR_CMAKE_TEST}"
-            "-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
-            "-DVRTLMOD_ROOT=${CMAKE_BINARY_DIR}"
-            "-DSystemC_LIBRARIES=\'${SystemC_LIBRARIES}\'"
-            "-DSYSTEMC_INCLUDE_DIRS=\'${SYSTEMC_INCLUDE_DIRS}\'"
+        COMMAND ${CMAKE_COMMAND} "-S ${CMAKE_CURRENT_SOURCE_DIR}/fiapp" "-B ${DIR_CMAKE_TEST}"
+            "-D CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
+            "-D CMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}"
+            "-D VRTLMOD_ROOT=${CMAKE_BINARY_DIR}"
+            "-D SystemC_DIR=\'${SystemC_DIR}\'"
+            "-D SystemCLanguage_DIR=\'${SystemCLanguage_DIR}\'"
     )
     set_tests_properties(${PROJECT_NAME}:configure:test/fiapp-cmake
         PROPERTIES

@@ -117,15 +117,17 @@ std::vector<std::string> VrtlmodCore::prepare_files(const std::vector<std::strin
     {
         for (auto &nfile : nfiles)
         {
-
-            std::string srcName;
-            auto lSl = nfile.rfind("/");
-            auto dext = std::string::npos;
-            std::string file_ext = "";
-            fs::path tmp = outdir / nfile.substr(lSl); // << file_ext_matchers[0];
-            LOG_INFO("Accepted file [", tmp.string(), "]");
-            fs::copy_file(fs::path(nfile), tmp, fs::copy_option::overwrite_if_exists);
-            nfile = tmp.string();
+            if (nfile == "")
+                continue;
+            auto src = fs::path(nfile);
+            auto dst = outdir / src.filename(); // << file_ext_matchers[0];
+            LOG_INFO("Accepted file [", dst.string(), "]");
+            if (outdir.is_absolute() && outdir == "/")
+            {
+                throw std::runtime_error("Refusing to copy to root directory!");
+            }
+            fs::copy_file(src, dst, fs_overwrite_if_existing);
+            nfile = dst.string();
         }
     }
     return nfiles;
@@ -135,25 +137,7 @@ void clean_file(const std::string &file_path)
 {
     LOG_VERBOSE("> cleaning file", file_path);
 
-    std::ifstream in(file_path.c_str());
-    if (!in.is_open())
-    {
-        LOG_FATAL("Clean File could not open file path [", file_path, "]");
-        return;
-    }
-
-    std::stringstream ss;
-
-    while (in.good())
-    {
-        char c;
-        in.get(c);
-        ss << c;
-    }
-    in.close();
-
-    std::string data = ss.str();
-    ss.str("");
+    std::string data = util::file2string(file_path);
     size_t pos = 0;
     do
     {
@@ -162,37 +146,38 @@ void clean_file(const std::string &file_path)
             data.replace(pos, 20, "//verilator_public");
 
     } while (pos != std::string::npos);
-    pos = 0;
+
+    util::string2file(file_path, data);
+}
+
+void remove_anonstructs(const std::string &file_path)
+{
+    LOG_VERBOSE("> removing anonymous structs from file[", file_path, "]");
+
+    std::string data = util::file2string(file_path);
+    size_t pos = 0;
+
     do
     {
         pos = data.find("struct {", pos); // TODO: what are these again?
         if (pos != std::string::npos)
         {
             LOG_VERBOSE(">>> replace anonymous struct.");
-            data.replace(pos, 8, "");
+            data.replace(pos, 8, "// anon-struct-start");
             auto closepos = data.find("};", pos);
-            data.replace(closepos, 2, "");
+            data.replace(closepos, 2, "// anon-struct-end");
         }
 
     } while (pos != std::string::npos);
 
-    std::ofstream out(file_path.c_str());
-    if (!out.is_open())
-    {
-        LOG_FATAL("Clean File could not open file path [", file_path, "]");
-        return;
-    }
-
-    out << data;
-
-    out.flush();
-    out.close();
+    util::string2file(file_path, data);
 }
 
 std::vector<std::string> VrtlmodCore::prepare_sources(const std::vector<std::string> &files, bool overwrite)
 {
     return prepare_files(files, { ".cpp", ".cc" }, overwrite);
 }
+
 std::vector<std::string> VrtlmodCore::prepare_headers(const std::vector<std::string> &files, bool overwrite)
 {
     auto headers = prepare_files(files, { ".h", ".hpp" }, overwrite);
@@ -203,6 +188,44 @@ std::vector<std::string> VrtlmodCore::prepare_headers(const std::vector<std::str
     gen_->build_targetdictionary(); // write the common target dictionary header to the output dir
 
     return headers;
+}
+
+void reintroduce_anonstructs(const std::string &file_path)
+{
+    LOG_VERBOSE("> Adding anonymous structs to", file_path);
+
+    std::string data = util::file2string(file_path);
+    size_t pos = 0;
+    do
+    {
+        pos = data.find("// anon-struct-start", pos); // TODO: what are these again?
+        if (pos != std::string::npos)
+        {
+            LOG_VERBOSE(">>> re-add anonymous struct.");
+            data.replace(pos, 20, "struct {");
+            auto closepos = data.find("// anon-struct-end", pos);
+            data.replace(closepos, 18, "};");
+        }
+
+    } while (pos != std::string::npos);
+
+    util::string2file(file_path, data);
+}
+
+void VrtlmodCore::preprocess_headers(const std::vector<std::string> &header_files)
+{
+    for (const auto &it : header_files)
+    {
+        remove_anonstructs(it);
+    }
+}
+
+void VrtlmodCore::postprocess_headers(const std::vector<std::string> &header_files)
+{
+    for (const auto &it : header_files)
+    {
+        reintroduce_anonstructs(it);
+    }
 }
 
 std::string VrtlmodCore::get_vrtltopheader_filename(void) const
@@ -255,8 +278,7 @@ int VrtlmodCore::is_decl_target(const clang::FieldDecl *target) const
     LOG_VERBOSE("t_name: ", t_name, " of type ", t_type);
 
     bool found = false;
-    auto func = [&](const types::Target &it)
-    {
+    auto func = [&](const types::Target &it) {
         ++ret;
         std::string target_name = it.get_id();
         std::string target_parent = types::Module(it.parent()).get_id();
@@ -425,8 +447,7 @@ const types::Variable *VrtlmodCore::add_variable(const clang::FieldDecl *variabl
     std::string lsb = "lsb";
     std::vector<std::pair<std::string, std::string>> unpacked;
 
-    auto unpack = [&unpacked](std::string &packed_str, const std::regex &break_regex)
-    {
+    auto unpack = [&unpacked](std::string &packed_str, const std::regex &break_regex) {
         auto open_templ = packed_str.find("<");
         auto close_templ = packed_str.rfind(">");
         auto comma = packed_str.rfind(",");
@@ -705,8 +726,7 @@ int VrtlmodCore::is_expr_target(const clang::MemberExpr *assignee, const clang::
         LOG_VERBOSE(">>>>> INJREW: {variable}: [", (*var_iter)->get_id(), "] of parent [", module_id,
                     "] found injection location at ", "<TODO>", " of set [", (*var_iter)->get_inj_loc(), "]");
 
-        auto func = [&](const types::Target &it)
-        {
+        auto func = [&](const types::Target &it) {
             ++ret;
             if (it.is_assigned_here(assignee, parent))
             {
@@ -768,13 +788,11 @@ const types::Variable *VrtlmodCore::add_injection_location(const clang::MemberEx
 
 void VrtlmodCore::build_xml()
 {
-    FileLocator::foreach_relevant_file(
-        [&](const auto &it)
-        {
-            pugi::xml_node file_node = ctx_->xml_files_node_->append_child("file");
-            file_node.append_attribute("id") = util::concat("f", std::to_string(it.first)).c_str();
-            file_node.append_attribute("path") = it.second.string().c_str();
-        });
+    FileLocator::foreach_relevant_file([&](const auto &it) {
+        pugi::xml_node file_node = ctx_->xml_files_node_->append_child("file");
+        file_node.append_attribute("id") = util::concat("f", std::to_string(it.first)).c_str();
+        file_node.append_attribute("path") = it.second.string().c_str();
+    });
 
     std::string top_name = get_top_cell().get_type();
 #if VRTLMOD_VERILATOR_VERSION <= 4204
@@ -812,8 +830,7 @@ void VrtlmodCore::build_xml()
                     types::Module m{ node.parent() };
 
                     const types::Module *unique_module{ nullptr };
-                    auto func = [&m, &unique_module](const types::Module &it) -> bool
-                    {
+                    auto func = [&m, &unique_module](const types::Module &it) -> bool {
                         if (m == it)
                         {
                             unique_module = &it;
@@ -924,8 +941,7 @@ int VrtlmodCore::initialize_injection_targets(std::string file)
 void VrtlmodCore::apply_target_filter(std::unique_ptr<Filter> filter) const
 {
     auto targets = filter->apply(this);
-    auto func = [&](const types::Target &it)
-    {
+    auto func = [&](const types::Target &it) {
         for (const auto &v : targets)
         {
             types::Variable _v(static_cast<pugi::xml_node>(*v));
@@ -953,8 +969,7 @@ void VrtlmodCore::set_top_cell(const pugi::xml_node &node) const
 std::set<const types::Target *> Filter::apply(const VrtlmodCore *core)
 {
     LOG_INFO("No Filter found. Making all injectables to injection targets.");
-    auto func = [&](const types::Target &t)
-    {
+    auto func = [&](const types::Target &t) {
         if (((t.get_name() == "out") || (t.get_name() == "inout")) && core->is_systemc())
         {
             const types::Module *top_module = core->get_module_from_cell(core->get_top_cell());
@@ -997,14 +1012,13 @@ bool WhiteListFilter::for_each(pugi::xml_node &node)
                 {
                     types::Target t(node, parent);
                     LOG_WARNING("Skip injection for SystemC Top-level Outputs: ", t._self());
-                    return true; // FIXME: skip output ports of top-level systemc modules.
-                                 // Currently no supported for injections
+                    // return true; // FIXME: skip output ports of top-level systemc modules.
+                    //             // Currently no supported for injections
                 }
             }
 
             types::Variable v(node);
-            auto func = [&](const types::Target &t)
-            {
+            auto func = [&](const types::Target &t) {
                 if (v == t)
                 {
                     LOG_VERBOSE(">> adding [", t._self(), "] to injection targets.");
@@ -1143,6 +1157,34 @@ void VrtlmodCore::add_injection_target(const types::Target &t) const
             break;
         }
     }
+}
+
+std::string VrtlmodCore::get_prefix(types::Cell const *c, std::string module_instance) const
+{
+    //#if VRTLMOD_VERILATOR_VERSION <= 4202
+    //#else // VRTLMOD_VERILATOR_VERSION <= 4228
+    //        return (*c == core.get_top_cell()) ? "rootp" : module_instance;
+    //#endif
+    return (*c == get_top_cell()) ? get_top_cell().get_id() : module_instance;
+}
+
+std::string VrtlmodCore::get_memberstr(types::Cell const *c, const types::Target &t, const std::string &prefix) const
+{
+    static const char *SYMBOLTABLE_NAME =
+#if VRTLMOD_VERILATOR_VERSION <= 4202
+        "__VlSymsp";
+#else // VRTLMOD_VERILATOR_VERSION <= 4228
+        "vlSymsp";
+#endif
+
+    return util::concat(
+#if VRTLMOD_VERILATOR_VERSION <= 4202
+        SYMBOLTABLE_NAME, "->", prefix, (*c == get_top_cell()) ? "->" : "."
+#else // VRTLMOD_VERILATOR_VERSION <= 4228
+        "rootp->", SYMBOLTABLE_NAME, "->", prefix, "."
+#endif
+        ,
+        t.get_id());
 }
 
 } // namespace vrtlmod

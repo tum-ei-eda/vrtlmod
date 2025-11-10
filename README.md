@@ -24,6 +24,17 @@ If you use vRTLmod in your academic work you can cite it like this:
   url = {https://doi.org/10.1145/3587135.3591435},
   year = {2023}
 }
+@INPROCEEDINGS{Geier_diff_2025,
+  author={Geier, Johannes and Kontopoulos, Leonidas and Mueller-Gritschneder, Daniel and Schlichtmann, Ulf},
+  booktitle={2025 Design, Automation & Test in Europe Conference (DATE)}, 
+  title={Rapid Fault Injection Simulation by Hash-Based Differential Fault Effect Equivalence Checks}, 
+  year={2025},
+  volume={},
+  number={},
+  pages={1-7},
+  keywords={Fault tolerance;Accuracy;Software design;Europe;Closed box;Benchmark testing;Register transfer level;Hardware;Safety;Fault injection;Simulation;Checkpoints;Register-transfer-level;Fault effect equivalence},
+  doi={10.23919/DATE64628.2025.10993266}
+}
 ```
 
 </p>
@@ -35,7 +46,7 @@ Besides standard (gmake, cmake, gcc, ...)
 1. Verilator  - tested with v4.202, v4.204, and v4.228 (see: https://www.veripool.org/wiki/verilator and install guide). Currently no support for Verilator version <4 and >4!
 2. LLVM - tested v13.0.1 built with `-D LLVM_ENABLE_PROJECTS="clang;clang-tools-extra"`
 3. Boost filesystem
-4. For Tests: Conan v<2.0, tested with 1.59.0 (`pip install --force-reinstall "conan==1.59.0"`)
+4. For Tests: SystemC>=2.3.3 (set environment variable before CMake, `export SYSTEMC_HOME=/path/to/systemc/`)
 
 ## Build
 
@@ -44,13 +55,15 @@ Besides standard (gmake, cmake, gcc, ...)
 ```
 	[BUILD]: export LLVM_DIR=<path/to/llvm/install/dir>/lib/cmake/llvm
 	[BUILD]: export VERILATOR_ROOT=<path/to/verilator/build/or/install/directory>
+	[BUILD]: export SYSTEMC_HOME=<path/to/systemc/install> # only for BUILD_TESTING
 ```
 
 2. **CMake command line arguments:**
 
 ```
 cmake -S . -B build -D LLVM_DIR=<path/to/llvm/install/dir> -D VERILATOR_ROOT=<path/to/verilator/build/or/install/directory> [-D BUILD_TESTING=Off]
-cmake --build build
+cmake --build build [--target test] 
+cmake --build build [--target install] 
 ```
 
 ## Usage

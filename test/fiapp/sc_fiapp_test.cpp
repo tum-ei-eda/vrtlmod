@@ -15,10 +15,10 @@
  */
 
 ////////////////////////////////////////////////////////////////////////////////
-/// @file test.cpp
-/// @date Created on Mon Jan 25 19:29:05 2020
+/// @file sc_fiapp_test.cpp
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "Vfiapp_vrtlmod_diffapi.hpp"
 #include "Vfiapp_vrtlmodapi.hpp"
 #include "verilated.h"
 #include "systemc.h"
@@ -104,6 +104,32 @@ int sc_main(int argc, char *argv[])
         gDiff.dump_diff_csv(std::cout);
         gDiff.dump_diff_csv_vertical(fout);
 
+        // auto triplet_vec_unrolled_masked_calc = gDiff.gen_nz_triplet_vec();
+        auto triplet_vec = gDiff.compute_diff_vector();
+        gDiff.diff_target_dictionaries(); // recalculate with hard unrolled and masked
+        for (auto const &a : triplet_vec)
+        {
+            std::cout << "X{" << a.target_id_ << "," << a.element_id_ << "," << a.val_ << "}" << std::endl;
+            if (gDiff.diff_target(a) == false)
+            {
+                std::cout << "|-> \033[0;31mFailed\033[0m X DIFF unrolled+masked mismatches rolled+non-masked: {"
+                          << a.target_id_ << "," << a.element_id_ << "," << a.val_ << "}" << std::endl;
+                ret |= 0x4;
+            }
+        }
+        auto triplet_vec_unrolled_masked_calc = gDiff.gen_nz_triplet_vec();
+        gDiff.compute_diff_vector(); // recalculate with hard unrolled and masked
+        for (auto const &a : triplet_vec_unrolled_masked_calc)
+        {
+            std::cout << "Y{" << a.target_id_ << "," << a.element_id_ << "," << a.val_ << "}" << std::endl;
+            if (gDiff.diff_target(a) == false)
+            {
+                std::cout << "|-> \033[0;31mFailed\033[0m Y DIFF unrolled+masked mismatches rolled+non-masked: {"
+                          << a.target_id_ << "," << a.element_id_ << "," << a.val_ << "}" << std::endl;
+                ret |= 0x8;
+            }
+        }
+
         return ret;
     };
 
@@ -137,21 +163,24 @@ int sc_main(int argc, char *argv[])
               << "..." << std::endl;
 
     // test injections
-    for (auto &it : gFault.td_)
+    for (auto &[kname, vtarget_ptr] : gFault.td_)
     {
-        testreturn &= testinject(*(it.second), gFault, clockspin, reset, check_diff);
+        if(vtarget_ptr->injectable_)
+        {
+            testreturn &= testinject(*vtarget_ptr, gFault, clockspin, reset, check_diff);
+        }
     }
     if (testreturn && gFault.td_.size() > 0)
     {
         std::cout << std::endl
                   << "..."
-                  << "All passed. \033[0;32mTest successful.\033[0m" << std::endl;
+                  << " all passed. \033[0;32mTest successful.\033[0m" << std::endl;
     }
     else
     {
         std::cout << std::endl
                   << "..."
-                  << "\033[0;31mTest failed.\033[0m" << std::endl;
+                  << "\033[0;31m test failed.\033[0m" << std::endl;
         return 1;
     }
     return 0;

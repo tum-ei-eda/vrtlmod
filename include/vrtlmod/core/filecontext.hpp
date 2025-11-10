@@ -30,8 +30,7 @@
 #include "clang/AST/AST.h"
 #include "clang/Rewrite/Core/Rewriter.h"
 
-#include <boost/filesystem.hpp>
-namespace fs = boost::filesystem;
+#include "vrtlmod/util/utility.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief namespace for all core vrtlmod functionalities

@@ -14,11 +14,6 @@
  * limitations under the License.
  */
 
-////////////////////////////////////////////////////////////////////////////////
-/// @file generator.cpp
-/// @date Created on Mon Jan 07 14:12:11 2020
-////////////////////////////////////////////////////////////////////////////////
-
 #include "vrtlmod/vapi/generator.hpp"
 
 #include "vrtlmod/core/core.hpp"
@@ -35,9 +30,6 @@
 
 #include <pugixml.hpp>
 
-#include "boost/filesystem.hpp"
-namespace fs = boost::filesystem;
-
 namespace vrtlmod
 {
 namespace vapi
@@ -51,6 +43,7 @@ std::string VapiGenerator::get_targetdictionary_relpath(void) const
     ret += get_targetdictionary_filename();
     return ret;
 }
+
 std::string VapiGenerator::get_apiheader_filename(void) const
 {
     std::string top_name = get_core().get_top_cell().get_type();
@@ -61,6 +54,7 @@ std::string VapiGenerator::get_apiheader_filename(void) const
 #endif
     return util::concat(top_name, "_", API_HEADER_NAME);
 }
+
 std::string VapiGenerator::get_apisource_filename(void) const
 {
     std::string top_name = get_core().get_top_cell().get_type();
@@ -71,6 +65,11 @@ std::string VapiGenerator::get_apisource_filename(void) const
 #endif
 
     return util::concat(top_name, "_", API_SOURCE_NAME);
+}
+
+std::string VapiGenerator::get_diffapiheader_filename(void) const
+{
+    return vapi_diff_hpp_.get_filename();
 }
 
 int VapiGenerator::build_targetdictionary(void) const
@@ -94,6 +93,12 @@ int VapiGenerator::build_api(void) const
     }
     vapisrc_.write(api_dir / get_apisource_filename());
     vapiheader_.write(api_dir / get_apiheader_filename());
+    vapi_diff_cpp_.write(api_dir / vapi_diff_cpp_.get_filename());
+    vapi_diff_hpp_.write(api_dir / vapi_diff_hpp_.get_filename());
+    vapi_diff_compare_fast_cpp_.write(api_dir / vapi_diff_compare_fast_cpp_.get_filename());
+    vapi_diff_compare_cpp_.write(api_dir / vapi_diff_compare_cpp_.get_filename());
+    vapi_diff_compute_cpp_.write(api_dir / vapi_diff_compute_cpp_.get_filename());
+    vapi_td_python_module_.write(api_dir / vapi_td_python_module_.get_filename());
 
     unsigned int failed = get_core().get_ctx().toinj_targets_.size();
 

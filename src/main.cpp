@@ -30,9 +30,6 @@
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
 
-#include "boost/filesystem.hpp"
-namespace fs = boost::filesystem;
-
 #include "vrtlmod/vrtlmod.hpp"
 #include "vrtlmod/core/core.hpp"
 
@@ -80,6 +77,11 @@ static llvm::cl::alias SilentA("s", llvm::cl::NotHidden, llvm::cl::desc("Alias f
 static llvm::cl::opt<bool> NoAutoInclude(
     "no-auto-include", llvm::cl::Optional,
     llvm::cl::desc("Execute without automatic include paths for Verilator and Clang"), llvm::cl::cat(UserCat));
+////////////////////////////////////////////////////////////////////////////////
+/// \brief Frontend user option "diff-unroll".
+llvm::cl::opt<bool> DiffApiHardUnroll(
+    "diff-unroll", llvm::cl::Optional,
+    llvm::cl::desc("When generating the Diff-API code, unroll all multi-dimensional accesses."), llvm::cl::cat(UserCat));
 ////////////////////////////////////////////////////////////////////////////////
 /// \brief Frontend user option "verbose".
 static llvm::cl::opt<bool> Verbose("verbose", llvm::cl::Optional, llvm::cl::desc("Execute with Verbose output"),
@@ -168,7 +170,11 @@ int main(int argc, const char **argv)
     err = MacroTool.run(vrtlmod::CreateMacroRewritePass(core).get());
     LOG_INFO("... done");
 
-    // create a new Clang Tool instance for Macro cleanup in source files
+    // postprocess *.h / *.hpp files: Remove anonymous structs
+    LOG_INFO("Pre-process headers ...");
+    core.preprocess_headers(headers);
+    LOG_INFO("... done");
+
     clang::tooling::ClangTool stage1_ParserTool(op->getCompilations(), srcs_and_headers);
     if (!bool(NoAutoInclude))
     {
@@ -194,6 +200,15 @@ int main(int argc, const char **argv)
 
     core.initialize_injection_targets(WhiteListXmlFilename);
 
+    clang::tooling::ClangTool stage3_InjectionExprRewriterTool(op->getCompilations(), sources);
+    if (!bool(NoAutoInclude))
+    {
+        auto_argument_adjust(stage3_InjectionExprRewriterTool);
+    }
+    LOG_INFO("Rewrite VRTL sources for injection points ...");
+    err = stage3_InjectionExprRewriterTool.run(vrtlmod::CreateInjectionPass(core).get());
+    LOG_INFO("... done");
+
     LOG_INFO("Rewrite VRTL headers for injectable signals ...");
     for (auto const &header_file : headers)
     {
@@ -206,17 +221,13 @@ int main(int argc, const char **argv)
     }
     LOG_INFO("... done");
 
-    clang::tooling::ClangTool stage3_InjectionExprRewriterTool(op->getCompilations(), sources);
-    if (!bool(NoAutoInclude))
-    {
-        auto_argument_adjust(stage3_InjectionExprRewriterTool);
-    }
-    LOG_INFO("Rewrite VRTL sources for injection points ...");
-    err = stage3_InjectionExprRewriterTool.run(vrtlmod::CreateInjectionPass(core).get());
-    LOG_INFO("... done");
-
     LOG_INFO("Generate API ...");
     core.build_api();
+    LOG_INFO("... done");
+
+    // postprocess *.h / *.hpp files: Reintroduce anonymous structs
+    LOG_INFO("Postprocess modified sources ...");
+    core.postprocess_headers(headers);
     LOG_INFO("... done");
 
     return err;

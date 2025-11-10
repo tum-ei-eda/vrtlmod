@@ -108,23 +108,25 @@ void SignalDeclRewriter::write_injection_decl(const clang::FieldDecl *decl, cons
 
 void SignalDeclRewriter::modify_includes(const clang::Decl *decl, const VrtlParser &parser) const
 {
-    static std::set<FileID> fid_set{};
-
-    FileID fid = parser.getRewriter().getSourceMgr().getFileID(decl->getBeginLoc());
-    auto fid_pos = fid_set.find(fid);
-    if (fid_pos != fid_set.end())
+    auto& srcmgr = parser.getRewriter().getSourceMgr();
+    static std::set<const FileEntry*> modified_fentries{};
+    
+    FileID fid = srcmgr.getFileID(decl->getBeginLoc());
+    const FileEntry* fentry = srcmgr.getFileEntryForID(fid);
+    if (modified_fentries.find(fentry) != modified_fentries.end())
     {
+        LOG_VERBOSE(">modify includes: file[", fentry->getName().str(), "] already modified. skipping.");
         return; // already modified
     }
 
-    SourceLocation flocSOF = parser.getRewriter().getSourceMgr().getLocForStartOfFile(fid);
-    SourceRange flocra = SourceRange(flocSOF, parser.getRewriter().getSourceMgr().getLocForEndOfFile(fid));
+    SourceLocation flocSOF = srcmgr.getLocForStartOfFile(fid);
+    SourceRange flocra = SourceRange(flocSOF, srcmgr.getLocForEndOfFile(fid));
 
     std::string newc = parser.getRewriter().getRewrittenText(flocra);
     auto includepos = newc.find("#include");
-    LOG_VERBOSE(">modify includes: ", std::to_string(includepos));
     if (includepos != std::string::npos)
     {
+        LOG_VERBOSE(">modify includes: file[", fentry->getName().str(), "] at pos[", std::to_string(includepos), "]");
         std::string x = get_core().get_include_string();
         if (newc.find(x) == std::string::npos) // do not insert if already existing
         {
@@ -133,8 +135,8 @@ void SignalDeclRewriter::modify_includes(const clang::Decl *decl, const VrtlPars
             // previously used for the global singleton, we no longer need because injection points are incorporated in
             // the VRTL class definition
             parser.getRewriter().ReplaceText(flocra, newc);
+            modified_fentries.insert(fentry);
         }
-        fid_set.insert(fid);
     }
 }
 
