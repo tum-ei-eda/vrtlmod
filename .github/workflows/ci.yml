@@ -284,8 +284,8 @@ jobs:
         ls -la ${scc_dir}
         cd ${scc_dir}
         ls -la .
-        git apply "../../../patches/scc-gcc_gt_13.patch" && cd ${_dir_}
-        git apply "../../../patches/scc-byteenabletransactions.patch" && cd ${_dir_}
+        git apply "../../../patches/scc-gcc_gt_13.patch"
+        git apply "../../../patches/scc-byteenabletransactions.patch"
 
     - name: Configure Benchmarks
       shell: bash
