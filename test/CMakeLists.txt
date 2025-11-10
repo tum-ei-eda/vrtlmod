@@ -130,6 +130,7 @@ if(BUILD_TESTING)
     find_package(SystemCLanguage REQUIRED)
     get_target_property(SYSTEMC_INCLUDE_DIRS SystemC::systemc INTERFACE_INCLUDE_DIRECTORIES)
     set(SystemC_LIBRARIES SystemC::systemc)
+    set(SYSTEMC_INCLUDE_DIRS ${SYSTEMC_INCLUDE_DIRS} PARENT_SCOPE) # <-- allow propagation of vrtlmod-buildtime-systemc into vrtlmod-config.cmake script 
 
     set(DUT_NAME fiapp)
     verilate(sc-null

@@ -248,7 +248,15 @@ jobs:
         path: /verilator_install
         key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}
         restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}
-
+  
+    - name: Cache LLVM
+      id: cache-llvm
+      uses: actions/cache@v4
+      with:
+        path: /llvm_install
+        key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}
+        restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_llvm-llvmorg-${{ matrix.config.llvm_version }}
+  
     - name: Cache SystemC
       id: cache-systemc
       uses: actions/cache@v4
