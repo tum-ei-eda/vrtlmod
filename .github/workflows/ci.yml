@@ -22,8 +22,6 @@ jobs:
         llvm_version: ['13.0.1', "15"]
         llvm_src: ['true', 'false']
         include:
-          - llvm_version: '15'
-            llvm_src: 'false'
           - llvm_version: '13.0.1'
             llvm_src: 'true'
 
