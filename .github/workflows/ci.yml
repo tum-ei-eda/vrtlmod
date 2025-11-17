@@ -23,9 +23,9 @@ jobs:
         systemc_version: ['2.3.3']
         verilator_version: ['4.228']
 
-    runs-on: ${{ matrix.config.os.name }}-${{ matrix.config.os.version }}
-    container: ${{ matrix.config.os.name }}:${{ matrix.config.os.version }}
-    name: requirements-${{ matrix.config.os.name }}-${{ matrix.config.os.version }}_verilator-${{ matrix.verilator_version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
+    runs-on: ${{ matrix.os.name }}-${{ matrix.os.version }}
+    container: ${{ matrix.os.name }}:${{ matrix.os.version }}
+    name: requirements-${{ matrix.os.name }}-${{ matrix.os.version }}_verilator-${{ matrix.verilator_version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
 
     steps:
     - name: Install git on container
@@ -45,24 +45,24 @@ jobs:
       uses: actions/cache@v4
       with:
         path: /llvm_install
-        key: ${{ matrix.config.os.name }}-${{ matrix.config.os.version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
-        restore-keys: ${{ matrix.config.os.name }}-${{ matrix.config.os.version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
+        key: ${{ matrix.os.name }}-${{ matrix.os.version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
+        restore-keys: ${{ matrix.os.name }}-${{ matrix.os.version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
 
     - name: Cache Verilator
       id: cache-verilator
       uses: actions/cache@v4
       with:
         path: /verilator_install
-        key: ${{ matrix.config.os.name }}-${{ matrix.config.os.version }}_verilator-${{ matrix.verilator_version }}
-        restore-keys: ${{ matrix.config.os.name }}-${{ matrix.config.os.version }}_verilator-${{ matrix.verilator_version }}
+        key: ${{ matrix.os.name }}-${{ matrix.os.version }}_verilator-${{ matrix.verilator_version }}
+        restore-keys: ${{ matrix.os.name }}-${{ matrix.os.version }}_verilator-${{ matrix.verilator_version }}
 
     - name: Cache SystemC
       id: cache-systemc
       uses: actions/cache@v4
       with:
         path: /systemc_install
-        key: ${{ matrix.config.os.name }}-${{ matrix.config.os.version }}_systemc-${{ matrix.systemc_version }}
-        restore-keys: ${{ matrix.config.os.name }}-${{ matrix.config.os.version }}_systemc-${{ matrix.systemc_version }}
+        key: ${{ matrix.os.name }}-${{ matrix.os.version }}_systemc-${{ matrix.systemc_version }}
+        restore-keys: ${{ matrix.os.name }}-${{ matrix.os.version }}_systemc-${{ matrix.systemc_version }}
 
     - name: Requirements (Linux)
       if: runner.os == 'Linux'
@@ -125,9 +125,9 @@ jobs:
         cmakegen: ["Release"]
 
     needs: requirements
-    runs-on: ${{ matrix.config.os.name }}-${{ matrix.config.os.version }}
-    container: ${{ matrix.config.os.name }}:${{ matrix.config.os.version }}
-    name: build-${{ matrix.config.os.name }}-${{ matrix.config.os.version }}_verilator-${{ matrix.verilator_version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
+    runs-on: ${{ matrix.os.name }}-${{ matrix.os.version }}
+    container: ${{ matrix.os.name }}:${{ matrix.os.version }}
+    name: build-${{ matrix.os.name }}-${{ matrix.os.version }}_verilator-${{ matrix.verilator_version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
 
     steps:
     - name: Install git on container
@@ -156,8 +156,8 @@ jobs:
       uses: actions/cache@v4
       with:
         path: /llvm_install
-        key: ${{ matrix.config.os.name }}-${{ matrix.config.os.version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
-        restore-keys: ${{ matrix.config.os.name }}-${{ matrix.config.os.version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
+        key: ${{ matrix.os.name }}-${{ matrix.os.version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
+        restore-keys: ${{ matrix.os.name }}-${{ matrix.os.version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
 
     - if: ${{ matrix.llvm.src != 'true' }}
       name: Install LLVM build dependencies (system)
@@ -171,16 +171,16 @@ jobs:
       uses: actions/cache@v4
       with:
         path: /verilator_install
-        key: ${{ matrix.config.os.name }}-${{ matrix.config.os.version }}_verilator-${{ matrix.verilator_version }}
-        restore-keys: ${{ matrix.config.os.name }}-${{ matrix.config.os.version }}_verilator-${{ matrix.verilator_version }}
+        key: ${{ matrix.os.name }}-${{ matrix.os.version }}_verilator-${{ matrix.verilator_version }}
+        restore-keys: ${{ matrix.os.name }}-${{ matrix.os.version }}_verilator-${{ matrix.verilator_version }}
 
     - name: Cache SystemC
       id: cache-systemc
       uses: actions/cache@v4
       with:
         path: /systemc_install
-        key: ${{ matrix.config.os.name }}-${{ matrix.config.os.version }}_systemc-${{ matrix.systemc_version }}
-        restore-keys: ${{ matrix.config.os.name }}-${{ matrix.config.os.version }}_systemc-${{ matrix.systemc_version }}
+        key: ${{ matrix.os.name }}-${{ matrix.os.version }}_systemc-${{ matrix.systemc_version }}
+        restore-keys: ${{ matrix.os.name }}-${{ matrix.os.version }}_systemc-${{ matrix.systemc_version }}
 
     - name: Check (cached) Verilator
       continue-on-error: false
@@ -219,7 +219,7 @@ jobs:
       uses: actions/upload-artifact@v5
       if: ${{ failure() }}
       with:
-        name: vrtlmod-failed-test-${{ matrix.config.os.name }}-${{ matrix.config.os.version }}.tar.gz
+        name: vrtlmod-failed-test-${{ matrix.os.name }}-${{ matrix.os.version }}.tar.gz
         path: /vrtlmod_build/Testing/
         if-no-files-found: error
         retention-days: 15
@@ -228,7 +228,7 @@ jobs:
       if: runner.os == 'Linux'
       uses: actions/upload-artifact@v5
       with:
-        name: vrtlmod_${{ matrix.config.os.name }}-${{ matrix.config.os.version }}_verilator-${{ matrix.verilator_version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
+        name: vrtlmod_${{ matrix.os.name }}-${{ matrix.os.version }}_verilator-${{ matrix.verilator_version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
         path: /vrtlmod_install/
         if-no-files-found: error
 
@@ -250,9 +250,9 @@ jobs:
 
     continue-on-error: true
     needs: build
-    runs-on: ${{ matrix.config.os.name }}-${{ matrix.config.os.version }}
-    container: ${{ matrix.config.os.name }}:${{ matrix.config.os.version }}
-    name: benchmark_${{ matrix.duts }}-${{ matrix.config.os.name }}-${{ matrix.config.os.version }}_verilator-${{ matrix.verilator_version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
+    runs-on: ${{ matrix.os.name }}-${{ matrix.os.version }}
+    container: ${{ matrix.os.name }}:${{ matrix.os.version }}
+    name: benchmark_${{ matrix.duts }}-${{ matrix.os.name }}-${{ matrix.os.version }}_verilator-${{ matrix.verilator_version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
 
     steps:
     - name: Install git on container
@@ -287,8 +287,8 @@ jobs:
       uses: actions/cache@v4
       with:
         path: /verilator_install
-        key: ${{ matrix.config.os.name }}-${{ matrix.config.os.version }}_verilator-${{ matrix.verilator_version }}
-        restore-keys: ${{ matrix.config.os.name }}-${{ matrix.config.os.version }}_verilator-${{ matrix.verilator_version }}
+        key: ${{ matrix.os.name }}-${{ matrix.os.version }}_verilator-${{ matrix.verilator_version }}
+        restore-keys: ${{ matrix.os.name }}-${{ matrix.os.version }}_verilator-${{ matrix.verilator_version }}
   
     - if: ${{ matrix.llvm.src == 'true' }}
       name: Cache LLVM
@@ -296,8 +296,8 @@ jobs:
       uses: actions/cache@v4
       with:
         path: /llvm_install
-        key: ${{ matrix.config.os.name }}-${{ matrix.config.os.version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
-        restore-keys: ${{ matrix.config.os.name }}-${{ matrix.config.os.version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
+        key: ${{ matrix.os.name }}-${{ matrix.os.version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
+        restore-keys: ${{ matrix.os.name }}-${{ matrix.os.version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
   
     - if: ${{ matrix.llvm.src != 'true' }}
       name: Install LLVM build dependencies (system)
@@ -311,8 +311,8 @@ jobs:
       uses: actions/cache@v4
       with:
         path: /systemc_install
-        key: ${{ matrix.config.os.name }}-${{ matrix.config.os.version }}_systemc-${{ matrix.systemc_version }}
-        restore-keys: ${{ matrix.config.os.name }}-${{ matrix.config.os.version }}_systemc-${{ matrix.systemc_version }}
+        key: ${{ matrix.os.name }}-${{ matrix.os.version }}_systemc-${{ matrix.systemc_version }}
+        restore-keys: ${{ matrix.os.name }}-${{ matrix.os.version }}_systemc-${{ matrix.systemc_version }}
 
     - name: Check (cached) Verilator
       continue-on-error: false
@@ -323,7 +323,7 @@ jobs:
     - name: Fetch Compiled System
       uses: actions/download-artifact@v5
       with:
-        name: vrtlmod_${{ matrix.config.os.name }}-${{ matrix.config.os.version }}_verilator-${{ matrix.verilator_version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
+        name: vrtlmod_${{ matrix.os.name }}-${{ matrix.os.version }}_verilator-${{ matrix.verilator_version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
         path: /vrtlmod_install/
 
     - name: Check pre-compiled vrtlmod
@@ -379,5 +379,5 @@ jobs:
     - name: Save Benchmark Results
       uses: actions/upload-artifact@v5
       with:
-        name: ${{matrix.duts}}_${{ matrix.config.os.name }}-${{ matrix.config.os.version }}_verilator-${{ matrix.verilator_version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
+        name: ${{matrix.duts}}_${{ matrix.os.name }}-${{ matrix.os.version }}_verilator-${{ matrix.verilator_version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
         path: ${{runner.workspace}}/${{matrix.duts}}.log
