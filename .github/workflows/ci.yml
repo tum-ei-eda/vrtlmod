@@ -188,7 +188,8 @@ jobs:
       working-directory: ${{runner.workspace}}
       run: /verilator_install/bin/verilator --version
 
-    - name: Check (cached) Clang
+    - if: ${{ matrix.llvm.src == 'true' }}
+      name: Check (cached) Clang
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
