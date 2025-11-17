@@ -22,6 +22,7 @@
 #ifndef __VRTLMOD_CORE_TYPES_HPP__
 #define __VRTLMOD_CORE_TYPES_HPP__
 
+#include <set>
 #include <string>
 #include <sstream>
 #include <algorithm>
