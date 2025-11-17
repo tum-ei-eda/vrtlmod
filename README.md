@@ -51,6 +51,7 @@ Besides standard (gmake, cmake, g++, ...)
   - Currently no support for Verilator version <4 and >4!
 
 <details><summary>Setup Verilator:</summary><p>
+
 ```
   git clone --depth 1 --branch v4.228 https://github.com/verilator/verilator.git verilator_src
   cd verilator_src
@@ -58,6 +59,7 @@ Besides standard (gmake, cmake, g++, ...)
   ./configure --prefix $PWD/../verilator_install
   make -j $(nproc) && make install
 ```
+
 </p></details>
 
 2. LLVM+Clang versions >=13 and <=18
@@ -68,12 +70,14 @@ Besides standard (gmake, cmake, g++, ...)
 4. For Tests: SystemC>=2.3.3 (set environment variable before CMake, `export SYSTEMC_HOME=/path/to/systemc/`)
 
 <details><summary>Steps 2, 3, and 4 with Debian Packages:</summary><p>
+
 ```
   apt update
   apt install libzstd-dev llvm-15-dev libclang-15-dev clang-15 \
                 cmake libboost-filesystem-dev libboost-date-time-dev \
                 libfl-dev build-essential ccache python3 python3-virtualenv python3-dev
 ```
+
 </p></details>
 
 #### Native Build
@@ -90,19 +94,19 @@ Besides standard (gmake, cmake, g++, ...)
 
 Configure project directory:
 
-$ cmake -S . -B build -D VERILATOR_ROOT=<path/to/verilator/build/or/install/directory> [-D LLVM_DIR=<path/to/llvm/install/dir>] [-D BUILD_TESTING=Off]
+  $ cmake -S . -B build -D VERILATOR_ROOT=<path/to/verilator/build/or/install/directory> [-D LLVM_DIR=<path/to/llvm/install/dir>] [-D BUILD_TESTING=Off]
 
 Build:
 
-$ cmake --build build [--parallel $(nproc)]
+  $ cmake --build build [--parallel $(nproc)]
 
 Install (optional):
 
-$ cmake --build build --target install
+  $ cmake --build build --target install
 
 Test (optional: configure with `-D BUILD_TESTING=Off`)
 
-$ cmake --build build --target test 
+  $ cmake --build build --target test 
 
 
 ### Docker
