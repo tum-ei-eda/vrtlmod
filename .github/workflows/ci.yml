@@ -65,7 +65,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: /systemc_install
-        key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_systemc-${{ matrix..systemc_version }}
+        key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_systemc-${{ matrix.systemc_version }}
         restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_systemc-${{ matrix.systemc_version }}
 
     - name: Requirements (Linux)
