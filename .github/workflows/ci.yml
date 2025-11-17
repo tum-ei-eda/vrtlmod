@@ -102,11 +102,12 @@ jobs:
       working-directory: ${{runner.workspace}}
       run: /verilator_install/bin/verilator --version
 
-    - if: ${{ (matrix.llvm.src == 'true') && (steps.cache-llvm.outputs.cache-hit != 'true') }}
+    - if: ${{ steps.cache-llvm.outputs.cache-hit != 'true' }}
       name: Requirements LLVM+Clang
       working-directory: ${{runner.workspace}}
       shell: bash
       run: |
+        [[ ${{ matrix.llvm.src }} == 'true' ]] && export LLVM_FROM_SOURCE="ON" || export LLVM_FROM_SOURCE="OFF"
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
         setup_llvm "${{runner.workspace}}/llvm_src" "${{runner.workspace}}/llvm_build" "/llvm_install" "${{ matrix.llvm.version }}" "$PWD/vrtlmod/vrtlmod_src/deps/llvm/patches"
   
