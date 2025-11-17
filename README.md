@@ -50,6 +50,7 @@ Besides standard (gmake, cmake, g++, ...)
   - Tested with v4.202, v4.204, and v4.228
   - Currently no support for Verilator version <4 and >4!
 
+<details>
 <summary>Setup Verilator:</summary>
 <p>
 
@@ -58,6 +59,7 @@ Besides standard (gmake, cmake, g++, ...)
   $ autoconf
   $ ./configure --prefix $PWD/../verilator_install
   $ make -j $(nproc) && make install
+
 </p>
 </details>
 
@@ -79,7 +81,6 @@ Besides standard (gmake, cmake, g++, ...)
 
 </p>
 </details>
-<details>
 
 #### Native Build
 
