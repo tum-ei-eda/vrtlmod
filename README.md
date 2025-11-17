@@ -106,19 +106,20 @@ cmake --build build [--target install]
 
 ### Docker
 
-A `docker compose` flow is provided:
+A `docker compose` flow is provided
 
-  1. Build the Docker image:
-  
-  $ `vrtlmodworkspace`: `docker compose -f docker/docker-compose.yaml build vrtlmodworkspace`
-  
+  1. Compose the Docker image `vrtlmodworkspace`:
+
+    $ docker compose -f docker/docker-compose.yaml build vrtlmodworkspace
+
   2. grab a ☕ and wait ... this takes a while.
 
   3. Launch the container and mount the workspace:
-  
-  $`docker run -it -v"$PWD":/vrtlmod docker-vrtlmodworkspace:latest`
-
     - `-v"$PWD":/vrtlmod` makes the `vrtlmod` directory available in the container. Mount other directories to vrtlmod their contents.
+
+    $ docker run -it -v"$PWD":/vrtlmod docker-vrtlmodworkspace:latest
+
+    
 
 ## Usage
 
