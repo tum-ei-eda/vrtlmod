@@ -17,7 +17,7 @@ jobs:
         os:
           - {name: "ubuntu", version: "latest"}
           - {name: "ubuntu", version: "22.04"}
-        llvm: 
+        llvm:
           - {name: "src", src: "true", version: "13.0.1"}
           - {name: "pkg", src: "false", version: "15"}
         systemc_version: ['2.3.3']
@@ -116,9 +116,9 @@ jobs:
         os:
           - {name: "ubuntu", version: "latest"}
           - {name: "ubuntu", version: "22.04"}
-        llvm: 
-          - {src: "true", version: "13.0.1"}
-          - {src: "false", version: "15"}
+        llvm:
+          - {name: "src", src: "true", version: "13.0.1"}
+          - {name: "pkg", src: "false", version: "15"}
         systemc_version: ['2.3.3']
         verilator_version: ['4.228']
 
@@ -239,9 +239,9 @@ jobs:
         os:
           - {name: "ubuntu", version: "latest"}
           - {name: "ubuntu", version: "22.04"}
-        llvm: 
-          - {src: "true", version: "13.0.1"}
-          - {src: "false", version: "15"}
+        llvm:
+          - {name: "src", src: "true", version: "13.0.1"}
+          - {name: "pkg", src: "false", version: "15"}
         systemc_version: ['2.3.3']
         verilator_version: ['4.228']
 
