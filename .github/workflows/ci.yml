@@ -14,16 +14,22 @@ jobs:
   requirements:
     strategy:
       matrix:
-        llvm: 
-          - {src: 'true', version: "13.0.1"}
-          # - {src: 'false', version: "15"} not needed for requirements
         config:
-          - {os_name: "ubuntu", os_version: "latest", systemc_version: "2.3.3", verilator_version: "4.228"}
-          - {os_name: "ubuntu", os_version: "22.04", systemc_version: "2.3.3", verilator_version: "4.228"}
+          - {os_name: "ubuntu", os_version: "latest"}
+          - {os_name: "ubuntu", os_version: "22.04"}
+        systemc_version: ['2.3.3']
+        verilator_version: ['4.228']
+        llvm_version: ['13.0.1', "15"]
+        llvm_src: ['true', 'false']
+        include:
+          - llvm_version: '15'
+            llvm_src: 'false'
+          - llvm_version: '13.0.1'
+            llvm_src: 'true'
 
     runs-on: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}
     container: ${{ matrix.config.os_name }}:${{ matrix.config.os_version }}
-    name: requirements-${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
+    name: requirements-${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.verilator_version }}_llvm-src:${{ matrix.llvm_src }}-v:${{ matrix.llvm_version }}
 
     steps:
     - name: Install git on container
@@ -37,30 +43,30 @@ jobs:
         path: vrtlmod_src
         submodules: true
 
-    - if: ${{ matrix.llvm.src == 'true' }}
+    - if: ${{ matrix.llvm_src == 'true' }}
       name: Cache LLVM
       id: cache-llvm
       uses: actions/cache@v4
       with:
         path: /llvm_install
-        key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
-        restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
+        key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_llvm-src:${{ matrix.llvm_src }}-v:${{ matrix.llvm_version }}
+        restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_llvm-src:${{ matrix.llvm_src }}-v:${{ matrix.llvm_version }}
 
     - name: Cache Verilator
       id: cache-verilator
       uses: actions/cache@v4
       with:
         path: /verilator_install
-        key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}
-        restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}
+        key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.verilator_version }}
+        restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.verilator_version }}
 
     - name: Cache SystemC
       id: cache-systemc
       uses: actions/cache@v4
       with:
         path: /systemc_install
-        key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_systemc-${{ matrix.config.systemc_version }}
-        restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_systemc-${{ matrix.config.systemc_version }}
+        key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_systemc-${{ matrix..systemc_version }}
+        restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_systemc-${{ matrix.systemc_version }}
 
     - name: Requirements (Linux)
       if: runner.os == 'Linux'
@@ -77,7 +83,7 @@ jobs:
       shell: bash
       run: |
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
-        setup_systemc "${{runner.workspace}}/systemc_src" "${{runner.workspace}}/systemc_build" "/systemc_install" "${{ matrix.config.systemc_version }}"
+        setup_systemc "${{runner.workspace}}/systemc_src" "${{runner.workspace}}/systemc_build" "/systemc_install" "${{ matrix.systemc_version }}"
 
     - if: ${{ steps.cache-verilator.outputs.cache-hit != 'true' }}
       name: Requirements Verilator
@@ -85,7 +91,7 @@ jobs:
       shell: bash
       run: |
         . "./vrtlmod/vrtlmod_src/docker/setup_debian.sh"
-        setup_verilator "${{runner.workspace}}/verilator_src" "${{runner.workspace}}/verilator_src" "/verilator_install" "${{ matrix.config.verilator_version }}"
+        setup_verilator "${{runner.workspace}}/verilator_src" "${{runner.workspace}}/verilator_src" "/verilator_install" "${{ matrix.verilator_version }}"
 
     - name: Check (cached) Verilator
       continue-on-error: false
@@ -93,15 +99,15 @@ jobs:
       working-directory: ${{runner.workspace}}
       run: /verilator_install/bin/verilator --version
 
-    - if: ${{ (matrix.llvm.src == 'true') && (steps.cache-llvm.outputs.cache-hit != 'true') }}
+    - if: ${{ (matrix.llvm_src == 'true') && (steps.cache-llvm.outputs.cache-hit != 'true') }}
       name: Requirements LLVM+Clang
       working-directory: ${{runner.workspace}}
       shell: bash
       run: |
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
-        setup_llvm "${{runner.workspace}}/llvm_src" "${{runner.workspace}}/llvm_build" "/llvm_install" "${{ matrix.llvm.version }}" "$PWD/vrtlmod/vrtlmod_src/deps/llvm/patches"
+        setup_llvm "${{runner.workspace}}/llvm_src" "${{runner.workspace}}/llvm_build" "/llvm_install" "${{ matrix.llvm_version }}" "$PWD/vrtlmod/vrtlmod_src/deps/llvm/patches"
   
-    - if: ${{ matrix.llvm.src == 'true' }}
+    - if: ${{ matrix.llvm_src == 'true' }}
       name: Check (cached) LLVM
       continue-on-error: false
       shell: bash
@@ -111,18 +117,24 @@ jobs:
   build:
     strategy:
       matrix:
-        cmakegen: ["Release"]
-        llvm: 
-          - {src: 'true', version: "13.0.1"}
-          - {src: 'false', version: "15"}
         config:
-          - {os_name: "ubuntu", os_version: "latest", systemc_version: "2.3.3", verilator_version: "4.228"}
-          - {os_name: "ubuntu", os_version: "22.04", systemc_version: "2.3.3", verilator_version: "4.228"}
+          - {os_name: "ubuntu", os_version: "latest"}
+          - {os_name: "ubuntu", os_version: "22.04"}
+        systemc_version: ['2.3.3']
+        verilator_version: ['4.228']
+        cmakegen: ["Release"]
+        llvm_version: ['13.0.1', "15"]
+        llvm_src: ['true', 'false']
+        include:
+          - llvm_version: '15'
+            llvm_src: 'false'
+          - llvm_version: '13.0.1'
+            llvm_src: 'true'
 
     needs: requirements
     runs-on: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}
     container: ${{ matrix.config.os_name }}:${{ matrix.config.os_version }}
-    name: build-${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
+    name: build-${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.verilator_version }}_llvm-src:${{ matrix.llvm_src }}-v:${{ matrix.llvm_version }}
 
     steps:
     - name: Install git on container
@@ -145,37 +157,37 @@ jobs:
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
         setup_env
 
-    - if: ${{ matrix.llvm.src == 'true' }}
+    - if: ${{ matrix.llvm_src == 'true' }}
       name: Cache LLVM
       id: cache-llvm
       uses: actions/cache@v4
       with:
         path: /llvm_install
-        key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
-        restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
+        key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_llvm-src:${{ matrix.llvm_src }}-v:${{ matrix.llvm_version }}
+        restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_llvm-src:${{ matrix.llvm_src }}-v:${{ matrix.llvm_version }}
 
-    - if: ${{ matrix.llvm.src != 'true' }}
+    - if: ${{ matrix.llvm_src != 'true' }}
       name: Install LLVM build dependencies (system)
       run: |
         apt update
         apt remove -y llvm* clang* libllvm* libclang*
-        apt install -y llvm-${{ matrix.llvm.version }}-dev libclang-${{ matrix.llvm.version }}-dev clang-${{ matrix.llvm.version }}
+        apt install -y llvm-${{ matrix.llvm_version }}-dev libclang-${{ matrix.llvm_version }}-dev clang-${{ matrix.llvm_version }}
 
     - name: Cache Verilator
       id: cache-verilator
       uses: actions/cache@v4
       with:
         path: /verilator_install
-        key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}
-        restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}
+        key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.verilator_version }}
+        restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.verilator_version }}
 
     - name: Cache SystemC
       id: cache-systemc
       uses: actions/cache@v4
       with:
         path: /systemc_install
-        key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_systemc-${{ matrix.config.systemc_version }}
-        restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_systemc-${{ matrix.config.systemc_version }}
+        key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_systemc-${{ matrix.systemc_version }}
+        restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_systemc-${{ matrix.systemc_version }}
 
     - name: Check (cached) Verilator
       continue-on-error: false
@@ -189,7 +201,7 @@ jobs:
       working-directory: ${{runner.workspace}}
       run: /llvm_install/bin/clang --version
 
-    - if: ${{ matrix.llvm.src == 'true' }}
+    - if: ${{ matrix.llvm_src == 'true' }}
       name: Build vRTLmod (LLVM from source)
       shell: bash
       working-directory: ${{runner.workspace}}
@@ -200,7 +212,7 @@ jobs:
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
         setup_vrtlmod "${GITHUB_WORKSPACE}/vrtlmod_src" "/vrtlmod_build" "/vrtlmod_install"
 
-    - if: ${{ matrix.llvm.src != 'true' }}
+    - if: ${{ matrix.llvm_src != 'true' }}
       name: Build vRTLmod (LLVM system)
       shell: bash
       working-directory: ${{runner.workspace}}
@@ -223,27 +235,33 @@ jobs:
       if: runner.os == 'Linux'
       uses: actions/upload-artifact@v5
       with:
-        name: vrtlmod_${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
+        name: vrtlmod_${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.verilator_version }}_llvm-src:${{ matrix.llvm_src }}-v:${{ matrix.llvm_version }}
         path: /vrtlmod_install/
         if-no-files-found: error
 
   benchmark:
     strategy:
       matrix:
-        cmakegen: ["Release"]
-        llvm: 
-          - {src: 'true', version: "13.0.1"}
-          - {src: 'false', version: "15"}
         config:
-          - {os_name: "ubuntu", os_version: "latest", systemc_version: "2.3.3", verilator_version: "4.228"}
-          - {os_name: "ubuntu", os_version: "22.04", systemc_version: "2.3.3", verilator_version: "4.228"}
+          - {os_name: "ubuntu", os_version: "latest"}
+          - {os_name: "ubuntu", os_version: "22.04"}
+        systemc_version: ['2.3.3']
+        verilator_version: ['4.228']
+        cmakegen: ["Release"]
+        llvm_version: ['13.0.1', "15"]
+        llvm_src: ['true', 'false']
         duts: ["foo", "cv32e40p", "cv32e40s", "cva6"]
+        include:
+          - llvm_version: '15'
+            llvm_src: 'false'
+          - llvm_version: '13.0.1'
+            llvm_src: 'true'
 
     continue-on-error: true
     needs: build
     runs-on: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}
     container: ${{ matrix.config.os_name }}:${{ matrix.config.os_version }}
-    name: benchmark_${{ matrix.duts }}-${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
+    name: benchmark_${{ matrix.duts }}-${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.verilator_version }}_llvm-src:${{ matrix.llvm_src }}-v:${{ matrix.llvm_version }}
 
     steps:
     - name: Install git on container
@@ -278,25 +296,25 @@ jobs:
       uses: actions/cache@v4
       with:
         path: /verilator_install
-        key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}
-        restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}
+        key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.verilator_version }}
+        restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.verilator_version }}
   
-    - if: ${{ matrix.llvm.src == 'true' }}
+    - if: ${{ matrix.llvm_src == 'true' }}
       name: Cache LLVM
       id: cache-llvm
       uses: actions/cache@v4
       with:
         path: /llvm_install
-        key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
-        restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
+        key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_llvm-src:${{ matrix.llvm_src }}-v:${{ matrix.llvm_version }}
+        restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_llvm-src:${{ matrix.llvm_src }}-v:${{ matrix.llvm_version }}
   
     - name: Cache SystemC
       id: cache-systemc
       uses: actions/cache@v4
       with:
         path: /systemc_install
-        key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_systemc-${{ matrix.config.systemc_version }}
-        restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_systemc-${{ matrix.config.systemc_version }}
+        key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_systemc-${{ matrix.systemc_version }}
+        restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_systemc-${{ matrix.systemc_version }}
 
     - name: Check (cached) Verilator
       continue-on-error: false
@@ -307,7 +325,7 @@ jobs:
     - name: Fetch Compiled System
       uses: actions/download-artifact@v5
       with:
-        name: vrtlmod_${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
+        name: vrtlmod_${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.verilator_version }}_llvm-src:${{ matrix.llvm_src }}-v:${{ matrix.llvm_version }}
         path: /vrtlmod_install/
 
     - name: Check pre-compiled vrtlmod
@@ -328,7 +346,7 @@ jobs:
         git apply "../../../patches/scc-gcc_gt_13.patch"
         git apply "../../../patches/scc-byteenabletransactions.patch"
 
-    - if: ${{ matrix.llvm.src == 'true' }}
+    - if: ${{ matrix.llvm_src == 'true' }}
       name: Configure Benchmarks (LLVM source)
       shell: bash
       working-directory: ${{runner.workspace}}
@@ -338,7 +356,7 @@ jobs:
         export SYSTEMC_HOME=/systemc_install       
         cmake -S ${GITHUB_WORKSPACE}/vrtlmod-test_src -B build -D VRTL_NAMES="${{matrix.duts}}" -D CMAKE_BUILD_TYPE=${{ matrix.cmakegen }} -D VRTLMOD_ROOT=/vrtlmod_install
 
-    - if: ${{ matrix.llvm.src != 'true' }}
+    - if: ${{ matrix.llvm_src != 'true' }}
       name: Configure Benchmarks (LLVM system)
       shell: bash
       working-directory: ${{runner.workspace}}
@@ -363,5 +381,5 @@ jobs:
     - name: Save Benchmark Results
       uses: actions/upload-artifact@v5
       with:
-        name: ${{matrix.duts}}_${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}_llvm-src:${{ matrix.llvm.src }}-v:${{ matrix.llvm.version }}
+        name: ${{matrix.duts}}_${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.verilator_version }}_llvm-src:${{ matrix.llvm_src }}-v:${{ matrix.llvm_version }}
         path: ${{runner.workspace}}/${{matrix.duts}}.log
