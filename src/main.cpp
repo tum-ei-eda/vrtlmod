@@ -106,8 +106,18 @@ int main(int argc, const char **argv)
 {
     int err = 0;
 
+#if LLVM_VERSION_MAJOR >= 13
     llvm::Expected<clang::tooling::CommonOptionsParser> op =
         clang::tooling::CommonOptionsParser::create(argc, argv, UserCat);
+#else
+    auto op = clang::tooling::CommonOptionsParser::create(argc, argv, UserCat, llvm::cl::NumOccurrencesFlag::ZeroOrMore,
+                                                          nullptr);
+    if (!op)
+    {
+        LOG_ERROR("Failed to create option parser:", llvm::toString(op.takeError()));
+        return 1;
+    }
+#endif
 
     if (bool(Silent))
     {
