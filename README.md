@@ -94,19 +94,19 @@ Besides standard (gmake, cmake, g++, ...)
 
 Configure project directory:
 
-  $ cmake -S . -B build -D VERILATOR_ROOT=<path/to/verilator/build/or/install/directory> [-D LLVM_DIR=<path/to/llvm/install/dir>] [-D BUILD_TESTING=Off]
+    $ cmake -S . -B build -D VERILATOR_ROOT=<path/to/verilator/build/or/install/directory> [-D LLVM_DIR=<path/to/llvm/install/dir>] [-D BUILD_TESTING=Off]
 
 Build:
 
-  $ cmake --build build [--parallel $(nproc)]
+    $ cmake --build build [--parallel $(nproc)]
 
 Install (optional):
 
-  $ cmake --build build --target install
+    $ cmake --build build --target install
 
 Test (optional: configure with `-D BUILD_TESTING=Off`)
 
-  $ cmake --build build --target test 
+    $ cmake --build build --target test 
 
 
 ### Docker
