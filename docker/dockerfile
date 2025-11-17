@@ -1,6 +1,8 @@
 FROM debian:stable
 
 # Overall build config for cmake dependencies
+ENV LLVM_FROM_SOURCE="OFF"
+
 ARG build_config="Release"
 ARG GLOBAL_BUILD_CONFIG="${build_config}"
 
