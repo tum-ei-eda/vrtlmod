@@ -164,7 +164,7 @@ jobs:
       run: |
         apt update
         apt remove -y llvm* clang* libllvm* libclang*
-        apt install -y llvm-${{ matrix.llvm.version }}-dev libclang-${{ matrix.llvm.version }}-dev clang-${{ matrix.llvm.version }}
+        apt install -y libzstd-dev llvm-${{ matrix.llvm.version }}-dev libclang-${{ matrix.llvm.version }}-dev clang-${{ matrix.llvm.version }}
 
     - name: Cache Verilator
       id: cache-verilator
@@ -305,7 +305,7 @@ jobs:
       run: |
         apt update
         apt remove -y llvm* clang* libllvm* libclang*
-        apt install -y llvm-${{ matrix.llvm.version }}-dev libclang-${{ matrix.llvm.version }}-dev clang-${{ matrix.llvm.version }}
+        apt install -y libzstd-dev llvm-${{ matrix.llvm.version }}-dev libclang-${{ matrix.llvm.version }}-dev clang-${{ matrix.llvm.version }}
 
     - name: Cache SystemC
       id: cache-systemc
