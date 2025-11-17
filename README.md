@@ -50,20 +50,15 @@ Besides standard (gmake, cmake, g++, ...)
   - Tested with v4.202, v4.204, and v4.228
   - Currently no support for Verilator version <4 and >4!
 
-  - <details>
-  <summary>Setup Verilator:</summary>
-  <p>
-
-  ```
-    git clone --depth 1 --branch v4.228 https://github.com/verilator/verilator.git verilator_src
-    cd verilator_src
-    autoconf
-    ./configure --prefix $PWD/../verilator_install
-    make -j $(nproc) && make install
-  ```
-
-  </p>
-  </details>
+<details><summary>Setup Verilator:</summary><p>
+```
+  git clone --depth 1 --branch v4.228 https://github.com/verilator/verilator.git verilator_src
+  cd verilator_src
+  autoconf
+  ./configure --prefix $PWD/../verilator_install
+  make -j $(nproc) && make install
+```
+</p></details>
 
 2. LLVM+Clang versions >=13 and <=18
   - Debian-based distros: `apt install update && apt install llvm-15-dev libclang-15-dev clang-15`
@@ -72,19 +67,14 @@ Besides standard (gmake, cmake, g++, ...)
   - Debian-based distros: `apt install update && apt install libboost-filesystem-dev libboost-date-time-dev`
 4. For Tests: SystemC>=2.3.3 (set environment variable before CMake, `export SYSTEMC_HOME=/path/to/systemc/`)
 
-<details>
-<summary>Steps 2, 3, and 4 with Debian Packages:</summary>
-<p>
-
+<details><summary>Steps 2, 3, and 4 with Debian Packages:</summary><p>
 ```
   apt update
   apt install libzstd-dev llvm-15-dev libclang-15-dev clang-15 \
                 cmake libboost-filesystem-dev libboost-date-time-dev \
                 libfl-dev build-essential ccache python3 python3-virtualenv python3-dev
 ```
-
-</p>
-</details>
+</p></details>
 
 #### Native Build
 
