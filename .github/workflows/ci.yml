@@ -15,8 +15,8 @@ jobs:
     strategy:
       matrix:
         config:
-          - {os_name: "ubuntu", os_version: "latest", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", verilator_version: "4.228", llvm_version: "13.0.1"}
-          - {os_name: "ubuntu", os_version: "22.04", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", verilator_version: "4.228", llvm_version: "13.0.1"}
+          - {os_name: "ubuntu", os_version: "latest", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", verilator_version: "4.228", llvm_src: 'true', llvm_version: "13.0.1"}
+          - {os_name: "ubuntu", os_version: "22.04", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", verilator_version: "4.228", llvm_src: 'true', llvm_version: "13.0.1"}
 
     runs-on: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}
     container: ${{ matrix.config.os_name }}:${{ matrix.config.os_version }}
@@ -34,7 +34,8 @@ jobs:
         path: vrtlmod_src
         submodules: true
 
-    - name: Cache LLVM
+    - if: ${{ matrix.config.llvm_src == 'true' }}
+      name: Cache LLVM
       id: cache-llvm
       uses: actions/cache@v4
       with:
@@ -89,7 +90,7 @@ jobs:
       working-directory: ${{runner.workspace}}
       run: /verilator_install/bin/verilator --version
 
-    - if: ${{ steps.cache-llvm.outputs.cache-hit != 'true' }}
+    - if: ${{ (matrix.config.llvm_src == 'true') && (steps.cache-llvm.outputs.cache-hit != 'true') }}
       name: Requirements LLVM+Clang
       working-directory: ${{runner.workspace}}
       shell: bash
@@ -97,7 +98,8 @@ jobs:
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
         setup_llvm "${{runner.workspace}}/llvm_src" "${{runner.workspace}}/llvm_build" "/llvm_install" "${{ matrix.config.llvm_version }}" "$PWD/vrtlmod/vrtlmod_src/deps/llvm/patches"
   
-    - name: Check (cached) LLVM
+    - if: ${{ matrix.config.llvm_src == 'true' }}
+      name: Check (cached) LLVM
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
@@ -107,8 +109,8 @@ jobs:
     strategy:
       matrix:
         config:
-          - {os_name: "ubuntu", os_version: "latest", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", verilator_version: "4.228", llvm_version: "13.0.1"}
-          - {os_name: "ubuntu", os_version: "22.04", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", verilator_version: "4.228", llvm_version: "13.0.1"}
+          - {os_name: "ubuntu", os_version: "latest", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", verilator_version: "4.228", llvm_src: 'true', llvm_version: "13.0.1"}
+          - {os_name: "ubuntu", os_version: "22.04", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", verilator_version: "4.228", llvm_src: 'true', llvm_version: "13.0.1"}
 
     needs: requirements
     runs-on: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}
@@ -136,7 +138,8 @@ jobs:
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
         setup_env
 
-    - name: Cache LLVM
+    - if: ${{ matrix.config.llvm_src == 'true' }}
+      name: Cache LLVM
       id: cache-llvm
       uses: actions/cache@v4
       with:
@@ -203,8 +206,8 @@ jobs:
     strategy:
       matrix:
         config:
-          - {os_name: "ubuntu", os_version: "latest", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", verilator_version: "4.228", llvm_version: "13.0.1"}
-          - {os_name: "ubuntu", os_version: "22.04", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", verilator_version: "4.228", llvm_version: "13.0.1"}
+          - {os_name: "ubuntu", os_version: "latest", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", verilator_version: "4.228", llvm_src: 'true', llvm_version: "13.0.1"}
+          - {os_name: "ubuntu", os_version: "22.04", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", verilator_version: "4.228", llvm_src: 'true', llvm_version: "13.0.1"}
         duts: ["foo", "cv32e40p", "cv32e40s", "cva6"]
 
     continue-on-error: true
@@ -249,7 +252,8 @@ jobs:
         key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}
         restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_verilator-${{ matrix.config.verilator_version }}
   
-    - name: Cache LLVM
+    - if: ${{ matrix.config.llvm_src == 'true' }}
+      name: Cache LLVM
       id: cache-llvm
       uses: actions/cache@v4
       with:
