@@ -4,6 +4,9 @@
 get_apt_deps() {
   verilator_apt_dep="autoconf automake autotools-dev bison curl flex g++ git xz-utils wget"
   vrtlmod_apt_dep="cmake libboost-filesystem-dev libboost-date-time-dev libfl-dev build-essential ccache python3 python3-virtualenv python3-dev"
+  if [ ! "${LLVM_FROM_SOURCE,,}" == "on" ]; then
+    vrtlmod_apt_dep="libzstd-dev llvm-15-dev libclang-15-dev clang-15 ${vrtlmod_apt_dep}"
+  fi
   echo "${verilator_apt_dep} ${vrtlmod_apt_dep}"
 }
 setup_env() {
@@ -108,7 +111,7 @@ setup_llvm() {
   version="${4}"
   patch_dir=$5
 
-  if [ ! -f "${install_dir}/bin/clang" ]; then
+  if [ "${LLVM_FROM_SOURCE,,}" == "on" ] && [ ! -f "${install_dir}/bin/clang" ]; then
     fetch_llvm "$1" "$2" "$3" "${4}" ${5} && \
     configure_llvm "$1" "$2" "$3" "${4}" && \
     build_llvm "$1" "$2" "$3" "${4}" && \
