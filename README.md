@@ -43,9 +43,14 @@ If you use vRTLmod in your academic work you can cite it like this:
 ## Dependencies
 Besides standard (gmake, cmake, gcc, ...)
 
-1. Verilator  - tested with v4.202, v4.204, and v4.228 (see: https://www.veripool.org/wiki/verilator and install guide). Currently no support for Verilator version <4 and >4!
-2. LLVM - tested v13.0.1 built with `-D LLVM_ENABLE_PROJECTS="clang;clang-tools-extra"`
-3. Boost filesystem
+1. Verilator (see: https://www.veripool.org/wiki/verilator and install guide).
+  - Tested with v4.202, v4.204, and v4.228
+  - Currently no support for Verilator version <4 and >4!
+2. LLVM+Clang versions >=13 and <=18
+  - Debian-based distros: `apt install update && apt install llvm-15-dev libclang-15-dev clang-15`
+  - From Source: Make sure to build with `LLVM_ENABLE_PROJECTS="clang;clang-tools-extra"`
+3. Boost filesystem and date-time
+  - Debian-based distros: `apt install update && apt install libboost-filesystem-dev libboost-date-time-dev`
 4. For Tests: SystemC>=2.3.3 (set environment variable before CMake, `export SYSTEMC_HOME=/path/to/systemc/`)
 
 ## Build
@@ -61,7 +66,7 @@ Besides standard (gmake, cmake, gcc, ...)
 2. **CMake command line arguments:**
 
 ```
-cmake -S . -B build -D LLVM_DIR=<path/to/llvm/install/dir> -D VERILATOR_ROOT=<path/to/verilator/build/or/install/directory> [-D BUILD_TESTING=Off]
+cmake -S . -B build -D VERILATOR_ROOT=<path/to/verilator/build/or/install/directory> [-D LLVM_DIR=<path/to/llvm/install/dir>] [-D BUILD_TESTING=Off]
 cmake --build build [--target test] 
 cmake --build build [--target install] 
 ```
