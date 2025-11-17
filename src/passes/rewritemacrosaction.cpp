@@ -57,7 +57,7 @@ void RewriteCommentsAction::ExecuteAction(void)
     clang::SourceManager &SM = PP.getSourceManager();
     clang::Rewriter Rewrite;
     Rewrite.setSourceMgr(SM, PP.getLangOpts());
-    clang::RewriteBuffer &RB = Rewrite.getEditBuffer(SM.getMainFileID());
+    rewrite_buffer_t &RB = Rewrite.getEditBuffer(SM.getMainFileID());
 
     ch_.set_file(getCurrentFile());
     ch_.set_rewrite_buffer(RB);
@@ -93,7 +93,7 @@ bool RewriteCommentsAction::CommentHandler::HandleComment(clang::Preprocessor &P
         {
             clang::Rewriter rw;
             rw.setSourceMgr(sm, PP.getLangOpts());
-            clang::RewriteBuffer &RB = rw.getEditBuffer(sm.getMainFileID());
+            rewrite_buffer_t &RB = rw.getEditBuffer(sm.getMainFileID());
 
             std::cout << ">>>[c]: was `" << comment_str << "`" << std::endl;
             std::string new_str;

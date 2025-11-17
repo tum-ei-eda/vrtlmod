@@ -37,6 +37,13 @@
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
 #include "clang/Rewrite/Core/Rewriter.h"
+#if LLVM_VERSION_MAJOR < 20
+#include "clang/Rewrite/Core/RewriteBuffer.h"
+using rewrite_buffer_t = clang::RewriteBuffer;
+#else
+#include "llvm/ADT/RewriteBuffer.h"
+using rewrite_buffer_t = llvm::RewriteBuffer;
+#endif
 #include "clang/Lex/Lexer.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/raw_os_ostream.h"
@@ -65,9 +72,9 @@ class RewriteCommentsAction : public clang::PreprocessorFrontendAction
     struct CommentHandler : clang::CommentHandler
     {
         llvm::StringRef file_;
-        clang::RewriteBuffer *rb_;
+        rewrite_buffer_t *rb_;
         void set_file(llvm::StringRef file) { file_ = file; }
-        void set_rewrite_buffer(clang::RewriteBuffer &RB) { rb_ = &RB; }
+        void set_rewrite_buffer(rewrite_buffer_t &RB) { rb_ = &RB; }
         bool HandleComment(clang::Preprocessor &PP, clang::SourceRange Comment) override;
     } ch_;
     void ExecuteAction(void) override;
