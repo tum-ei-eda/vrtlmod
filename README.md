@@ -50,20 +50,20 @@ Besides standard (gmake, cmake, g++, ...)
   - Tested with v4.202, v4.204, and v4.228
   - Currently no support for Verilator version <4 and >4!
 
-<details>
-<summary>Setup Verilator:</summary>
-<p>
+  - <details>
+  <summary>Setup Verilator:</summary>
+  <p>
 
-```
-  git clone --depth 1 --branch v4.228 https://github.com/verilator/verilator.git verilator_src
-  cd verilator_src
-  autoconf
-  ./configure --prefix $PWD/../verilator_install
-  make -j $(nproc) && make install
-```
+  ```
+    git clone --depth 1 --branch v4.228 https://github.com/verilator/verilator.git verilator_src
+    cd verilator_src
+    autoconf
+    ./configure --prefix $PWD/../verilator_install
+    make -j $(nproc) && make install
+  ```
 
-</p>
-</details>
+  </p>
+  </details>
 
 2. LLVM+Clang versions >=13 and <=18
   - Debian-based distros: `apt install update && apt install llvm-15-dev libclang-15-dev clang-15`
@@ -98,11 +98,22 @@ Besides standard (gmake, cmake, g++, ...)
 
 2. **CMake command line arguments:**
 
-```
-cmake -S . -B build -D VERILATOR_ROOT=<path/to/verilator/build/or/install/directory> [-D LLVM_DIR=<path/to/llvm/install/dir>] [-D BUILD_TESTING=Off]
-cmake --build build [--target test] 
-cmake --build build [--target install] 
-```
+Configure project directory:
+
+$ cmake -S . -B build -D VERILATOR_ROOT=<path/to/verilator/build/or/install/directory> [-D LLVM_DIR=<path/to/llvm/install/dir>] [-D BUILD_TESTING=Off]
+
+Build:
+
+$ cmake --build build [--parallel $(nproc)]
+
+Install (optional):
+
+$ cmake --build build --target install
+
+Test (optional: configure with `-D BUILD_TESTING=Off`)
+
+$ cmake --build build --target test 
+
 
 ### Docker
 
