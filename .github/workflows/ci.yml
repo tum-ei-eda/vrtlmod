@@ -2,13 +2,20 @@ name: CI
 
 on:
   push:
+    paths-ignore:
+    - doc/
+    - README.md
     branches:
       - master
     tags:
       - v*
   pull_request:
+    paths-ignore:
+    - doc/
+    - README.md
     branches:
       - master
+  workflow_dispatch: {}
 
 jobs:
   requirements:
