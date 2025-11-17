@@ -54,11 +54,13 @@ Besides standard (gmake, cmake, g++, ...)
 <summary>Setup Verilator:</summary>
 <p>
 
-  $ git clone --depth 1 --branch v4.228 https://github.com/verilator/verilator.git verilator_src
-  $ cd verilator_src
-  $ autoconf
-  $ ./configure --prefix $PWD/../verilator_install
-  $ make -j $(nproc) && make install
+```
+  git clone --depth 1 --branch v4.228 https://github.com/verilator/verilator.git verilator_src
+  cd verilator_src
+  autoconf
+  ./configure --prefix $PWD/../verilator_install
+  make -j $(nproc) && make install
+```
 
 </p>
 </details>
@@ -74,10 +76,12 @@ Besides standard (gmake, cmake, g++, ...)
 <summary>Steps 2, 3, and 4 with Debian Packages:</summary>
 <p>
 
-  $ apt update
-  $ apt install libzstd-dev llvm-15-dev libclang-15-dev clang-15 \
+```
+  apt update
+  apt install libzstd-dev llvm-15-dev libclang-15-dev clang-15 \
                 cmake libboost-filesystem-dev libboost-date-time-dev \
                 libfl-dev build-essential ccache python3 python3-virtualenv python3-dev
+```
 
 </p>
 </details>
@@ -104,9 +108,16 @@ cmake --build build [--target install]
 
 A `docker compose` flow is provided:
 
-  1. Build the Docker image `vrtlmodworkspace`: `docker compose -f docker/docker-compose.yaml build vrtlmodworkspace`
+  1. Build the Docker image:
+  
+  $ `vrtlmodworkspace`: `docker compose -f docker/docker-compose.yaml build vrtlmodworkspace`
+  
   2. grab a ☕ and wait ... this takes a while.
-  3. Launch the container and mount the workspace: `docker run -it -v"$PWD":/vrtlmod docker-vrtlmodworkspace:latest`
+
+  3. Launch the container and mount the workspace:
+  
+  $`docker run -it -v"$PWD":/vrtlmod docker-vrtlmodworkspace:latest`
+
     - `-v"$PWD":/vrtlmod` makes the `vrtlmod` directory available in the container. Mount other directories to vrtlmod their contents.
 
 ## Usage
