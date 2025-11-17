@@ -40,7 +40,9 @@ If you use vRTLmod in your academic work you can cite it like this:
 </p>
 </details>
 
-## Dependencies
+## Setup
+
+#### Native (Debian)
 
 Besides standard (gmake, cmake, g++, ...)
 
@@ -79,7 +81,7 @@ Besides standard (gmake, cmake, g++, ...)
 </details>
 <details>
 
-## Build
+#### Native Build
 
 1. **Required environment:**
 
@@ -96,6 +98,15 @@ cmake -S . -B build -D VERILATOR_ROOT=<path/to/verilator/build/or/install/direct
 cmake --build build [--target test] 
 cmake --build build [--target install] 
 ```
+
+### Docker
+
+A `docker compose` flow is provided:
+
+  1. Build the Docker image `vrtlmodworkspace`: `docker compose -f docker/docker-compose.yaml build vrtlmodworkspace`
+  2. grab a ☕ and wait ... this takes a while.
+  3. Launch the container and mount the workspace: `docker run -it -v"$PWD":/vrtlmod docker-vrtlmodworkspace:latest`
+    - `-v"$PWD":/vrtlmod` makes the `vrtlmod` directory available in the container. Mount other directories to vrtlmod their contents.
 
 ## Usage
 
