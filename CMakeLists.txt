@@ -27,6 +27,10 @@ if(NOT CMAKE_CXX_STANDARD)
     set(CMAKE_CXX_STANDARD 17)
     message(WARNING "CMAKE_CXX_STANDARD not set. Default to ${CMAKE_CXX_STANDARD}")
 endif()
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release")
+    message(WARNING "CMAKE_BUILD_TYPE not set. Default to ${CMAKE_BUILD_TYPE}")
+endif()
 ####################################################################################################
 
 ####################################################################################################
