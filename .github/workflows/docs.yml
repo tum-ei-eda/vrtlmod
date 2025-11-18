@@ -36,7 +36,7 @@ jobs:
     - name: Install git on container
       run: |
         apt update
-        apt install -y git doxygen graphviz
+        apt install -y git
 
     - name: Clone vRTLmod
       uses: actions/checkout@v4
@@ -75,6 +75,11 @@ jobs:
         apt update
         apt remove -y llvm* clang* libllvm* libclang*
         apt install -y libzstd-dev llvm-${{ matrix.llvm.version }}-dev libclang-${{ matrix.llvm.version }}-dev clang-${{ matrix.llvm.version }}
+
+    - name: Install Doxygen on container
+      run: |
+        apt update
+        apt install -y doxygen graphviz
 
     - name: Configure CMake
       working-directory: ${{runner.workspace}}
