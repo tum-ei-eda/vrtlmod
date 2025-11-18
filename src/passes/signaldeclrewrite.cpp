@@ -109,13 +109,22 @@ void SignalDeclRewriter::write_injection_decl(const clang::FieldDecl *decl, cons
 void SignalDeclRewriter::modify_includes(const clang::Decl *decl, const VrtlParser &parser) const
 {
     auto& srcmgr = parser.getRewriter().getSourceMgr();
-    static std::set<const FileEntry*> modified_fentries{};
-    
+
     FileID fid = srcmgr.getFileID(decl->getBeginLoc());
+#if LLVM_VERSION_MAJOR < 17
+    static std::set<const FileEntry*> modified_fentries{};
     const FileEntry* fentry = srcmgr.getFileEntryForID(fid);
+#else
+    static std::set<FileEntryRef> modified_fentries{};
+    clang::OptionalFileEntryRef maybeFEntry = srcmgr.getFileEntryRefForID(fid);
+    if (!maybeFEntry) {
+        LOG_FATAL(">modify includes: file[", LOCATABLE_GET_FILENAME_FROM_CLANG(decl->getBeginLoc(), srcmgr).str(), "] no File Reference found in Source Manager.");
+    }
+    clang::FileEntryRef fentry = *maybeFEntry;
+#endif
     if (modified_fentries.find(fentry) != modified_fentries.end())
     {
-        LOG_VERBOSE(">modify includes: file[", fentry->getName().str(), "] already modified. skipping.");
+        LOG_VERBOSE(">modify includes: file[", LOCATABLE_GET_FILENAME_FROM_CLANG(decl->getBeginLoc(), srcmgr).str(), "] already modified. skipping.");
         return; // already modified
     }
 
@@ -126,7 +135,7 @@ void SignalDeclRewriter::modify_includes(const clang::Decl *decl, const VrtlPars
     auto includepos = newc.find("#include");
     if (includepos != std::string::npos)
     {
-        LOG_VERBOSE(">modify includes: file[", fentry->getName().str(), "] at pos[", std::to_string(includepos), "]");
+        LOG_VERBOSE(">modify includes: file[", LOCATABLE_GET_FILENAME_FROM_CLANG(decl->getBeginLoc(), srcmgr).str(), "] at pos[", std::to_string(includepos), "]");
         std::string x = get_core().get_include_string();
         if (newc.find(x) == std::string::npos) // do not insert if already existing
         {

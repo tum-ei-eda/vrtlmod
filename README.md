@@ -40,15 +40,47 @@ If you use vRTLmod in your academic work you can cite it like this:
 </p>
 </details>
 
-## Dependencies
-Besides standard (gmake, cmake, gcc, ...)
+## Setup
 
-1. Verilator  - tested with v4.202, v4.204, and v4.228 (see: https://www.veripool.org/wiki/verilator and install guide). Currently no support for Verilator version <4 and >4!
-2. LLVM - tested v13.0.1 built with `-D LLVM_ENABLE_PROJECTS="clang;clang-tools-extra"`
-3. Boost filesystem
+#### Native (Debian)
+
+Besides standard (gmake, cmake, g++, ...)
+
+1. Verilator (see: https://www.veripool.org/wiki/verilator and install guide).
+  - Tested with v4.202, v4.204, and v4.228
+  - Currently no support for Verilator version <4 and >4!
+
+<details><summary>Setup Verilator:</summary><p>
+
+```
+  git clone --depth 1 --branch v4.228 https://github.com/verilator/verilator.git verilator_src
+  cd verilator_src
+  autoconf
+  ./configure --prefix $PWD/../verilator_install
+  make -j $(nproc) && make install
+```
+
+</p></details>
+
+2. LLVM+Clang versions >=13 and <=18
+  - Debian-based distros: `apt install update && apt install llvm-15-dev libclang-15-dev clang-15`
+  - From Source: Make sure to build with `LLVM_ENABLE_PROJECTS="clang;clang-tools-extra"`
+3. Boost filesystem and date-time
+  - Debian-based distros: `apt install update && apt install libboost-filesystem-dev libboost-date-time-dev`
 4. For Tests: SystemC>=2.3.3 (set environment variable before CMake, `export SYSTEMC_HOME=/path/to/systemc/`)
 
-## Build
+<details><summary>Steps 2, 3, and 4 with Debian Packages:</summary><p>
+
+```
+  apt update
+  apt install libzstd-dev llvm-15-dev libclang-15-dev clang-15 \
+                cmake libboost-filesystem-dev libboost-date-time-dev \
+                libfl-dev build-essential ccache python3 python3-virtualenv python3-dev
+```
+
+</p></details>
+
+#### Native Build
 
 1. **Required environment:**
 
@@ -60,11 +92,39 @@ Besides standard (gmake, cmake, gcc, ...)
 
 2. **CMake command line arguments:**
 
-```
-cmake -S . -B build -D LLVM_DIR=<path/to/llvm/install/dir> -D VERILATOR_ROOT=<path/to/verilator/build/or/install/directory> [-D BUILD_TESTING=Off]
-cmake --build build [--target test] 
-cmake --build build [--target install] 
-```
+Configure project directory:
+
+    $ cmake -S . -B build -D VERILATOR_ROOT=<path/to/verilator/build/or/install/directory> [-D LLVM_DIR=<path/to/llvm/install/dir>] [-D BUILD_TESTING=Off]
+
+Build:
+
+    $ cmake --build build [--parallel $(nproc)]
+
+Install (optional):
+
+    $ cmake --build build --target install
+
+Test (optional: configure with `-D BUILD_TESTING=Off`)
+
+    $ cmake --build build --target test 
+
+
+### Docker
+
+A `docker compose` flow is provided
+
+  1. Compose the Docker image `vrtlmodworkspace`:
+
+    $ docker compose -f docker/docker-compose.yaml build vrtlmodworkspace
+
+  2. grab a ☕ and wait ... this takes a while.
+
+  3. Launch the container and mount the workspace:
+    - `-v"$PWD":/vrtlmod` makes the `vrtlmod` directory available in the container. Mount other directories to vrtlmod their contents.
+
+    $ docker run -it -v"$PWD":/vrtlmod docker-vrtlmodworkspace:latest
+
+    
 
 ## Usage
 

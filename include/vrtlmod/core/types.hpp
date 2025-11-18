@@ -22,6 +22,7 @@
 #ifndef __VRTLMOD_CORE_TYPES_HPP__
 #define __VRTLMOD_CORE_TYPES_HPP__
 
+#include <set>
 #include <string>
 #include <sstream>
 #include <algorithm>
@@ -61,7 +62,12 @@ struct NNode : public pugi::xml_node
     virtual ~NNode() {}
 };
 
+#if LLVM_VERSION_MAJOR < 17
 #define LOCATABLE_GET_FILENAME_FROM_CLANG(LOC, SM) SM.getFileEntryForID(SM.getFileID(LOC))->getName()
+#else
+#define LOCATABLE_GET_FILENAME_FROM_CLANG(LOC, SM) SM.getFileEntryRefForID(SM.getFileID(LOC))->getName()
+#endif
+
 #define LOCATABLE_GET_LINE_FROM_CLANG(LOC, SM) SM.getLineNumber(SM.getFileID(LOC), SM.getFileOffset(LOC))
 #define LOCATABLE_GET_COL_FROM_CLANG(LOC, SM) SM.getColumnNumber(SM.getFileID(LOC), SM.getFileOffset(LOC))
 #define LOCATABLE_INITIALIZER(LOC, SM)                                                  \

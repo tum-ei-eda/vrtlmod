@@ -27,6 +27,10 @@ if(NOT CMAKE_CXX_STANDARD)
     set(CMAKE_CXX_STANDARD 17)
     message(WARNING "CMAKE_CXX_STANDARD not set. Default to ${CMAKE_CXX_STANDARD}")
 endif()
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release")
+    message(WARNING "CMAKE_BUILD_TYPE not set. Default to ${CMAKE_BUILD_TYPE}")
+endif()
 ####################################################################################################
 
 ####################################################################################################
@@ -61,43 +65,57 @@ if("${isSystemDir}" STREQUAL "-1")
     set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 endif("${isSystemDir}" STREQUAL "-1")
 ####################################################################################################
-
-####################################################################################################
-# environment ######################################################################################
-if(NOT LLVM_DIR) #try environment
-    set(LLVM_DIR $ENV{LLVM_DIR})
-endif()
-
-####################################################################################################
-# cmake packages
+# Verilator
 find_package(VERILATOR REQUIRED)
 if( ${verilator_VERSION_MAJOR} LESS 4 OR ${verilator_VERSION_MAJOR} GREATER 4)
     message(FATAL_ERROR "Verilator version \"${verilator_VERSION}\" is not required major 4.xxx" )
 endif()
-
-if(NOT Clang_DIR)
-    set(Clang_DIR_SEARCH ${LLVM_DIR}/lib/cmake/clang)
+####################################################################################################
+# LLVM
+if(NOT DEFINED LLVM_DIR)  #try environment
+    if(DEFINED ENV{LLVM_DIR})
+        set(LLVM_DIR "$ENV{LLVM_DIR}")
+    endif()
 endif()
-message(STATUS "LLVM_DIR: ${LLVM_DIR}")
-find_package(LLVM REQUIRED CONFIG
-    NO_DEFAULT_PATH
-    NO_SYSTEM_ENVIRONMENT_PATH
-    PATHS ${LLVM_DIR}/lib/cmake/llvm
-)
-message(STATUS "LLVM_DIR: ${LLVM_DIR}")
-
-if( ${LLVM_VERSION_MAJOR} LESS 13)
-    message(FATAL_ERROR "LLVM version \"${LLVM_VERSION}\" is less than required major 13.xxx" )
+# 1st try only environment and LLVM_DIR
+find_package(LLVM CONFIG NO_DEFAULT_PATH PATHS ${LLVM_DIR})
+if(NOT LLVM_FOUND) # 2nd try with system and default paths
+    find_package(LLVM CONFIG)
 endif()
-if(${LLVM_VERSION_MAJOR} GREATER 13)
-    message(WARNING "LLVM version \"${LLVM_VERSION}\" is greater than tested major 13.xxx" )
-endif()
+if(NOT LLVM_FOUND)
+    message(STATUS "[${PROJECT_NAME}] Did not find LLVM... Skipping ${PROJECT_NAME} target.")
+elseif((LLVM_FOUND AND LLVM_VERSION_MAJOR LESS 11))
+    message(STATUS "[${PROJECT_NAME}] Could find LLVM at ${LLVM_DIR}, but version ${LLVM_PACKAGE_VERSION}<11... Skipping target.")
+else()
+    message(STATUS "[${PROJECT_NAME}] Found LLVM ${LLVM_PACKAGE_VERSION} at ${LLVM_DIR}")
+    string(REGEX MATCH "^[0-9]+" LLVM_VERSION_MAJOR "${LLVM_PACKAGE_VERSION}")
+    math(EXPR LLVM_VERSION_MAJOR_NEXT "${LLVM_VERSION_MAJOR} + 1" OUTPUT_FORMAT DECIMAL)
+ 
+    if(NOT Clang_FOUND) # 1st try only in relation to found LLVM
+        find_package(Clang CONFIG NO_DEFAULT_PATH PATHS "${LLVM_DIR}/../clang" "${LLVM_DIR}")
+    endif()
+    if(NOT Clang_FOUND) # 2nd try with system and default paths
+        find_package(Clang CONFIG)
+    endif()
+    if(NOT Clang_FOUND)
+        message(STATUS "[${PROJECT_NAME}] Did not find matching Clang... Skipping target.")
+        
+    else()
+        message(STATUS "[${PROJECT_NAME}] Found Clang ${Clang_PACKAGE_VERSION} at ${Clang_DIR}")
 
-find_package(Clang REQUIRED CONFIG
-    NO_DEFAULT_PATH
-    NO_SYSTEM_ENVIRONMENT_PATH
-    PATHS ${Clang_DIR_SEARCH}
-)
+        add_compile_definitions(LLVM_VERSION_MAJOR=${LLVM_VERSION_MAJOR})
+
+        if (LLVM_VERSION_MAJOR LESS 16)
+            set(CLANG_INCLUDE_DIRS ${LLVM_LIBRARY_DIRS}/clang/${LLVM_VERSION}/include)
+        else()
+            set(CLANG_INCLUDE_DIRS ${LLVM_LIBRARY_DIRS}/clang/${LLVM_VERSION_MAJOR}/include)
+        endif()
+
+        if(LLVM_VERSION_MAJOR GREATER 15 AND CMAKE_CXX_STANDARD LESS 17)
+            message(FATAL_ERROR "LLVM_VERSION_MAJOR[${LLVM_VERSION_MAJOR}] requires c++std>=17! Is ${CMAKE_CXX_STANDARD}")
+        endif()
+    endif()
+endif()
 
 if(CMAKE_CXX_STANDARD LESS_EQUAL 17)
 find_package(Boost 1.70 REQUIRED
@@ -111,6 +129,7 @@ message("LLVM Version: ${LLVM_VERSION} at ${LLVM_INSTALL_PREFIX}")
 message("LLVM INCLUDE DIRS: ${LLVM_INCLUDE_DIRS}")
 message("Using Clang_DIR: ${Clang_DIR}")
 message("Clang INCLUDE DIRS: ${LLVM_INSTALL_PREFIX}/lib/clang/${LLVM_VERSION}/include" "")
+
 ####################################################################################################
 
 ####################################################################################################
@@ -122,7 +141,6 @@ if(LLVM_FOUND AND Clang_FOUND AND verilator_FOUND)
     add_definitions(-DVRTLMOD_VERSION="0.10.0")
     add_definitions(-DVRTLMOD_VERILATOR_VERSION=${VRTLMOD_VERILATOR_VERSION})
 
-    set(CLANG_INCLUDE_DIRS ${LLVM_INSTALL_PREFIX}/lib/clang/${LLVM_VERSION}/include)
     set(CLANG_LIBS clangTooling clangRewriteFrontend)
     llvm_map_components_to_libnames(LLVM_LIBS option support Support)
 
