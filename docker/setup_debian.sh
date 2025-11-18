@@ -285,7 +285,6 @@ configure_vrtlmod() {
   cmake \
     -S "${src_dir}" \
     -B "${build_dir}" \
-    -D CMAKE_BUILD_TYPE:STRING="${VRTLMOD_BUILD_CONFIG}" \
     -D CMAKE_BUILD_TYPE=${VRTLMOD_BUILD_CONFIG} \
     -D CMAKE_INSTALL_PREFIX=${install_dir} \
     -D SystemCLanguage_DIR="${SYSTEMC_HOME}/lib/cmake/SystemCLanguage" \

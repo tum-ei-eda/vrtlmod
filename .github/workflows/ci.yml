@@ -4,7 +4,7 @@ on:
   push:
     paths-ignore:
     - doc/
-    - README.md
+    - README*
     branches:
       - master
     tags:
@@ -12,7 +12,7 @@ on:
   pull_request:
     paths-ignore:
     - doc/
-    - README.md
+    - README*
     branches:
       - master
   workflow_dispatch: {}

@@ -1,0 +1,207 @@
+= vRTLmod - Verilated RTL Injection Modifier
+
+This is the vRTLmod (Verilated RTL Injection Modifier) repository.
+
+== Brief
+
+The Verilated RTL modifier (vRTLmod) is an LLVM based open-source tool to enable fault injection in verilator RTL (vRTL) simulations.
+
+Within an Clang-Frontend (LLVM) tool it automatically adds fault injection capability to https://www.veripool.org/wiki/verilator[Verilator] output. Additionally, `vRTLmod` can make use of its own XML output `*-vrtlmod.xml` as a whitelist filter argument to allow manual steering of wanted/unwanted injectable variables.
+
+== Publications
+
+If you use vRTLmod in your academic work you can cite it like this:
+
+.Cite us? vRTLmod Publications
+[example%collapsible]
+====
+```
+@inproceedings{Geier_vRTLmod_2023,
+  author = {Geier, Johannes and Mueller-Gritschneder, Daniel},
+  booktitle = {Proceedings of the 20th ACM International Conference on Computing Frontiers},
+  doi = {10.1145/3587135.3591435},
+  pages = {387--388},
+  publisher = {Association for Computing Machinery},
+  series = {20th ACM International Conference on Computing Frontiers},
+  title = {{vRTLmod: An LLVM Based Open-Source Tool to Enable Fault Injection in Verilator RTL Simulations}},
+  url = {https://doi.org/10.1145/3587135.3591435},
+  year = {2023}
+}
+
+@inproceedings{Geier_diff_2025,
+  author={Geier, Johannes and Kontopoulos, Leonidas and Mueller-Gritschneder, Daniel and Schlichtmann, Ulf},
+  booktitle={2025 Design, Automation & Test in Europe Conference (DATE)}, 
+  title={Rapid Fault Injection Simulation by Hash-Based Differential Fault Effect Equivalence Checks}, 
+  year={2025},
+  volume={},
+  number={},
+  pages={1-7},
+  keywords={Fault tolerance;Accuracy;Software design;Europe;Closed box;Benchmark testing;Register transfer level;Hardware;Safety;Fault injection;Simulation;Checkpoints;Register-transfer-level;Fault effect equivalence},
+  doi={10.23919/DATE64628.2025.10993266}
+}
+```
+====
+
+== Setup
+
+=== Native (Debian)
+
+==== Requirements
+
+. vRTLmod dependencies: `build-essentials, gmake, cmake, g++, libboost-filesystem-dev libboost-date-time-dev`
+. Verilator (see: https://www.veripool.org/wiki/verilator and install guide).
+  * Tested with v4.202, v4.204, and v4.228
+  * Currently no support for Verilator version <4 and >4!
+. LLVM+Clang versions >=13 and <=18
+    * Debian-based distros: `apt install update && apt install llvm-15-dev libclang-15-dev clang-15`
+    * From Source: Make sure to build with `LLVM_ENABLE_PROJECTS="clang;clang-tools-extra"`
+. For Tests: SystemC>=2.3.3 (set environment variable before CMake, `export SYSTEMC_HOME=/path/to/systemc/`)
+
+.Click-me. How to install vRTLmod build dependencies (Debian)?
+[example%collapsible]
+====
+Dependencies::
+[,bash]
+----
+apt update
+apt install build-essentials, gmake, cmake, g++, libboost-filesystem-dev libboost-date-time-dev
+----
+====
+.Click-me. How to setup Verilator (Debian)?
+[example%collapsible]
+====
+Dependencies::
+[,bash]
+----
+apt update
+apt install libfl-dev build-essential ccache autoconf automake autotools-dev bison curl flex g++ \
+            git xz-utils wget
+----
+Git Clone::
+[,bash]
+----
+git clone --depth 1 --branch v4.228 https://github.com/verilator/verilator.git verilator_src
+----
+Configure, Build, and Install::
+[,bash]
+----
+cd verilator_src
+autoconf
+./configure --prefix $PWD/../verilator_install
+make -j $(nproc) && make install
+----
+====
+.Click-me. How to setup LLVM+Clang (Debian)?
+[example%collapsible]
+====
+Dependencies::
+[,bash]
+----
+apt update
+apt install libzstd-dev llvm-18-dev libclang-18-dev clang-18
+----
+====
+.Click-me. How to setup SystemC?
+[example%collapsible]
+====
+Dependencies::
+[,bash]
+----
+apt update
+apt install git cmake build-essential
+----
+Git Clone::
+[,bash]
+----
+git clone --depth 1 --branch 2.3.3 https://github.com/accellera-official/systemc.git systemc_src
+----
+Configure, Build, and Install::
+[,bash]
+----
+cd systemc_src
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -D CMAKE_CXX_STANDARD=17 -D BUILD_SHARED_LIBS=OFF \
+  -D CMAKE_INSTALL_PREFIX="$PWD/../systemc_install" -D CMAKE_POSITION_INDEPENDENT_CODE=ON
+cmake --build build --parallel $(nproc) --target install
+----
+====
+
+==== Build (Debian)
+
+Environment::
+[,bash]
+----
+export LLVM_DIR=<path/to/llvm/install/dir>/lib/cmake/llvm
+export VERILATOR_ROOT=<path/to/verilator/build/or/install/directory>
+export SYSTEMC_HOME=<path/to/systemc/install>
+----
+
+Configure project directory (CMake)::
+[,bash]
+----
+cmake -S . -B build -D VERILATOR_ROOT=<path/to/verilator/build/or/install/directory> [-D LLVM_DIR=<path/to/llvm/install/dir>] [-D BUILD_TESTING=Off]
+----
+Build::
+[,bash]
+----
+cmake --build build [--parallel $(nproc)]
+----
+Install (optional)::
+[,bash]
+----
+cmake --build build --target install
+----
+Test (optional: configure with `-D BUILD_TESTING=On`)::
+[,bash]
+----
+cmake --build build --target test 
+----
+
+=== Docker
+
+A `docker compose` flow is provided.
+
+Compose the Docker image `vrtlmodworkspace`... grab a ☕ and wait ... this takes a while.::
+[,bash]
+----
+docker compose -f docker/docker-compose.yaml build vrtlmodworkspace
+----
+Next, launch the container and mount the workspace::
+[,bash]
+----
+docker run -it -v"$PWD":/vrtlmod docker-vrtlmodworkspace:latest
+----
+
+NOTE: `-v"$PWD":/vrtlmod` makes the `vrtlmod` directory available in the container. Mount other directories if necessary.
+
+== Usage
+
+=== Run vRTLmod from Command Line 
+
+Required inputs::
+https://www.veripool.org/wiki/verilator[Verilator] output: `<VRTL-files>` `<VRTL-Hpp-files>`
+
+Command::
+[,bash]
+----
+vrtlmod [--systemc] [--wl-regxml=<*-vrtlmod.xml>] --out=<outputdir> <VRTL-Cpp-files> \
+         -- clang++ -I <VRTL-Hpp-dir> -I "${LLVM_DIR}/lib/clang/.../include" \
+         -I "${VERILATOR_ROOT}/include" [-I<path/to/systemc/include>]
+----
+
+=== Integrate vRTLmod in your CMake
+
+Required inputs::
+Use installed `vrtlmod/install/path/vrtlmod-config.cmake` in CMake environment. Add 
+
+The output can be found at `<outputdir>/` in form of altered Cpp files (`<vRTL-Cpp-files>`) and the built injection API inside `<outputdir>/` in the form of `<top>_vrtlmodapi.{cpp,hpp}` including the target dictionary and API wrapper.
+
+Command (Example from `test/fiapp`)::
+[,bash]
+----
+cmake -S test/fiapp -B build-test -D VRTLMOD_ROOT=path/to/vrtlmod/install \
+      -D SystemCLanguage_DIR=$SYSTEMC_HOME/lib/cmake/SystemCLanguage
+
+cmake --build build-test # invokes vrtlmod automatically once sources are verilated
+----
+
+Further CMake Examples:: Minimal System on Chip Examples can be found here https://github.com/tum-ei-eda/vrtlmod-test

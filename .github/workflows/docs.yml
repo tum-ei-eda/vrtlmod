@@ -1,0 +1,102 @@
+name: Doxygen - GitHub Pages
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+env:
+  BUILD_TYPE: Release
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  doxygen:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    strategy:
+      matrix:
+        os:
+          - {name: "ubuntu", version: "latest"}
+        llvm:
+          - {name: "pkg", src: "false", version: "15"}
+        systemc_version: ['2.3.3']
+        verilator_version: ['4.228']
+
+    runs-on: ${{ matrix.os.name }}-${{ matrix.os.version }}
+    container: ${{ matrix.os.name }}:${{ matrix.os.version }}
+    name: pages_${{ matrix.os.name }}-${{ matrix.os.version }}_verilator-${{ matrix.verilator_version }}_llvm-${{ matrix.llvm.name }}-${{ matrix.llvm.version }}
+
+    steps:
+    - name: Install git on container
+      run: |
+        apt update
+        apt install -y git doxygen graphviz
+
+    - name: Clone vRTLmod
+      uses: actions/checkout@v4
+      with:
+        path: vrtlmod_src
+        submodules: true
+
+    - name: Cache Verilator
+      id: cache-verilator
+      uses: actions/cache@v4
+      with:
+        path: /verilator_install
+        key: ${{ matrix.os.name }}-${{ matrix.os.version }}_verilator-${{ matrix.verilator_version }}
+        restore-keys: ${{ matrix.os.name }}-${{ matrix.os.version }}_verilator-${{ matrix.verilator_version }}
+
+    - name: Requirements (Linux)
+      if: runner.os == 'Linux'
+      continue-on-error: false
+      shell: bash
+      working-directory: ${{runner.workspace}}
+      run: |
+        . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
+        setup_env
+
+    - if: ${{ steps.cache-verilator.outputs.cache-hit != 'true' }}
+      name: Requirements Verilator
+      working-directory: ${{runner.workspace}}
+      shell: bash
+      run: |
+        . "./vrtlmod/vrtlmod_src/docker/setup_debian.sh"
+        setup_verilator "${{runner.workspace}}/verilator_src" "${{runner.workspace}}/verilator_src" "/verilator_install" "${{ matrix.verilator_version }}"
+
+    - if: ${{ matrix.llvm.src != 'true' }}
+      name: Install LLVM build dependencies (system)
+      run: |
+        apt update
+        apt remove -y llvm* clang* libllvm* libclang*
+        apt install -y libzstd-dev llvm-${{ matrix.llvm.version }}-dev libclang-${{ matrix.llvm.version }}-dev clang-${{ matrix.llvm.version }}
+
+    - name: Configure CMake
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: |
+        export VERILATOR_ROOT=/verilator_install
+        . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
+        cmake -S "${GITHUB_WORKSPACE}/vrtlmod_src" -B "/vrtlmod_build" -D BUILD_DOC=On -D BUILD_TESTING=Off
+
+    - name: Generate docs
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: cmake --build /vrtlmod_build --target doc
+
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: /vrtlmod_build/doc/html
+
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
