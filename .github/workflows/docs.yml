@@ -78,14 +78,12 @@ jobs:
 
     - name: Configure CMake
       shell: bash
-      working-directory: ${{runner.workspace}}
       run: |
         export VERILATOR_ROOT=/verilator_install
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
         cmake -S "${GITHUB_WORKSPACE}/vrtlmod_src" -B "/vrtlmod_build" -D BUILD_DOC=On -D BUILD_TESTING=Off
 
     - name: Generate docs
-      working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build /vrtlmod_build --target doc
 
