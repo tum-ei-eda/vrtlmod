@@ -5,6 +5,10 @@ on:
   push:
     branches:
       - master
+  pull_request:
+    branches:
+      - master
+
 env:
   BUILD_TYPE: Release
 
