@@ -78,7 +78,7 @@ jobs:
 
     - name: Configure CMake
       shell: bash
-      working-directory: ${{runner.workspace}}/build
+      working-directory: ${{runner.workspace}}
       run: |
         export VERILATOR_ROOT=/verilator_install
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh

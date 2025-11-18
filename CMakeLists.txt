@@ -23,6 +23,14 @@ list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_BINARY_DIR})
 
 project(vrtlmod)
 
+####################################################################################################
+# Declare vrtlmod version
+set(VRTLMOD_VERSION_MAJOR 0)
+set(VRTLMOD_VERSION_MINOR 10)
+set(VRTLMOD_VERSION_PATCH 1)
+set(VRTLMOD_VERSION_FULL "${VRTLMOD_VERSION_MAJOR}.${VRTLMOD_VERSION_MINOR}.${VRTLMOD_VERSION_PATCH}")
+####################################################################################################
+# cmake project settings
 if(NOT CMAKE_CXX_STANDARD)
     set(CMAKE_CXX_STANDARD 17)
     message(WARNING "CMAKE_CXX_STANDARD not set. Default to ${CMAKE_CXX_STANDARD}")
@@ -31,10 +39,7 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release")
     message(WARNING "CMAKE_BUILD_TYPE not set. Default to ${CMAKE_BUILD_TYPE}")
 endif()
-####################################################################################################
 
-####################################################################################################
-# cmake project settings
 option(BUILD_TESTING "Enable Tests" OFF)
 include(CTest)
 
@@ -138,7 +143,7 @@ add_subdirectory(third_party)
 ####################################################################################################
 
 if(LLVM_FOUND AND Clang_FOUND AND verilator_FOUND)
-    add_definitions(-DVRTLMOD_VERSION="0.10.0")
+    add_definitions(-DVRTLMOD_VERSION="${VRTLMOD_VERSION_FULL}")
     add_definitions(-DVRTLMOD_VERILATOR_VERSION=${VRTLMOD_VERILATOR_VERSION})
 
     set(CLANG_LIBS clangTooling clangRewriteFrontend)
