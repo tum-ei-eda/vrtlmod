@@ -1,12 +1,20 @@
+ARG workspace_dir
+ARG ENV_LLVM_FROM_SOURCE
+ARG ENV_BUILD_CONFIG
+ARG ENV_BUILD_CXX_STANDARD
+
 FROM debian:stable
 
+ARG workspace_dir
+ARG ENV_LLVM_FROM_SOURCE
+ARG ENV_BUILD_CONFIG
+ARG ENV_BUILD_CXX_STANDARD
+
 # Overall build config for cmake dependencies
-ENV LLVM_FROM_SOURCE="OFF"
+ENV ENV_LLVM_FROM_SOURCE=${ENV_LLVM_FROM_SOURCE}
+ENV ENV_BUILD_CONFIG=${ENV_BUILD_CONFIG}
+ENV ENV_BUILD_CXX_STANDARD=${ENV_BUILD_CXX_STANDARD}
 
-ARG build_config="Release"
-ARG GLOBAL_BUILD_CONFIG="${build_config}"
-
-ARG workspace_dir=${workspace_dir}
 # Prerequisite packages
 RUN \
   --mount=type=bind,source=".",target=${workspace_dir} \
@@ -50,7 +58,7 @@ ARG llvm_srcdir="/llvm-src"
 ARG llvm_builddir="/llvm-build"
 ARG llvm_destdir="/llvm-install"
 ARG llvm_version="18"
-ARG llvm_patch_dir="${workspace_dir}/vrtlmod/deps/llvm/patches"
+ARG llvm_patch_dir="${workspace_dir}/deps/llvm/patches"
 
 RUN \
   --mount=type=bind,source=".",target=${workspace_dir} \
@@ -77,7 +85,6 @@ ARG vrtlmod_destdir="/vrtlmod-install"
 
 ENV LLVM_DIR="${llvm_destdir}"
 ENV VERILATOR_ROOT="${verilator_destdir}"
-ENV VRTLMOD_BUILD_CONFIG="${build_config}"
 ENV SYSTEMC_HOME="${systemc_destdir}"
 
 RUN mkdir -p ${vrtlmod_srcdir}

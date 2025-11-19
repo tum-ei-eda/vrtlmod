@@ -155,6 +155,7 @@ jobs:
       shell: bash
       working-directory: ${{runner.workspace}}
       run: |
+        . ./vrtlmod/vrtlmod_src/docker/.env
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
         setup_env
 
@@ -211,6 +212,7 @@ jobs:
         export VERILATOR_ROOT=/verilator_install
         export LLVM_DIR=/llvm_install
         export SYSTEMC_HOME=/systemc_install
+        . ./vrtlmod/vrtlmod_src/docker/.env
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
         setup_vrtlmod "${GITHUB_WORKSPACE}/vrtlmod_src" "/vrtlmod_build" "/vrtlmod_install"
 
@@ -221,8 +223,17 @@ jobs:
       run: |
         export VERILATOR_ROOT=/verilator_install
         export SYSTEMC_HOME=/systemc_install
+        . ./vrtlmod/vrtlmod_src/docker/.env
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
         setup_vrtlmod "${GITHUB_WORKSPACE}/vrtlmod_src" "/vrtlmod_build" "/vrtlmod_install"
+    
+    - name: Run Tests
+      shell: bash
+      working-directory: ${{runner.workspace}}
+      run: |
+        . ./vrtlmod/vrtlmod_src/docker/.env
+        . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
+        test_vrtlmod "${GITHUB_WORKSPACE}/vrtlmod_src" "/vrtlmod_build" "/vrtlmod_install"
 
     - name: (CTest) Upload Artifacts on Failure
       uses: actions/upload-artifact@v5
@@ -288,6 +299,7 @@ jobs:
       shell: bash
       working-directory: ${{runner.workspace}}
       run: |
+        . ./vrtlmod/vrtlmod_src/docker/.env
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
         setup_env
 
