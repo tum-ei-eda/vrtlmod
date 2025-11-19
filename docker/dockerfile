@@ -2,6 +2,10 @@ FROM debian:stable
 
 # Overall build config for cmake dependencies
 ARG workspace_dir=${workspace_dir}
+ENV LLVM_FROM_SOURCE=${LLVM_FROM_SOURCE}
+ENV ENV_BUILD_CONFIG=${ENV_BUILD_CONFIG}
+ENV ENV_BUILD_CXX_STANDARD=${ENV_BUILD_CXX_STANDARD}
+
 # Prerequisite packages
 RUN \
   --mount=type=bind,source=".",target=${workspace_dir} \
