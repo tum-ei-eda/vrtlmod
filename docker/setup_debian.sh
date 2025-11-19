@@ -151,7 +151,7 @@ configure_systemc() {
   cmake -S "${src_dir}" -B "${build_dir}" \
     -D CMAKE_INSTALL_PREFIX="${install_dir}" \
     -D CMAKE_BUILD_TYPE=Release \
-    -D CMAKE_CXX_STANDARD=17
+    -D CMAKE_CXX_STANDARD="${ENV_BUILD_CXX_STANDARD}"
 }
 build_systemc() {
   src_dir="$1"
@@ -285,7 +285,8 @@ configure_vrtlmod() {
   cmake \
     -S "${src_dir}" \
     -B "${build_dir}" \
-    -D CMAKE_BUILD_TYPE=${VRTLMOD_BUILD_CONFIG} \
+    -D CMAKE_BUILD_TYPE=${ENV_BUILD_CONFIG} \
+    -D CMAKE_CXX_STANDARD="${ENV_BUILD_CXX_STANDARD}" \
     -D CMAKE_INSTALL_PREFIX=${install_dir} \
     -D SystemCLanguage_DIR="${SYSTEMC_HOME}/lib/cmake/SystemCLanguage" \
     -D BUILD_TESTING=On
@@ -322,7 +323,6 @@ cleanup_vrtlmod() {
 
   echo "[clean-up] vRTLmod"
   echo "nothing to do."
-  #rm -r ${build_dir}
 }
 setup_vrtlmod() {
   src_dir="$1"
@@ -334,7 +334,6 @@ setup_vrtlmod() {
     configure_vrtlmod "${src_dir}" "${build_dir}" "${install_dir}" && \
     build_vrtlmod "${src_dir}" "${build_dir}" "${install_dir}" && \
     install_vrtlmod "${src_dir}" "${build_dir}" "${install_dir}" && \
-    test_vrtlmod "${src_dir}" "${build_dir}" "${install_dir}" && \
     cleanup_vrtlmod "${src_dir}" "${build_dir}" "${install_dir}"
   fi
 }

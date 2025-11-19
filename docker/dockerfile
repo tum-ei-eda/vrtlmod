@@ -1,11 +1,6 @@
 FROM debian:stable
 
 # Overall build config for cmake dependencies
-ENV LLVM_FROM_SOURCE="OFF"
-
-ARG build_config="Release"
-ARG GLOBAL_BUILD_CONFIG="${build_config}"
-
 ARG workspace_dir=${workspace_dir}
 # Prerequisite packages
 RUN \
@@ -77,7 +72,6 @@ ARG vrtlmod_destdir="/vrtlmod-install"
 
 ENV LLVM_DIR="${llvm_destdir}"
 ENV VERILATOR_ROOT="${verilator_destdir}"
-ENV VRTLMOD_BUILD_CONFIG="${build_config}"
 ENV SYSTEMC_HOME="${systemc_destdir}"
 
 RUN mkdir -p ${vrtlmod_srcdir}
