@@ -28,26 +28,27 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-
 
-      - name: Load env vars from docker/.env
-        id: dotenv
+      - name: Load env vars from vrtlmod_src/docker/.env
         run: |
-          set -o allexport
-          source ${GITHUB_WORKSPACE}/vrtlmod_src/docker/.env
-          set +o allexport
-        shell: bash
+          while IFS='=' read -r key value; do
+            # skip empty lines and comments
+            if [[ -n "$key" && "$key" != \#* ]]; then
+              echo "$key=$value" >> $GITHUB_ENV
+            fi
+          done < vrtlmod_src/docker/.env
 
       - name: Build vrtlmod CI image
         id: build-image
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ${GITHUB_WORKSPACE}/vrtlmod_src/docker/dockerfile
+          file: vrtlmod_src/docker/dockerfile
           load: true                     # load image into Docker for local use
           tags: vrtlmod:ci
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
           build-args: |
-            workspace_dir=${GITHUB_WORKSPACE}/vrtlmod_src
+            workspace_dir=${{ runner.workspace }}/vrtlmod/vrtlmod_src
             LLVM_FROM_SOURCE=${{ env.LLVM_FROM_SOURCE }}
             ENV_BUILD_CONFIG=${{ env.ENV_BUILD_CONFIG }}
             ENV_BUILD_CXX_STANDARD=${{ env.ENV_BUILD_CXX_STANDARD }}
