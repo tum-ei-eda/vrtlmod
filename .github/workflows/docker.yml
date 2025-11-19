@@ -30,11 +30,13 @@ jobs:
 
       - name: Load env vars from vrtlmod_src/docker/.env
         run: |
-          while IFS='=' read -r key value; do
-            # skip empty lines and comments
-            if [[ -n "$key" && "$key" != \#* ]]; then
-              echo "$key=$value" >> $GITHUB_ENV
-            fi
+          while IFS='=' read -r key value || [ -n "$key" ]; do
+            [[ -z "$key" || "$key" == \#* ]] && continue
+            key="$(echo "$key" | xargs)"
+            value="$(echo "$value" | xargs)"
+            value="${value%\"}"
+            value="${value#\"}"
+            echo "$key=$value" >> $GITHUB_ENV
           done < vrtlmod_src/docker/.env
 
       - name: Build vrtlmod CI image
@@ -48,7 +50,7 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
           build-args: |
-            workspace_dir=${{ runner.workspace }}/vrtlmod/vrtlmod_src
+            workspace_dir=${{ runner.workspace }}/vrtlmod_src
             LLVM_FROM_SOURCE=${{ env.LLVM_FROM_SOURCE }}
             ENV_BUILD_CONFIG=${{ env.ENV_BUILD_CONFIG }}
             ENV_BUILD_CXX_STANDARD=${{ env.ENV_BUILD_CXX_STANDARD }}
