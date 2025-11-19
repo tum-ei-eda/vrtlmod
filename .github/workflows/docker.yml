@@ -1,0 +1,61 @@
+name: vrtlmod CI
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+
+jobs:
+  build-test:
+    name: Build Docker
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Build vrtlmod CI image
+        id: build-image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/dockerfile
+          load: true                     # load image into Docker for local use
+          tags: vrtlmod:ci
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
+
+      - name: Finalize Docker Build Cache
+        if: always()
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      - name: Test
+        run: |
+          docker run --rm \
+            -v $PWD:/src \
+            -w /src \
+            vrtlmod:ci \
+            bash -c "
+              ls -la /src
+              /vrtlmod-install/bin/vrtlmod --version
+            "
+
+      - name: Upload build artifacts (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vrtlmod-build-failure
+          path: build
