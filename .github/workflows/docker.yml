@@ -14,6 +14,7 @@ jobs:
       - name: Checkout vrtlmod
         uses: actions/checkout@v4
         with:
+          path: vrtlmod_src
           submodules: true
 
       - name: Set up Docker Buildx
@@ -31,7 +32,7 @@ jobs:
         id: dotenv
         run: |
           set -o allexport
-          source docker/.env
+          source ${GITHUB_WORKSPACE}/vrtlmod_src/docker/.env
           set +o allexport
         shell: bash
 
@@ -40,13 +41,13 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: docker/dockerfile
+          file: ${GITHUB_WORKSPACE}/vrtlmod_src/docker/dockerfile
           load: true                     # load image into Docker for local use
           tags: vrtlmod:ci
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
           build-args: |
-            workspace_dir=${{ env.workspace_dir }}
+            workspace_dir=${GITHUB_WORKSPACE}/vrtlmod_src
             LLVM_FROM_SOURCE=${{ env.LLVM_FROM_SOURCE }}
             ENV_BUILD_CONFIG=${{ env.ENV_BUILD_CONFIG }}
             ENV_BUILD_CXX_STANDARD=${{ env.ENV_BUILD_CXX_STANDARD }}
