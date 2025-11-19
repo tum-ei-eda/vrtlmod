@@ -50,7 +50,7 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache-new
           build-args: |
             workspace_dir=${{ env.workspace_dir }}
-            LLVM_FROM_SOURCE=${{ env.LLVM_FROM_SOURCE }}
+            ENV_LLVM_FROM_SOURCE=${{ env.ENV_LLVM_FROM_SOURCE }}
             ENV_BUILD_CONFIG=${{ env.ENV_BUILD_CONFIG }}
             ENV_BUILD_CXX_STANDARD=${{ env.ENV_BUILD_CXX_STANDARD }}
 

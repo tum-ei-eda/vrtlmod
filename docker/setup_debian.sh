@@ -108,7 +108,7 @@ setup_llvm() {
   version="${4}"
   patch_dir=$5
 
-  if [ "${LLVM_FROM_SOURCE}" = "ON" ]; then
+  if [ "${ENV_LLVM_FROM_SOURCE}" = "ON" ]; then
     if [ ! -f "${install_dir}/bin/clang" ]; then
       fetch_llvm "$1" "$2" "$3" "${4}" ${5} && \
       configure_llvm "$1" "$2" "$3" "${4}" && \
