@@ -147,11 +147,13 @@ configure_systemc() {
   install_dir="$3"
   version="${4}"
 
-  echo "[configure] systemc"
+  echo "[configure] systemc (${ENV_BUILD_CONFIG}-c++${ENV_BUILD_CXX_STANDARD})"
   cmake -S "${src_dir}" -B "${build_dir}" \
     -D CMAKE_INSTALL_PREFIX="${install_dir}" \
-    -D CMAKE_BUILD_TYPE=Release \
-    -D CMAKE_CXX_STANDARD="${ENV_BUILD_CXX_STANDARD}"
+    -D CMAKE_BUILD_TYPE="${ENV_BUILD_CONFIG}" \
+    -D CMAKE_CXX_STANDARD="${ENV_BUILD_CXX_STANDARD}" \
+    -D BUILD_SHARED_LIBS=Off \
+    -D CMAKE_POSITION_INDEPENDENT_CODE=ON
 }
 build_systemc() {
   src_dir="$1"
