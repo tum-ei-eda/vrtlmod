@@ -45,7 +45,7 @@ ARG llvm_srcdir="/llvm-src"
 ARG llvm_builddir="/llvm-build"
 ARG llvm_destdir="/llvm-install"
 ARG llvm_version="18"
-ARG llvm_patch_dir="${workspace_dir}/vrtlmod/deps/llvm/patches"
+ARG llvm_patch_dir="${workspace_dir}/deps/llvm/patches"
 
 RUN \
   --mount=type=bind,source=".",target=${workspace_dir} \
