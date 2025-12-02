@@ -109,7 +109,7 @@ jobs:
       working-directory: ${{runner.workspace}}
       shell: bash
       run: |
-        export LLVM_FROM_SOURCE="ON"
+        export ENV_LLVM_FROM_SOURCE="ON"
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
         setup_llvm "${{runner.workspace}}/llvm_src" "${{runner.workspace}}/llvm_build" "/llvm_install" "${{ matrix.llvm.version }}" "$PWD/vrtlmod/vrtlmod_src/deps/llvm/patches"
     - if: ${{ matrix.llvm.src == 'true' }}
