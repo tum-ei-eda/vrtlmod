@@ -1,4 +1,4 @@
-name: CI
+name: vrtlmod CI - build, test, and benchmark
 
 on:
   push:
@@ -45,7 +45,16 @@ jobs:
       with:
         path: vrtlmod_src
         submodules: true
-
+    - name: Load env vars from docker/.env
+      run: |
+        while IFS='=' read -r key value || [ -n "$key" ]; do
+          [[ -z "$key" || "$key" == \#* ]] && continue
+          key="$(echo "$key" | xargs)"
+          value="$(echo "$value" | xargs)"
+          value="${value%\"}"
+          value="${value#\"}"
+          echo "$key=$value" >> $GITHUB_ENV
+        done < vrtlmod_src/docker/.env
     - if: ${{ matrix.llvm.src == 'true' }}
       name: Cache LLVM
       id: cache-llvm
@@ -54,7 +63,6 @@ jobs:
         path: /llvm_install
         key: ${{ matrix.os.name }}-${{ matrix.os.version }}_llvm-${{ matrix.llvm.name }}-${{ matrix.llvm.version }}
         restore-keys: ${{ matrix.os.name }}-${{ matrix.os.version }}_llvm-${{ matrix.llvm.name }}-${{ matrix.llvm.version }}
-
     - name: Cache Verilator
       id: cache-verilator
       uses: actions/cache@v4
@@ -62,7 +70,6 @@ jobs:
         path: /verilator_install
         key: ${{ matrix.os.name }}-${{ matrix.os.version }}_verilator-${{ matrix.verilator_version }}
         restore-keys: ${{ matrix.os.name }}-${{ matrix.os.version }}_verilator-${{ matrix.verilator_version }}
-
     - name: Cache SystemC
       id: cache-systemc
       uses: actions/cache@v4
@@ -70,7 +77,6 @@ jobs:
         path: /systemc_install
         key: ${{ matrix.os.name }}-${{ matrix.os.version }}_systemc-${{ matrix.systemc_version }}
         restore-keys: ${{ matrix.os.name }}-${{ matrix.os.version }}_systemc-${{ matrix.systemc_version }}
-
     - name: Requirements (Linux)
       if: runner.os == 'Linux'
       continue-on-error: false
@@ -79,7 +85,6 @@ jobs:
       run: |
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
         setup_env
-
     - if: ${{ steps.cache-systemc.outputs.cache-hit != 'true' }}
       name: Requirements SystemC
       working-directory: ${{runner.workspace}}
@@ -87,7 +92,6 @@ jobs:
       run: |
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
         setup_systemc "${{runner.workspace}}/systemc_src" "${{runner.workspace}}/systemc_build" "/systemc_install" "${{ matrix.systemc_version }}"
-
     - if: ${{ steps.cache-verilator.outputs.cache-hit != 'true' }}
       name: Requirements Verilator
       working-directory: ${{runner.workspace}}
@@ -95,13 +99,11 @@ jobs:
       run: |
         . "./vrtlmod/vrtlmod_src/docker/setup_debian.sh"
         setup_verilator "${{runner.workspace}}/verilator_src" "${{runner.workspace}}/verilator_src" "/verilator_install" "${{ matrix.verilator_version }}"
-
     - name: Check (cached) Verilator
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
       run: /verilator_install/bin/verilator --version
-
     - if: ${{ (matrix.llvm.src == 'true') && (steps.cache-llvm.outputs.cache-hit != 'true') }}
       name: Requirements LLVM+Clang
       working-directory: ${{runner.workspace}}
@@ -110,7 +112,6 @@ jobs:
         export LLVM_FROM_SOURCE="ON"
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
         setup_llvm "${{runner.workspace}}/llvm_src" "${{runner.workspace}}/llvm_build" "/llvm_install" "${{ matrix.llvm.version }}" "$PWD/vrtlmod/vrtlmod_src/deps/llvm/patches"
-  
     - if: ${{ matrix.llvm.src == 'true' }}
       name: Check (cached) LLVM
       continue-on-error: false
@@ -142,13 +143,21 @@ jobs:
       run: |
         apt update
         apt install -y git
-
     - name: Checkout
       uses: actions/checkout@v4
       with:
         path: vrtlmod_src
         submodules: recursive
-
+    - name: Load env vars from docker/.env
+      run: |
+        while IFS='=' read -r key value || [ -n "$key" ]; do
+          [[ -z "$key" || "$key" == \#* ]] && continue
+          key="$(echo "$key" | xargs)"
+          value="$(echo "$value" | xargs)"
+          value="${value%\"}"
+          value="${value#\"}"
+          echo "$key=$value" >> $GITHUB_ENV
+        done < vrtlmod_src/docker/.env
     - name: Requirements (Linux)
       if: runner.os == 'Linux'
       continue-on-error: false
@@ -158,7 +167,6 @@ jobs:
         . ./vrtlmod/vrtlmod_src/docker/.env
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
         setup_env
-
     - if: ${{ matrix.llvm.src == 'true' }}
       name: Cache LLVM
       id: cache-llvm
@@ -167,14 +175,12 @@ jobs:
         path: /llvm_install
         key: ${{ matrix.os.name }}-${{ matrix.os.version }}_llvm-${{ matrix.llvm.name }}-${{ matrix.llvm.version }}
         restore-keys: ${{ matrix.os.name }}-${{ matrix.os.version }}_llvm-${{ matrix.llvm.name }}-${{ matrix.llvm.version }}
-
     - if: ${{ matrix.llvm.src != 'true' }}
       name: Install LLVM build dependencies (system)
       run: |
         apt update
         apt remove -y llvm* clang* libllvm* libclang*
         apt install -y libzstd-dev llvm-${{ matrix.llvm.version }}-dev libclang-${{ matrix.llvm.version }}-dev clang-${{ matrix.llvm.version }}
-
     - name: Cache Verilator
       id: cache-verilator
       uses: actions/cache@v4
@@ -182,7 +188,6 @@ jobs:
         path: /verilator_install
         key: ${{ matrix.os.name }}-${{ matrix.os.version }}_verilator-${{ matrix.verilator_version }}
         restore-keys: ${{ matrix.os.name }}-${{ matrix.os.version }}_verilator-${{ matrix.verilator_version }}
-
     - name: Cache SystemC
       id: cache-systemc
       uses: actions/cache@v4
@@ -190,20 +195,17 @@ jobs:
         path: /systemc_install
         key: ${{ matrix.os.name }}-${{ matrix.os.version }}_systemc-${{ matrix.systemc_version }}
         restore-keys: ${{ matrix.os.name }}-${{ matrix.os.version }}_systemc-${{ matrix.systemc_version }}
-
     - name: Check (cached) Verilator
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
       run: /verilator_install/bin/verilator --version
-
     - if: ${{ matrix.llvm.src == 'true' }}
       name: Check (cached) Clang
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
       run: /llvm_install/bin/clang --version
-
     - if: ${{ matrix.llvm.src == 'true' }}
       name: Build vRTLmod (LLVM from source)
       shell: bash
@@ -215,7 +217,6 @@ jobs:
         . ./vrtlmod/vrtlmod_src/docker/.env
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
         setup_vrtlmod "${GITHUB_WORKSPACE}/vrtlmod_src" "/vrtlmod_build" "/vrtlmod_install"
-
     - if: ${{ matrix.llvm.src != 'true' }}
       name: Build vRTLmod (LLVM system)
       shell: bash
@@ -225,8 +226,7 @@ jobs:
         export SYSTEMC_HOME=/systemc_install
         . ./vrtlmod/vrtlmod_src/docker/.env
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
-        setup_vrtlmod "${GITHUB_WORKSPACE}/vrtlmod_src" "/vrtlmod_build" "/vrtlmod_install"
-    
+        setup_vrtlmod "${GITHUB_WORKSPACE}/vrtlmod_src" "/vrtlmod_build" "/vrtlmod_install"  
     - name: Run Tests
       shell: bash
       working-directory: ${{runner.workspace}}
@@ -234,7 +234,6 @@ jobs:
         . ./vrtlmod/vrtlmod_src/docker/.env
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
         test_vrtlmod "${GITHUB_WORKSPACE}/vrtlmod_src" "/vrtlmod_build" "/vrtlmod_install"
-
     - name: (CTest) Upload Artifacts on Failure
       uses: actions/upload-artifact@v5
       if: ${{ failure() }}
@@ -243,7 +242,6 @@ jobs:
         path: /vrtlmod_build/Testing/
         if-no-files-found: error
         retention-days: 15
-
     - name: Upload Compiled System
       if: runner.os == 'Linux'
       uses: actions/upload-artifact@v5
@@ -279,12 +277,20 @@ jobs:
       run: |
         apt update
         apt install -y git
-
     - name: Checkout vrtlmod
       uses: actions/checkout@v4
       with:
         path: vrtlmod_src
-
+    - name: Load env vars from docker/.env
+      run: |
+        while IFS='=' read -r key value || [ -n "$key" ]; do
+          [[ -z "$key" || "$key" == \#* ]] && continue
+          key="$(echo "$key" | xargs)"
+          value="$(echo "$value" | xargs)"
+          value="${value%\"}"
+          value="${value#\"}"
+          echo "$key=$value" >> $GITHUB_ENV
+        done < vrtlmod_src/docker/.env
     - name: Checkout vrtlmod-test
       uses: actions/checkout@v4
       with:
@@ -292,7 +298,6 @@ jobs:
         repository: tum-ei-eda/vrtlmod-test
         ref: master
         submodules: recursive
-
     - name: Requirements (Linux)
       if: runner.os == 'Linux'
       continue-on-error: false
@@ -302,7 +307,6 @@ jobs:
         . ./vrtlmod/vrtlmod_src/docker/.env
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
         setup_env
-
     - name: Cache Verilator
       id: cache-verilator
       uses: actions/cache@v4
@@ -310,7 +314,6 @@ jobs:
         path: /verilator_install
         key: ${{ matrix.os.name }}-${{ matrix.os.version }}_verilator-${{ matrix.verilator_version }}
         restore-keys: ${{ matrix.os.name }}-${{ matrix.os.version }}_verilator-${{ matrix.verilator_version }}
-  
     - if: ${{ matrix.llvm.src == 'true' }}
       name: Cache LLVM
       id: cache-llvm
@@ -319,14 +322,12 @@ jobs:
         path: /llvm_install
         key: ${{ matrix.os.name }}-${{ matrix.os.version }}_llvm-${{ matrix.llvm.name }}-${{ matrix.llvm.version }}
         restore-keys: ${{ matrix.os.name }}-${{ matrix.os.version }}_llvm-${{ matrix.llvm.name }}-${{ matrix.llvm.version }}
-  
     - if: ${{ matrix.llvm.src != 'true' }}
       name: Install LLVM build dependencies (system)
       run: |
         apt update
         apt remove -y llvm* clang* libllvm* libclang*
         apt install -y libzstd-dev llvm-${{ matrix.llvm.version }}-dev libclang-${{ matrix.llvm.version }}-dev clang-${{ matrix.llvm.version }}
-
     - name: Cache SystemC
       id: cache-systemc
       uses: actions/cache@v4
@@ -334,26 +335,22 @@ jobs:
         path: /systemc_install
         key: ${{ matrix.os.name }}-${{ matrix.os.version }}_systemc-${{ matrix.systemc_version }}
         restore-keys: ${{ matrix.os.name }}-${{ matrix.os.version }}_systemc-${{ matrix.systemc_version }}
-
     - name: Check (cached) Verilator
       continue-on-error: false
       shell: bash
       working-directory: ${{runner.workspace}}
       run: /verilator_install/bin/verilator --version
-
     - name: Fetch Compiled System
       uses: actions/download-artifact@v5
       with:
         name: vrtlmod_${{ matrix.os.name }}-${{ matrix.os.version }}_verilator-${{ matrix.verilator_version }}_llvm-${{ matrix.llvm.name }}-${{ matrix.llvm.version }}
         path: /vrtlmod_install/
-
     - name: Check pre-compiled vrtlmod
       shell: bash
       run: |
         chmod +x /vrtlmod_install/bin/vrtlmod
         chmod +x /vrtlmod_install/cmake/vrtlmod-config.cmake
         /vrtlmod_install/bin/vrtlmod --version
-
     - name: Patch Submodule
       shell: bash
       run: |
@@ -364,7 +361,6 @@ jobs:
         ls -la .
         git apply "../../../patches/scc-gcc_gt_13.patch"
         git apply "../../../patches/scc-byteenabletransactions.patch"
-
     - if: ${{ matrix.llvm.src == 'true' }}
       name: Configure Benchmarks (LLVM source)
       shell: bash
@@ -374,7 +370,6 @@ jobs:
         export LLVM_DIR=/llvm_install
         export SYSTEMC_HOME=/systemc_install       
         cmake -S ${GITHUB_WORKSPACE}/vrtlmod-test_src -B build -D VRTL_NAMES="${{matrix.duts}}" -D CMAKE_BUILD_TYPE=${{ matrix.cmakegen }} -D VRTLMOD_ROOT=/vrtlmod_install
-
     - if: ${{ matrix.llvm.src != 'true' }}
       name: Configure Benchmarks (LLVM system)
       shell: bash
@@ -383,20 +378,17 @@ jobs:
         export VERILATOR_ROOT=/verilator_install
         export SYSTEMC_HOME=/systemc_install       
         cmake -S ${GITHUB_WORKSPACE}/vrtlmod-test_src -B build -D VRTL_NAMES="${{matrix.duts}}" -D CMAKE_BUILD_TYPE=${{ matrix.cmakegen }} -D VRTLMOD_ROOT=/vrtlmod_install
-
     - name: Compile Benchmarks
       shell: bash
       working-directory: ${{runner.workspace}}
       run: |
         cmake --build build --parallel $(nproc)
-
     - name: Run Benchmarks
       shell: bash
       working-directory: ${{runner.workspace}}
       run: |
         build/benchmark/V${{ matrix.duts }}-SC_TEST_VRTLMOD  ${GITHUB_WORKSPACE}/vrtlmod-test_src/benchmark/${{matrix.duts}}/dhry.elf 5 10 > ${{matrix.duts}}-log.txt
         cat ${{matrix.duts}}-log.txt
-
     - name: Save Benchmark Results
       uses: actions/upload-artifact@v5
       with:
