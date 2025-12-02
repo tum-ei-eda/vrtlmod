@@ -1,21 +1,24 @@
+ARG BASE_IMAGE=debian:stable
 ARG workspace_dir
 ARG ENV_LLVM_FROM_SOURCE
+ARG ENV_LLVM_VERSION
 ARG ENV_BUILD_CONFIG
 ARG ENV_BUILD_CXX_STANDARD
-
-FROM debian:stable
-
+###################################################################################################
+FROM ${BASE_IMAGE} AS vrtlmod-base
 ARG workspace_dir
 ARG ENV_LLVM_FROM_SOURCE
+ARG ENV_LLVM_VERSION
 ARG ENV_BUILD_CONFIG
 ARG ENV_BUILD_CXX_STANDARD
-
 # Overall build config for cmake dependencies
 ENV ENV_LLVM_FROM_SOURCE=${ENV_LLVM_FROM_SOURCE}
+ENV ENV_LLVM_VERSION=${ENV_LLVM_VERSION}
 ENV ENV_BUILD_CONFIG=${ENV_BUILD_CONFIG}
 ENV ENV_BUILD_CXX_STANDARD=${ENV_BUILD_CXX_STANDARD}
-
-# Prerequisite packages
+#########################
+# Prerequisite packages #
+#########################
 RUN \
   --mount=type=bind,source=".",target=${workspace_dir} \
   . "${workspace_dir}/docker/setup_debian.sh" && \
@@ -57,7 +60,7 @@ RUN \
 ARG llvm_srcdir="/llvm-src"
 ARG llvm_builddir="/llvm-build"
 ARG llvm_destdir="/llvm-install"
-ARG llvm_version="18"
+ARG llvm_version="${ENV_LLVM_VERSION}"
 ARG llvm_patch_dir="${workspace_dir}/deps/llvm/patches"
 
 RUN \
