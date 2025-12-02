@@ -324,7 +324,7 @@ cleanup_vrtlmod() {
   install_dir="$3"
 
   echo "[clean-up] vRTLmod"
-  echo "nothing to do."
+  rm -rf "${build_dir}"
 }
 setup_vrtlmod() {
   src_dir="$1"
