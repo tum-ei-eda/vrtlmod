@@ -1,0 +1,83 @@
+name: Build single vrtlmod docker image
+on:
+  workflow_dispatch:
+    inputs:
+      vrtlmod-ref:
+        description: docker version/tag/branch
+        required: true
+        default: default
+      base-image:
+        description: OS base image
+        required: true
+        default: debian:stable
+      llvm-ref:
+        description: LLVM Version
+        required: true
+        default: 18
+jobs:
+  image-base:
+    name: Build vrtlmod-base image for users
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set current date as env variable
+        run: |
+          echo "builddate=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+        id: timestamp
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Set os env variable. Append env vars from docker/.env
+        run: |
+          echo "os=$(echo '${{ github.event.inputs.base-image }}' | tr ':' '-')" >> $GITHUB_OUTPUT
+          while IFS='=' read -r key value || [ -n "$key" ]; do
+            [[ -z "$key" || "$key" == \#* ]] && continue
+            key="$(echo "$key" | xargs)"
+            value="$(echo "$value" | xargs)"
+            value="${value%\"}"
+            value="${value#\"}"
+            echo "$key=$value" >> $GITHUB_ENV
+          done < docker/.env
+        id: os
+      - name: Remove unused software
+        run: |
+          echo "Available storage before:"
+          sudo df -h
+          echo
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --force
+          sudo docker builder prune
+          echo "Available storage after:"
+          sudo df -h
+          echo
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        if: ${{ github.repository == 'tum-ei-eda/vrtlmod' }}
+        with:
+          registry: ${{ secrets.DOCKER_REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Build and push to Docker Hub
+        uses: docker/build-push-action@v6
+        if: ${{ github.repository == 'tum-ei-eda/vrtlmod' }}
+        with:
+          context: .
+          file: docker/Dockerfile
+          pull: true
+          push: true
+          target: vrtlmod-base
+          build-args: |
+            BASE_IMAGE=${{ github.event.inputs.base-image }}
+            workspace_dir=${{ env.workspace_dir }}
+            ENV_LLVM_FROM_SOURCE=${{ env.ENV_LLVM_FROM_SOURCE }}
+            ENV_LLVM_VERSION=${{ github.event.inputs.llvm-ref }}
+            ENV_BUILD_CONFIG=${{ env.ENV_BUILD_CONFIG }}
+            ENV_BUILD_CXX_STANDARD=${{ env.ENV_BUILD_CXX_STANDARD }}
+          tags: |
+            ${{ secrets.DOCKER_REGISTRY }}/${{ secrets.DOCKER_NAMESPACE }}/vrtlmod-base:${{ steps.timestamp.outputs.builddate }}-${{ github.event.inputs.vrtlmod-ref }}-${{ steps.os.outputs.os }}-${{ github.event.inputs.llvm-ref }}
+            ${{ secrets.DOCKER_REGISTRY }}/${{ secrets.DOCKER_NAMESPACE }}/vrtlmod-base:latest-${{ github.event.inputs.vrtlmod-ref }}-${{ steps.os.outputs.os }}-${{ github.event.inputs.llvm-ref }}
