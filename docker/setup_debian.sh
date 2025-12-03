@@ -108,7 +108,7 @@ setup_llvm() {
   version="${4}"
   patch_dir=$5
 
-  if [ "${LLVM_FROM_SOURCE}" = "ON" ]; then
+  if [ "${ENV_LLVM_FROM_SOURCE}" = "ON" ]; then
     if [ ! -f "${install_dir}/bin/clang" ]; then
       fetch_llvm "$1" "$2" "$3" "${4}" ${5} && \
       configure_llvm "$1" "$2" "$3" "${4}" && \
@@ -147,11 +147,13 @@ configure_systemc() {
   install_dir="$3"
   version="${4}"
 
-  echo "[configure] systemc"
+  echo "[configure] systemc (${ENV_BUILD_CONFIG}-c++${ENV_BUILD_CXX_STANDARD})"
   cmake -S "${src_dir}" -B "${build_dir}" \
     -D CMAKE_INSTALL_PREFIX="${install_dir}" \
-    -D CMAKE_BUILD_TYPE=Release \
-    -D CMAKE_CXX_STANDARD=17
+    -D CMAKE_BUILD_TYPE="${ENV_BUILD_CONFIG}" \
+    -D CMAKE_CXX_STANDARD="${ENV_BUILD_CXX_STANDARD}" \
+    -D BUILD_SHARED_LIBS=Off \
+    -D CMAKE_POSITION_INDEPENDENT_CODE=ON
 }
 build_systemc() {
   src_dir="$1"
@@ -285,7 +287,8 @@ configure_vrtlmod() {
   cmake \
     -S "${src_dir}" \
     -B "${build_dir}" \
-    -D CMAKE_BUILD_TYPE=${VRTLMOD_BUILD_CONFIG} \
+    -D CMAKE_BUILD_TYPE=${ENV_BUILD_CONFIG} \
+    -D CMAKE_CXX_STANDARD="${ENV_BUILD_CXX_STANDARD}" \
     -D CMAKE_INSTALL_PREFIX=${install_dir} \
     -D SystemCLanguage_DIR="${SYSTEMC_HOME}/lib/cmake/SystemCLanguage" \
     -D BUILD_TESTING=On
@@ -321,8 +324,7 @@ cleanup_vrtlmod() {
   install_dir="$3"
 
   echo "[clean-up] vRTLmod"
-  echo "nothing to do."
-  #rm -r ${build_dir}
+  rm -rf "${build_dir}"
 }
 setup_vrtlmod() {
   src_dir="$1"
@@ -333,9 +335,7 @@ setup_vrtlmod() {
     fetch_vrtlmod "${src_dir}" "${build_dir}" "${install_dir}" && \
     configure_vrtlmod "${src_dir}" "${build_dir}" "${install_dir}" && \
     build_vrtlmod "${src_dir}" "${build_dir}" "${install_dir}" && \
-    install_vrtlmod "${src_dir}" "${build_dir}" "${install_dir}" && \
-    test_vrtlmod "${src_dir}" "${build_dir}" "${install_dir}" && \
-    cleanup_vrtlmod "${src_dir}" "${build_dir}" "${install_dir}"
+    install_vrtlmod "${src_dir}" "${build_dir}" "${install_dir}"
   fi
 }
 

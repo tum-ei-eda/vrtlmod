@@ -1,10 +1,15 @@
 services:
   vrtlmodworkspace:
+    env_file: ".env"
     build:
       context: ..
       dockerfile: docker/dockerfile
       args:
         workspace_dir: "${workspace_dir}"
+        ENV_LLVM_FROM_SOURCE: "${ENV_LLVM_FROM_SOURCE}"
+        ENV_LLVM_VERSION: "${ENV_LLVM_VERSION}"
+        ENV_BUILD_CONFIG: "${ENV_BUILD_CONFIG}"
+        ENV_BUILD_CXX_STANDARD: "${ENV_BUILD_CXX_STANDARD}"
     environment:
       workspace_dir: "${workspace_dir}"
     volumes:
