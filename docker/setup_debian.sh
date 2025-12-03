@@ -336,6 +336,7 @@ setup_vrtlmod() {
     configure_vrtlmod "${src_dir}" "${build_dir}" "${install_dir}" && \
     build_vrtlmod "${src_dir}" "${build_dir}" "${install_dir}" && \
     install_vrtlmod "${src_dir}" "${build_dir}" "${install_dir}"
+  fi
 }
 
 setup() {
