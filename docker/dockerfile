@@ -97,3 +97,9 @@ RUN \
   . "${venvdir}/bin/activate" && \
   . "${workspace_dir}/docker/setup_debian.sh" && \
   setup vrtlmod ${vrtlmod_srcdir} ${vrtlmod_builddir} ${vrtlmod_destdir}
+
+RUN \
+  --mount=type=bind,source=".",target="${workspace_dir}" \
+  . "${venvdir}/bin/activate" && \
+  . "${workspace_dir}/docker/setup_debian.sh" && \
+  cleanup_vrtlmod ${vrtlmod_srcdir} ${vrtlmod_builddir} ${vrtlmod_destdir}

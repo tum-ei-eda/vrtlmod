@@ -335,9 +335,7 @@ setup_vrtlmod() {
     fetch_vrtlmod "${src_dir}" "${build_dir}" "${install_dir}" && \
     configure_vrtlmod "${src_dir}" "${build_dir}" "${install_dir}" && \
     build_vrtlmod "${src_dir}" "${build_dir}" "${install_dir}" && \
-    install_vrtlmod "${src_dir}" "${build_dir}" "${install_dir}" && \
-    cleanup_vrtlmod "${src_dir}" "${build_dir}" "${install_dir}"
-  fi
+    install_vrtlmod "${src_dir}" "${build_dir}" "${install_dir}"
 }
 
 setup() {
