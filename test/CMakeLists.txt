@@ -96,8 +96,8 @@ if(BUILD_TESTING)
     add_custom_command(
         OUTPUT ${COUT} ${CC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.hpp ${GENERATED_API_SRCS}
         DEPENDS null ${PROJECT_NAME}-bin
-        COMMAND ${PROJECT_BINARY_DIR}/${PROJECT_NAME} ARGS --out=${CC_SUBDIR}/vrtlmod/ ${CIN} -v -- ${LLVM_TOOLS_BINARY_DIR}/clang++ -v -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} -I${CC_SUBDIR}/vrtlmod/ -I${VERILATOR_INCLUDE_DIRECTORY} -I${VERILATOR_INCLUDE_DIRECTORY}/vltstd -I${CLANG_INCLUDE_DIRS}
-        COMMENT "executing vrtlmod: ..  ${PROJECT_BINARY_DIR}/${PROJECT_NAME} --out=${CC_SUBDIR}/vrtlmod ${CIN_STR} -v -- ${LLVM_TOOLS_BINARY_DIR}/clang++ -v -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} -I${CC_SUBDIR}/vrtlmod/ -I${VERILATOR_INCLUDE_DIRECTORY} -I${VERILATOR_INCLUDE_DIRECTORY}/vltstd -I${CLANG_INCLUDE_DIRS}"
+        COMMAND ${PROJECT_BINARY_DIR}/${PROJECT_NAME} ARGS --out=${CC_SUBDIR}/vrtlmod/ ${CIN} -v -- ${LLVM_TOOLS_BINARY_DIR}/clang++ -v -Wno-null-character -xc++ ${VRTLMOD_CLANG_STDLIB_FLAG} -std=c++${CMAKE_CXX_STANDARD} -I${CC_SUBDIR}/vrtlmod/ -I${VERILATOR_INCLUDE_DIRECTORY} -I${VERILATOR_INCLUDE_DIRECTORY}/vltstd -I${CLANG_INCLUDE_DIRS}
+        COMMENT "executing vrtlmod: ..  ${PROJECT_BINARY_DIR}/${PROJECT_NAME} --out=${CC_SUBDIR}/vrtlmod ${CIN_STR} -v -- ${LLVM_TOOLS_BINARY_DIR}/clang++ -v -Wno-null-character -xc++ ${VRTLMOD_CLANG_STDLIB_FLAG} -std=c++${CMAKE_CXX_STANDARD} -I${CC_SUBDIR}/vrtlmod/ -I${VERILATOR_INCLUDE_DIRECTORY} -I${VERILATOR_INCLUDE_DIRECTORY}/vltstd -I${CLANG_INCLUDE_DIRS}"
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
 
@@ -162,8 +162,8 @@ if(BUILD_TESTING)
     add_custom_command(
         OUTPUT ${SCOUT} ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.hpp ${GENERATED_API_SRCS}
         DEPENDS sc-null ${PROJECT_NAME}-bin
-        COMMAND ${PROJECT_BINARY_DIR}/${PROJECT_NAME} ARGS --systemc --out=${SC_SUBDIR}/vrtlmod ${SCIN} -v -- ${LLVM_TOOLS_BINARY_DIR}/clang++ -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} -I${SC_SUBDIR}/vrtlmod -I${VERILATOR_INCLUDE_DIRECTORY} -I${VERILATOR_INCLUDE_DIRECTORY}/vltstd -I${CLANG_INCLUDE_DIRS} -I${SYSTEMC_INCLUDE_DIRS}
-        COMMENT "executing vrtlmod: .. ${PROJECT_BINARY_DIR}/${PROJECT_NAME} --systemc --out=${SC_SUBDIR}/vrtlmod ${SCIN_STR} -v -- clang++ -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} -I${SC_SUBDIR}/vrtlmod -I${VERILATOR_INCLUDE_DIRECTORY} -I${VERILATOR_INCLUDE_DIRECTORY}/vltstd -I${CLANG_INCLUDE_DIRS} -I${SYSTEMC_INCLUDE_DIRS}"
+        COMMAND ${PROJECT_BINARY_DIR}/${PROJECT_NAME} ARGS --systemc --out=${SC_SUBDIR}/vrtlmod ${SCIN} -v -- ${LLVM_TOOLS_BINARY_DIR}/clang++ -Wno-null-character -xc++ ${VRTLMOD_CLANG_STDLIB_FLAG} -std=c++${CMAKE_CXX_STANDARD} -I${SC_SUBDIR}/vrtlmod -I${VERILATOR_INCLUDE_DIRECTORY} -I${VERILATOR_INCLUDE_DIRECTORY}/vltstd -I${CLANG_INCLUDE_DIRS} -I${SYSTEMC_INCLUDE_DIRS}
+        COMMENT "executing vrtlmod: .. ${PROJECT_BINARY_DIR}/${PROJECT_NAME} --systemc --out=${SC_SUBDIR}/vrtlmod ${SCIN_STR} -v -- clang++ -Wno-null-character -xc++ ${VRTLMOD_CLANG_STDLIB_FLAG} -std=c++${CMAKE_CXX_STANDARD} -I${SC_SUBDIR}/vrtlmod -I${VERILATOR_INCLUDE_DIRECTORY} -I${VERILATOR_INCLUDE_DIRECTORY}/vltstd -I${CLANG_INCLUDE_DIRS} -I${SYSTEMC_INCLUDE_DIRS}"
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
 

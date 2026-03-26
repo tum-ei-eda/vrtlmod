@@ -109,6 +109,12 @@ function(vrtlmod)
         set(LLVM_TOOLS_BINARY_DIR "@LLVM_TOOLS_BINARY_DIR@")
     endif()
 
+    if(VRTLMOD_STDLIB)
+        set(VRTLMOD_CLANG_STDLIB "${VRTLMOD_STDLIB}")
+    else()
+        set(VRTLMOD_CLANG_STDLIB "@VRTLMOD_STDLIB@")
+    endif()
+
     if(VRTLMOD_SILENT)
         set(SILENT --silent)
     endif()
@@ -132,7 +138,7 @@ function(vrtlmod)
         ${OUT_DIR}
         ${SOURCES}
     )
-    set(CLANG_ARGS ${VERBOSE} -Wno-null-character -xc++ -stdlib=libstdc++ -std=c++${CMAKE_CXX_STANDARD} ${INCLUDE_DIRS})
+    set(CLANG_ARGS ${VERBOSE} -Wno-null-character -xc++ -stdlib=${VRTLMOD_CLANG_STDLIB} -std=c++${CMAKE_CXX_STANDARD} ${INCLUDE_DIRS})
     set(ARGS_FILE ${CMAKE_CURRENT_BINARY_DIR}/vrtlmod-args.txt)
 
     string(REPLACE ";" " " COMMAND_SPACES "${VRTLMOD} ${VRTLMOD_ARGS} -- ${LLVM_TOOLS_BINARY_DIR}/clang++ ${CLANG_ARGS}")
