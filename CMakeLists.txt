@@ -42,6 +42,11 @@ endif()
 
 option(BUILD_TESTING "Enable Tests" OFF)
 include(CTest)
+set(VRTLMOD_STDLIB "libstdc++" CACHE STRING "C++ standard library passed to clang when parsing vrtlmod inputs")
+set_property(CACHE VRTLMOD_STDLIB PROPERTY STRINGS libstdc++ libc++)
+if(NOT VRTLMOD_STDLIB STREQUAL "libstdc++" AND NOT VRTLMOD_STDLIB STREQUAL "libc++")
+    message(FATAL_ERROR "Unsupported VRTLMOD_STDLIB='${VRTLMOD_STDLIB}'. Expected one of: libstdc++, libc++")
+endif()
 
 option (FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." True)
 if (${FORCE_COLORED_OUTPUT})
@@ -110,12 +115,14 @@ else()
 
         add_compile_definitions(LLVM_VERSION_MAJOR=${LLVM_VERSION_MAJOR})
 
+        message(STATUS "LLVM_VERSION_MAJOR=${LLVM_VERSION_MAJOR}")
         if (LLVM_VERSION_MAJOR LESS 16)
             set(CLANG_INCLUDE_DIRS ${LLVM_LIBRARY_DIRS}/clang/${LLVM_VERSION}/include)
         else()
             set(CLANG_INCLUDE_DIRS ${LLVM_LIBRARY_DIRS}/clang/${LLVM_VERSION_MAJOR}/include)
         endif()
 
+        message(STATUS "CLANG_INCLUDE_DIRS=${CLANG_INCLUDE_DIRS}")
         if(LLVM_VERSION_MAJOR GREATER 15 AND CMAKE_CXX_STANDARD LESS 17)
             message(FATAL_ERROR "LLVM_VERSION_MAJOR[${LLVM_VERSION_MAJOR}] requires c++std>=17! Is ${CMAKE_CXX_STANDARD}")
         endif()
@@ -185,7 +192,49 @@ if(LLVM_FOUND AND Clang_FOUND AND verilator_FOUND)
         src/passes/rewritemacrosaction.cpp
     )
 
+    set(VRTLMOD_CLANG_STDLIB_FLAG "-stdlib=${VRTLMOD_STDLIB}")
     set(AUTO_INCLUDE_DIRS ${CLANG_INCLUDE_DIRS} ${VERILATOR_INCLUDE_DIRS})
+    set(VRTLMOD_STDLIB_INCLUDE_DIRS)
+    if(VRTLMOD_STDLIB STREQUAL "libstdc++")
+        string(REGEX MATCH "^[0-9]+" HOST_CXX_VERSION_MAJOR "${CMAKE_CXX_COMPILER_VERSION}")
+        set(HOST_CXX_INCLUDE_DIRS
+            "/usr/include/c++/${HOST_CXX_VERSION_MAJOR}"
+            "/usr/include/c++/${HOST_CXX_VERSION_MAJOR}/backward"
+        )
+        if(CMAKE_LIBRARY_ARCHITECTURE)
+            list(APPEND HOST_CXX_INCLUDE_DIRS
+                "/usr/include/${CMAKE_LIBRARY_ARCHITECTURE}/c++/${HOST_CXX_VERSION_MAJOR}"
+                "/usr/lib/gcc/${CMAKE_LIBRARY_ARCHITECTURE}/${HOST_CXX_VERSION_MAJOR}/include"
+            )
+        endif()
+        foreach(dir IN LISTS HOST_CXX_INCLUDE_DIRS)
+            if(EXISTS "${dir}")
+                list(APPEND VRTLMOD_STDLIB_INCLUDE_DIRS "${dir}")
+            endif()
+        endforeach()
+    else()
+        set(LIBCXX_INCLUDE_CANDIDATES
+            "/usr/include/c++/v1"
+            "${LLVM_INSTALL_PREFIX}/include/c++/v1"
+        )
+        foreach(llvm_lib_dir IN LISTS LLVM_LIBRARY_DIRS)
+            list(APPEND LIBCXX_INCLUDE_CANDIDATES
+                "${llvm_lib_dir}/../include/c++/v1"
+            )
+        endforeach()
+        foreach(dir IN LISTS LIBCXX_INCLUDE_CANDIDATES)
+            if(EXISTS "${dir}")
+                list(APPEND VRTLMOD_STDLIB_INCLUDE_DIRS "${dir}")
+            endif()
+        endforeach()
+        if(NOT VRTLMOD_STDLIB_INCLUDE_DIRS)
+            message(WARNING
+                "VRTLMOD_STDLIB=libc++ selected, but no libc++ header directories were found. "
+                "Clang parsing may fail unless libc++ is installed in a standard location."
+            )
+        endif()
+    endif()
+    list(APPEND AUTO_INCLUDE_DIRS ${VRTLMOD_STDLIB_INCLUDE_DIRS})
     list(LENGTH AUTO_INCLUDE_DIRS AUTO_INCLUDE_DIRS_SIZE)
     list(TRANSFORM AUTO_INCLUDE_DIRS PREPEND "\"-I")
     list(TRANSFORM AUTO_INCLUDE_DIRS APPEND "\"")
