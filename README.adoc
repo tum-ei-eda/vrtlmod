@@ -2,6 +2,14 @@
 
 This is the vRTLmod (Verilated RTL Injection Modifier) repository.
 
+image:https://github.com/tum-ei-eda/vrtlmod/actions/workflows/ci.yml/badge.svg?branch=master["CI", link="https://github.com/tum-ei-eda/vrtlmod/actions/workflows/ci.yml"]
+image:https://github.com/tum-ei-eda/vrtlmod/actions/workflows/docs.yml/badge.svg?branch=master["Docs", link="https://github.com/tum-ei-eda/vrtlmod/actions/workflows/docs.yml"]
+image:https://github.com/tum-ei-eda/vrtlmod/actions/workflows/container.yml/badge.svg?branch=master["Container", link="https://github.com/tum-ei-eda/vrtlmod/actions/workflows/container.yml"]
+
+image:https://img.shields.io/github/license/tum-ei-eda/vrtlmod["License", link="LICENSE"]
+
+image:https://img.shields.io/docker/v/tumeda/vrtlmod-base/latest-default-debian-stable["tumeda/vrtlmod-base", link="https://img.shields.io/docker/v/tumeda/vrtlmod-base/latest-default-debian-stable"] (https://hub.docker.com/r/tumeda/vrtlmod-base/tags[`DockerHub vrtlmod-base`] )
+
 == Brief
 
 The Verilated RTL modifier (vRTLmod) is an LLVM based open-source tool to enable fault injection in verilator RTL (vRTL) simulations.
