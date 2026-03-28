@@ -1,9 +1,11 @@
 services:
-  vrtlmodworkspace:
+  vrtlmod-workspace:
+    image: tum-ei-eda/vrtlmod-base:latest-default-debian-stable
     env_file: ".env"
     build:
       context: ..
       dockerfile: docker/dockerfile
+      target: vrtlmod-base
       args:
         workspace_dir: "${workspace_dir}"
         ENV_LLVM_FROM_SOURCE: "${ENV_LLVM_FROM_SOURCE}"
