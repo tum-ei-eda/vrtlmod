@@ -27,7 +27,7 @@ project(vrtlmod)
 # Declare vrtlmod version
 set(VRTLMOD_VERSION_MAJOR 0)
 set(VRTLMOD_VERSION_MINOR 10)
-set(VRTLMOD_VERSION_PATCH 1)
+set(VRTLMOD_VERSION_PATCH 2)
 set(VRTLMOD_VERSION_FULL "${VRTLMOD_VERSION_MAJOR}.${VRTLMOD_VERSION_MINOR}.${VRTLMOD_VERSION_PATCH}")
 ####################################################################################################
 # cmake project settings
