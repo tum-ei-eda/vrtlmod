@@ -40,7 +40,15 @@ docker pull tumeda/vrtlmod-base:latest-default-debian-stable
 
 === Building Images
 
-==== Local
+Build times (excluding pulling of base image) on 16-core mobile machine::
+
+- `vrtlmod-base`: 481.7s
+
+Image sizes::
+
+- `vrtlmod-base`: 735.24 MB
+
+==== Locally with `docker buildx`
 
 You can build the images locally as follows::
 [,bash]
@@ -53,22 +61,21 @@ docker buildx build . -f docker/Dockerfile \
                       --tag tumeda/vrtlmod-base:latest-default-debian-stable \
                       --target vrtlmod-base \
                       --build-arg BASE_IMAGE=debian:stable \
-                      --build-arg workspace_dir=. \
+                      --build-arg workspace_dir=${workspace_dir} \
                       --build-arg ENV_LLVM_FROM_SOURCE=${ENV_LLVM_FROM_SOURCE} \
                       --build-arg ENV_LLVM_VERSION=${ENV_LLVM_VERSION} \
                       --build-arg ENV_BUILD_CONFIG=${ENV_BUILD_CONFIG} \
                       --build-arg ENV_BUILD_CXX_STANDARD=${ENV_BUILD_CXX_STANDARD}
 ----
 
-Build times (excluding pulling of base image) on 18-core workstation::
-
-- `vrtlmod-dev`: `t.b.d.`
-- `vrtlmod-base`: `t.b.d.`
-
-Image sizes::
-
-- `vrtlmod-dev`: `t.b.d.`
-- `vrtlmod-base`: `t.b.d.`
+==== Locally with `docker-compose`
+You can build the images locally as follows::
+[,bash]
+----
+cd path/to/vrtlmod/clone
+docker-compose -f docker/docker-compose.yaml up --build # <-- build and up service
+docker-compose -f docker/docker-compose.yaml run vrtlmod-workspace # <-- shell into it
+----
 
 ==== GitHub Action
 

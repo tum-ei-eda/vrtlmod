@@ -108,7 +108,7 @@ setup_llvm() {
   version="${4}"
   patch_dir=$5
 
-  if [ "${ENV_LLVM_FROM_SOURCE}" = "ON" ]; then
+  if [ "${LLVM_FROM_SOURCE}" = "ON" ]; then
     if [ ! -f "${install_dir}/bin/clang" ]; then
       fetch_llvm "$1" "$2" "$3" "${4}" ${5} && \
       configure_llvm "$1" "$2" "$3" "${4}" && \
@@ -147,11 +147,11 @@ configure_systemc() {
   install_dir="$3"
   version="${4}"
 
-  echo "[configure] systemc (${ENV_BUILD_CONFIG}-c++${ENV_BUILD_CXX_STANDARD})"
+  echo "[configure] systemc (${BUILD_CONFIG}-c++${BUILD_CXX_STANDARD})"
   cmake -S "${src_dir}" -B "${build_dir}" \
     -D CMAKE_INSTALL_PREFIX="${install_dir}" \
-    -D CMAKE_BUILD_TYPE="${ENV_BUILD_CONFIG}" \
-    -D CMAKE_CXX_STANDARD="${ENV_BUILD_CXX_STANDARD}" \
+    -D CMAKE_BUILD_TYPE="${BUILD_CONFIG}" \
+    -D CMAKE_CXX_STANDARD="${BUILD_CXX_STANDARD}" \
     -D BUILD_SHARED_LIBS=Off \
     -D CMAKE_POSITION_INDEPENDENT_CODE=ON
 }
@@ -287,8 +287,8 @@ configure_vrtlmod() {
   cmake \
     -S "${src_dir}" \
     -B "${build_dir}" \
-    -D CMAKE_BUILD_TYPE=${ENV_BUILD_CONFIG} \
-    -D CMAKE_CXX_STANDARD="${ENV_BUILD_CXX_STANDARD}" \
+    -D CMAKE_BUILD_TYPE=${BUILD_CONFIG} \
+    -D CMAKE_CXX_STANDARD="${BUILD_CXX_STANDARD}" \
     -D CMAKE_INSTALL_PREFIX=${install_dir} \
     -D SystemCLanguage_DIR="${SYSTEMC_HOME}/lib/cmake/SystemCLanguage" \
     -D BUILD_TESTING=On

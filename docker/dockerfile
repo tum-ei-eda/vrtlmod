@@ -12,10 +12,12 @@ ARG ENV_LLVM_VERSION
 ARG ENV_BUILD_CONFIG
 ARG ENV_BUILD_CXX_STANDARD
 # Overall build config for cmake dependencies
-ENV ENV_LLVM_FROM_SOURCE=${ENV_LLVM_FROM_SOURCE}
-ENV ENV_LLVM_VERSION=${ENV_LLVM_VERSION}
-ENV ENV_BUILD_CONFIG=${ENV_BUILD_CONFIG}
-ENV ENV_BUILD_CXX_STANDARD=${ENV_BUILD_CXX_STANDARD}
+ENV LLVM_FROM_SOURCE=${ENV_LLVM_FROM_SOURCE}
+ENV LLVM_VERSION=${ENV_LLVM_VERSION}
+ENV BUILD_CONFIG=${ENV_BUILD_CONFIG}
+ENV BUILD_CXX_STANDARD=${ENV_BUILD_CXX_STANDARD}
+
+SHELL ["/bin/bash", "-lc"]
 #########################
 # Prerequisite packages #
 #########################
@@ -60,7 +62,7 @@ RUN \
 ARG llvm_srcdir="/llvm-src"
 ARG llvm_builddir="/llvm-build"
 ARG llvm_destdir="/llvm-install"
-ARG llvm_version="${ENV_LLVM_VERSION}"
+ARG llvm_version="${LLVM_VERSION}"
 ARG llvm_patch_dir="${workspace_dir}/deps/llvm/patches"
 
 RUN \

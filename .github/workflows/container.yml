@@ -79,5 +79,5 @@ jobs:
             ENV_BUILD_CONFIG=${{ env.ENV_BUILD_CONFIG }}
             ENV_BUILD_CXX_STANDARD=${{ env.ENV_BUILD_CXX_STANDARD }}
           tags: |
-            ${{ secrets.DOCKER_REGISTRY }}/${{ secrets.DOCKER_NAMESPACE }}/vrtlmod-base:${{ steps.timestamp.outputs.builddate }}-${{ github.event.inputs.vrtlmod-ref }}-${{ steps.os.outputs.os }}-${{ github.event.inputs.llvm-ref }}
-            ${{ secrets.DOCKER_REGISTRY }}/${{ secrets.DOCKER_NAMESPACE }}/vrtlmod-base:latest-${{ github.event.inputs.vrtlmod-ref }}-${{ steps.os.outputs.os }}-${{ github.event.inputs.llvm-ref }}
+            ${{ secrets.DOCKER_REGISTRY }}/${{ secrets.DOCKER_NAMESPACE }}/vrtlmod-base:${{ steps.timestamp.outputs.builddate }}-${{ github.event.inputs.vrtlmod-ref }}-${{ steps.os.outputs.os }}
+            ${{ secrets.DOCKER_REGISTRY }}/${{ secrets.DOCKER_NAMESPACE }}/vrtlmod-base:latest-${{ github.event.inputs.vrtlmod-ref }}-${{ steps.os.outputs.os }}
