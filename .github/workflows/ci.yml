@@ -3,7 +3,7 @@ name: vrtlmod CI - build, test, and benchmark
 on:
   push:
     paths-ignore:
-    - doc/
+    - docs/**
     - README*
     branches:
       - master
@@ -11,7 +11,7 @@ on:
       - v*
   pull_request:
     paths-ignore:
-    - doc/
+    - docs/**
     - README*
     branches:
       - master

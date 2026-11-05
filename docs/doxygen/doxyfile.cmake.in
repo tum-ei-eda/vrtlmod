@@ -58,7 +58,7 @@ PROJECT_LOGO           =
 # entered, it will be relative to the location where doxygen was started. If
 # left blank the current directory will be used.
 
-OUTPUT_DIRECTORY       = @CMAKE_CURRENT_BINARY_DIR@/doc
+OUTPUT_DIRECTORY       = "@CMAKE_CURRENT_BINARY_DIR@/docs"
 
 # If the CREATE_SUBDIRS tag is set to YES then doxygen will create 4096 sub-
 # directories (in 2 levels) under the output directory of each output format and
@@ -790,26 +790,9 @@ WARN_LOGFILE           =
 # spaces. See also FILE_PATTERNS and EXTENSION_MAPPING
 # Note: If this tag is empty the current directory is searched.
 
-INPUT                  = @CMAKE_CURRENT_SOURCE_DIR@/doc/docs/mainpage.dox \
-                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../include/vrtlmod/transform/rewrite/ \
-                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../include/vrtlmod/transform/ \
-                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../include/vrtlmod/util/ \
-                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../include/vrtlmod/vapi/templates \
-                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../include/vrtlmod/vapi/ \
-                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../include/vrtlmod/core/ \
-                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../include/vrtlmod/passes/ \
-                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../include/vrtlmod \
-                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../include \
-                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../src/ \
-                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../src/transform/rewrite/ \
-                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../src/transform/ \
-                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../src/util/ \
-                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../src/vapi/templates \
-                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../src/vapi/ \
-                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../src/core/ \
-                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../src/passes/ \
-                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../src/main.cpp \
-                         @CMAKE_CURRENT_SOURCE_DIR@/doc/../src/vrtlmod.cpp
+INPUT                  = "@CMAKE_CURRENT_SOURCE_DIR@/docs/doxygen/mainpage.dox" \
+                         "@CMAKE_CURRENT_SOURCE_DIR@/include/" \
+                         "@CMAKE_CURRENT_SOURCE_DIR@/src/"
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
@@ -925,7 +908,7 @@ EXCLUDE_SYMBOLS        =
 # that contain example code fragments that are included (see the \include
 # command).
 
-EXAMPLE_PATH           = docs
+EXAMPLE_PATH           = "@CMAKE_CURRENT_SOURCE_DIR@/docs/doxygen"
 
 # If the value of the EXAMPLE_PATH tag contains directories, you can use the
 # EXAMPLE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp and
@@ -945,7 +928,7 @@ EXAMPLE_RECURSIVE      = NO
 # that contain images that are to be included in the documentation (see the
 # \image command).
 
-IMAGE_PATH             = figures
+IMAGE_PATH             = "@CMAKE_CURRENT_SOURCE_DIR@/docs/figures"
 
 # The INPUT_FILTER tag can be used to specify a program that doxygen should
 # invoke to filter for each input file. Doxygen will invoke the filter program
