@@ -614,18 +614,38 @@ void VrtlParser::addMatcher(clang::ast_matchers::MatchFinder &finder)
     // matches: VlUnpacked<VlUnpacked<VlWide<>>>
     finder.addMatcher(sea_binary_array_oop_oop_3d.bind("sea_binary_array_oop_oop_3d"), this);
 
+    const auto wide_destination_signal = expr(anyOf(
+        top_wsignal_expr, top_signal_expr,
+        symtbl_instance_wsignal_expr, symtbl_instance_signal_expr,
+        this_wsignal_expr, this_signal_expr));
+    // Follow only array bases; signals used as indices remain readable inputs.
+    const auto wide_destination_1d = cxxOperatorCallExpr(
+        hasOverloadedOperatorName("[]"), hasArgument(0, wide_destination_signal));
+    const auto wide_destination_2d = cxxOperatorCallExpr(
+        hasOverloadedOperatorName("[]"), hasArgument(0, wide_destination_1d));
+    const auto wide_destination_3d = cxxOperatorCallExpr(
+        hasOverloadedOperatorName("[]"), hasArgument(0, wide_destination_2d));
+    const auto wide_destination = expr(anyOf(
+        wide_destination_signal, wide_destination_1d,
+        wide_destination_2d, wide_destination_3d)).bind("arg1_expr");
+
     for (const auto &it : func_macros_regex_paraidx_)
     {
         const auto seq_assignment_func_matcher = callExpr(
             allOf(
                 callee(
                     functionDecl(
-                        matchesName(it.first)
+                        matchesName("(^|::)" + it.first + "$")
                     )
                 ),
                 hasArgument(
                     it.second,
                     anyOf(
+                        // Newer Verilator wraps writable wide arguments in a
+                        // WDataOutP constructor instead of a conversion operator.
+                        ignoringImpCasts(cxxConstructExpr(
+                            hasType(cxxRecordDecl(hasName("WDataOutP"))),
+                            hasArgument(0, wide_destination))),
                         cxxMemberCallExpr(
                             anyOf(
                                 callee(top_wsignal_expr),
