@@ -12,7 +12,7 @@ Model analysis and target discovery live in [src/core](../src/core/), transforma
 
 ## Development and validation
 
-Install the dependencies and supported toolchain versions described in the [README](../README.adoc): CMake, a C++ compiler, LLVM/Clang development libraries, Verilator and Boost. The test suite also requires SystemC and its `SystemCLanguage` CMake package. CMake locates these dependencies; environment setup and container builds are provided separately under [docker](../docker/).
+Install the dependencies and supported toolchain versions described in the [README](../README.adoc): CMake, a C++ compiler, LLVM/Clang development libraries, Verilator and Boost. The test suite also requires SystemC and its `SystemCLanguage` CMake package, plus Python 3 for fixture inventory checks. CMake locates these dependencies; environment setup and container builds are provided separately under [docker](../docker/).
 
 Initialize submodules, then configure and build from the repository root, replacing the installation paths below:
 
@@ -39,9 +39,12 @@ ctest --test-dir build --output-on-failure -j 1 -R fiapp-cc
 ctest --test-dir build --output-on-failure -j 1 -R fiapp-sc
 ctest --test-dir build --output-on-failure -j 1 -R fiapp-cmake
 ctest --test-dir build --output-on-failure -j 1 -R scheduling
+ctest --test-dir build --output-on-failure -j 1 -R targetdictionary
+ctest --test-dir build --output-on-failure -j 1 -R helpers
+ctest --test-dir build --output-on-failure -j 1 -R layouts
 ```
 
-The filters above include the associated build/configure and runtime checks. The [fiapp tests](../test/fiapp/) exercise C++, SystemC, state dimensions, fault injection and differential APIs, including downstream CMake integration. The [scheduling tests](../test/scheduling/) cover split and inlined functions, asynchronous reset, derived clocks and evaluation without a clock event. Keep reproducers small and record random seeds where applicable.
+The filters above include the associated build/configure and runtime checks. The [fiapp tests](../test/fiapp/) compare plain and rewritten models with injection disabled, and check exact fault placement, state dimensions and differential APIs in C++ and SystemC, including downstream CMake integration. The [scheduling tests](../test/scheduling/) cover split functions and files, inlined functions, enables, independent and derived clocks, asynchronous reset and evaluation without a clock event. The [target dictionary tests](../test/targetdictionary/) check physical bit mapping and counters independently of generated APIs. The [helper](../test/helpers/) and [layout](../test/layouts/) fixtures check writable destinations, source/index exclusions, named wrappers and scoped SystemC port types. Keep reproducers small and record random seeds where applicable.
 
 For behavioral changes, cover the affected cases and relevant toolchain versions. Check expected target coverage and dimensions, injection timing and counts, and observable state or differential results against an independent expectation. Verify that disabling injection preserves the original model's behavior. Include held registers, enables, reset, dynamic indices and packed/unpacked arrays where the contract needs them. State which checks ran and which remain untested; documentation-only changes need link and formatting checks rather than simulation.
 
