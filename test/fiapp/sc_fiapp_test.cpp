@@ -24,7 +24,7 @@
 #include "systemc.h"
 #include "Vfiapp.h"
 
-#include "testinject.hpp"
+#include "fiapp_test.hpp"
 
 #include <iostream>
 #include <sstream>
@@ -41,6 +41,9 @@ int sc_main(int argc, char *argv[])
     VfiappVRTLmodAPI gFault;
     VfiappVRTLmodAPI gRef;
     VfiappVRTLmodAPIDifferential gDiff(gFault, gRef);
+
+    if (!check_fiapp_target_coverage(gFault))
+        return 1;
 
     sc_signal<bool> tb_clk{ "clk" };
     sc_signal<bool> tb_reset{ "reset" };
