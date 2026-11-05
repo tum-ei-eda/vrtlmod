@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# Docker maps these build arguments to runtime names; CI sources this script directly.
+BUILD_CONFIG="${BUILD_CONFIG:-${ENV_BUILD_CONFIG:-Release}}"
+BUILD_CXX_STANDARD="${BUILD_CXX_STANDARD:-${ENV_BUILD_CXX_STANDARD:-17}}"
+LLVM_FROM_SOURCE="${LLVM_FROM_SOURCE:-${ENV_LLVM_FROM_SOURCE:-OFF}}"
+
 ########################################################################################################################
 # Package dependencies
 get_apt_deps() {
