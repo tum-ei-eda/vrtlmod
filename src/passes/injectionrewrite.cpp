@@ -128,7 +128,12 @@ void InjectionRewriter::action(const VrtlParser &parser,
     };
 
     std::string prefix = "";
-    if (const clang::MemberExpr *instance = Result.Nodes.getNodeAs<clang::MemberExpr>("instance"))
+    if (const clang::Expr *base = Result.Nodes.getNodeAs<clang::Expr>("signal_base"))
+    {
+        prefix = parser.getRewriter().getRewrittenText(base->getSourceRange());
+        prefix += base->getType()->isPointerType() ? "->" : ".";
+    }
+    else if (const clang::MemberExpr *instance = Result.Nodes.getNodeAs<clang::MemberExpr>("instance"))
     {
         prefix = parser.getRewriter().getRewrittenText(instance->getSourceRange());
         prefix += ".";
@@ -136,7 +141,7 @@ void InjectionRewriter::action(const VrtlParser &parser,
     else if (const clang::Expr *top = Result.Nodes.getNodeAs<clang::Expr>("top"))
     {
         prefix = parser.getRewriter().getRewrittenText(top->getSourceRange());
-        prefix += "->";
+        prefix += top->getType()->isPointerType() ? "->" : ".";
     }
     else if (const clang::CXXThisExpr *x = Result.Nodes.getNodeAs<clang::CXXThisExpr>("this"))
     {

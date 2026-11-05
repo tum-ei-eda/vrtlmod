@@ -33,6 +33,19 @@ namespace vrtlmod
 namespace types
 {
 
+static const clang::RecordDecl *get_named_record(const clang::FieldDecl *decl)
+{
+    const auto *record = decl->getParent();
+    while (record->getName().empty())
+    {
+        const auto *outer = llvm::dyn_cast<clang::RecordDecl>(record->getDeclContext());
+        if (outer == nullptr)
+            break;
+        record = outer;
+    }
+    return record;
+}
+
 std::string Target::get_hierarchy(void) const
 {
     return get_id();
@@ -52,7 +65,7 @@ std::string Target::_self(void) const
 bool Target::is_declared_here(const clang::FieldDecl *decl) const
 {
     std::string decl_name = decl->getName().str();
-    std::string decl_ancestor_name = decl->getParent()->getName().str();
+    std::string decl_ancestor_name = get_named_record(decl)->getName().str();
     LOG_VERBOSE("Target::is_declared_here: ", get_id(), " == ", decl_name, "?");
     if (get_id() == decl_name)
     {
@@ -70,7 +83,7 @@ bool Target::is_assigned_here(const clang::MemberExpr *assignee, const clang::CX
 {
     std::string decl_name = assignee->getMemberNameInfo().getAsString();
     std::string decl_ancestor_name =
-        static_cast<const clang::FieldDecl *>(assignee->getMemberDecl())->getParent()->getName().str();
+        get_named_record(static_cast<const clang::FieldDecl *>(assignee->getMemberDecl()))->getName().str();
 
     if (get_id() == decl_name)
     {
@@ -233,12 +246,12 @@ unsigned long Target::get_element_mask(std::initializer_list<size_t> subscripts)
     {
         int elementsubs = *(subscripts.end() - 1);
         int elementsize = dimlens.back();
-        auto active_bits = one_dim_bits % (sizeof(WData) * 8);
+        auto active_bits = one_dim_bits % (sizeof(EData) * 8);
         // packed in WData
         if (((elementsubs + 1) != elementsize) || (active_bits == 0) // fully used last element, i.e., no inactive rest
         )
         {
-            mask = WData(-1);
+            mask = EData(-1);
         }
         else
         {

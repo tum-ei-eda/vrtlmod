@@ -89,11 +89,11 @@ struct )"
                         if (!util::strhelp::replace(type, "sc_in<", "sc_signal<"))
                             util::strhelp::replace(type, "sc_inout<", "sc_signal<");
 
-                    // remvove the systemc port type from the signal's type
-                    if (!util::strhelp::replace(base_type, "sc_out<", ""))
-                        if (!util::strhelp::replace(base_type, "sc_in<", ""))
-                            util::strhelp::replace(base_type, "sc_inout<", "");
-                    util::strhelp::replace(base_type, ">", "");
+                    // Extract the port value type, preserving its namespace and
+                    // nested template arguments (e.g. sc_dt::sc_bv<65>).
+                    const auto open = base_type.find('<');
+                    const auto close = base_type.rfind('>');
+                    base_type = base_type.substr(open + 1, close - open - 1);
 
                             x
                         << R"(

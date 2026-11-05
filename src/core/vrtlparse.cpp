@@ -27,6 +27,7 @@
 #include <sstream>
 #include <string>
 #include <algorithm>
+#include <functional>
 
 using namespace clang;
 using namespace clang::ast_matchers;
@@ -73,14 +74,19 @@ void VrtlParser::addMatcher(clang::ast_matchers::MatchFinder &finder)
         matchesName("__Vilp__"),
         matchesName("__Vdpiimwrap__"),
         matchesName("__Vconst__"),
-        matchesName("__Vdpi_")
+        matchesName("__Vdpi_"),
+        matchesName("::vlNamep$")
     );
 
     const auto sc_module_decl =
         cxxRecordDecl(isDirectlyDerivedFrom("sc_core::sc_module"))
             .bind("module"); ///<  decl type of systemc modules (can match systemc verilated modules)
 
-    const auto cc_module_decl = cxxRecordDecl(isDirectlyDerivedFrom("VerilatedModule"))
+    const auto cc_module_decl = cxxRecordDecl(
+                                    anyOf(isDirectlyDerivedFrom("VerilatedModule"),
+                                          allOf(has(fieldDecl(hasName("vlSymsp"),
+                                                              hasType(pointsTo(cxxRecordDecl(matchesName("__Syms$")))))),
+                                                unless(isDerivedFrom("VerilatedModel")))))
                                     .bind("module"); ///<  decl type of cc modules (can match cc verilated modules that
                                                      ///<  inherit from Verilator sim class)
 
@@ -124,7 +130,8 @@ void VrtlParser::addMatcher(clang::ast_matchers::MatchFinder &finder)
 
     const auto signal_decl =
         fieldDecl(
-            isPublic(), anyOf(hasAncestor(sc_module_decl), hasAncestor(cc_module_decl)), unless(vrtl_internal),
+            isPublic(), unless(isImplicit()),
+            anyOf(hasAncestor(sc_module_decl), hasAncestor(cc_module_decl)), unless(vrtl_internal),
 #if VRTLMOD_VERILATOR_VERSION <= 4204
             unless(hasType(pointsTo(
                 cxxRecordDecl()))) // we can not use {sc,cc}_module_decl fine grained matching because verilator builds
@@ -155,18 +162,31 @@ void VrtlParser::addMatcher(clang::ast_matchers::MatchFinder &finder)
         ).bind("sequent_function_def")))
             .bind("compound_of_sequent_func"); ///< compound statements (`{...}`) of sequential evaluation functions
 
-    const auto symtbl_instance_signal_expr = // {symboltable}->{instance}.{signal}
-        memberExpr(                          // {signal}
-            hasObjectExpression(
+    const auto symtable_expr = expr(hasType(pointsTo(cxxRecordDecl(matchesName("__Syms$")))))
+                                  .bind("symboltable");
+    const auto symtable_object_expr = expr(anyOf(
+        symtable_expr,
+        memberExpr(hasDeclaration(fieldDecl(isImplicit())), hasObjectExpression(symtable_expr))));
+    const auto symtable_storage_expr = expr(anyOf(
+        symtable_expr,
+        memberExpr(hasDeclaration(fieldDecl(hasName("vlInst"))), hasObjectExpression(symtable_object_expr))));
+    const auto symtbl_instance_expr =
                 memberExpr(                   // {instance}
-                    hasObjectExpression(expr( // {symboltable} implicitCastExpr -> declRefExpr
-                                            hasType(pointsTo(cxxRecordDecl(matchesName("__Syms$")))))
-                                            .bind("symboltable") // symboltable reference
-                                        ),
+                    hasObjectExpression(symtable_storage_expr),
                     anyOf(hasType(pointsTo(sc_module_decl)), hasType(pointsTo(cc_module_decl)), hasType(sc_module_decl),
                           hasType(cc_module_decl)))
-                    .bind("instance") // instance member of symboltable
-                ),
+                    .bind("instance"); // instance member of symboltable
+    const auto symtbl_instance_object_expr = expr(anyOf(
+        symtbl_instance_expr,
+        memberExpr(hasDeclaration(fieldDecl(isImplicit())), hasObjectExpression(symtbl_instance_expr))));
+
+    const auto symtbl_instance_signal_expr = // {symboltable}->{instance}.{signal}
+        memberExpr(                          // {signal}
+            hasObjectExpression(anyOf(
+                symtbl_instance_expr,
+                memberExpr(hasDeclaration(fieldDecl(hasName("__VprimaryPorts"))),
+                           hasObjectExpression(symtbl_instance_object_expr)).bind("signal_base")
+                )),
             unless(anyOf(hasDeclaration(namedDecl(matchesName("::__V"))),
                          hasDeclaration(namedDecl(matchesName("->__V"))),
                          hasDeclaration(namedDecl(matchesName(".__V"))),
@@ -179,14 +199,25 @@ void VrtlParser::addMatcher(clang::ast_matchers::MatchFinder &finder)
             hasObjectExpression(symtbl_instance_signal_expr))
             .bind("wsignal_field"); ///< signal member of instance reference;
 
-    const auto top_signal_expr = // vlTOPp->{signal}
-        memberExpr(              // {signal}
-            hasObjectExpression(implicitCastExpr(anyOf(hasImplicitDestinationType(pointsTo(sc_module_decl)),
+    const auto module_object_expr = expr(anyOf(
+                                implicitCastExpr(anyOf(hasImplicitDestinationType(pointsTo(sc_module_decl)),
                                                        hasImplicitDestinationType(pointsTo(cc_module_decl)),
                                                        hasImplicitDestinationType(references(cc_module_decl)),
-                                                       hasImplicitDestinationType(references(cc_module_decl))))
-                                    .bind("top") // top reference
-                                ),
+                                                       hasImplicitDestinationType(references(cc_module_decl)))),
+                                // Verilator 5 can access the module through vlSelfRef.
+                                declRefExpr(anyOf(hasType(sc_module_decl), hasType(cc_module_decl)))
+                                )).bind("top");
+    const auto module_storage_expr = expr(anyOf(
+        module_object_expr,
+        memberExpr(hasDeclaration(fieldDecl(isImplicit())), hasObjectExpression(module_object_expr))));
+
+    const auto top_signal_expr = // vlTOPp->{signal}
+        memberExpr(              // {signal}
+            hasObjectExpression(anyOf(
+                module_object_expr,
+                memberExpr(hasDeclaration(fieldDecl(hasName("__VprimaryPorts"))),
+                           hasObjectExpression(module_storage_expr)).bind("top")
+                )),
             unless(anyOf(hasDeclaration(namedDecl(matchesName("::__V"))),
                          hasDeclaration(namedDecl(matchesName("->__V"))),
                          hasDeclaration(namedDecl(matchesName(".__V"))),
