@@ -24,9 +24,10 @@ defaults:
 jobs:
   requirements:
     strategy:
+      fail-fast: false
       matrix:
         os:
-          - {name: "ubuntu", version: "latest"}
+          - {name: "ubuntu", version: "24.04"}
           - {name: "ubuntu", version: "22.04"}
         llvm:
           - {name: "src", src: "true", version: "13.0.1"}
@@ -125,9 +126,10 @@ jobs:
 
   build:
     strategy:
+      fail-fast: false
       matrix:
         os:
-          - {name: "ubuntu", version: "latest"}
+          - {name: "ubuntu", version: "24.04"}
           - {name: "ubuntu", version: "22.04"}
         llvm:
           - {name: "src", src: "true", version: "13.0.1"}
@@ -242,7 +244,7 @@ jobs:
       uses: actions/upload-artifact@v5
       if: ${{ failure() }}
       with:
-        name: vrtlmod-failed-test-${{ matrix.os.name }}-${{ matrix.os.version }}.tar.gz
+        name: vrtlmod-failed-test-${{ matrix.os.name }}-${{ matrix.os.version }}_verilator-${{ matrix.verilator_version }}_llvm-${{ matrix.llvm.name }}-${{ matrix.llvm.version }}
         path: /vrtlmod_build/Testing/
         if-no-files-found: error
         retention-days: 15
@@ -256,9 +258,10 @@ jobs:
 
   benchmark:
     strategy:
+      fail-fast: false
       matrix:
         os:
-          - {name: "ubuntu", version: "latest"}
+          - {name: "ubuntu", version: "24.04"}
           - {name: "ubuntu", version: "22.04"}
         llvm:
           - {name: "src", src: "true", version: "13.0.1"}
