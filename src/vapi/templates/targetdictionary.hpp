@@ -219,11 +219,11 @@ class ZeroD_TDentry final : public Named_TDentry<vcontainer_t>
     void __reset_cntr(void) { cntr_ = 0; }
 
     // TDentry interface methods:
-    void set_maskBit(unsigned bit) override { BASE::mask_ |= (1 << bit); }
+    void set_maskBit(unsigned bit) override { BASE::mask_ |= (vcontainer_t{ 1 } << bit); }
     void reset_mask(void) override { BASE::mask_ = 0; }
 
-    virtual void set_value_bit(unsigned bit) override { BASE::assign_value_ |= (1 << bit); }
-    virtual void reset_value_bit(unsigned bit) override { BASE::assign_value_ &= ~(1 << bit); }
+    virtual void set_value_bit(unsigned bit) override { BASE::assign_value_ |= (vcontainer_t{ 1 } << bit); }
+    virtual void reset_value_bit(unsigned bit) override { BASE::assign_value_ &= ~(vcontainer_t{ 1 } << bit); }
     virtual void reset_assign_value(void) override { BASE::assign_value_ = 0; }
 
     std::vector<bool> read_data(void) const override;
@@ -617,7 +617,7 @@ std::vector<bool> ZeroD_TDentry<vcontainer_t>::read_data(void) const
     std::vector<bool> bitstream;
     for (int bit = 0; bit < TDentry::bits_; ++bit)
     {
-        vcontainer_t msk = (1 << bit);
+        vcontainer_t msk = (vcontainer_t{ 1 } << bit);
         bitstream.push_back((BASE::data_ & msk) ? true : false);
     }
     return bitstream;
@@ -629,34 +629,10 @@ std::vector<bool> ZeroD_TDentry<vcontainer_t>::read_data(void) const
 template <typename vcontainer_t, typename vbasetype_t, int M>
 constexpr std::array<unsigned, 2> OneD_TDentry<vcontainer_t, vbasetype_t, M>::map_bit(unsigned bit)
 {
-    int m = 0;
-    long ubit = bit;
-
-    for (m = 0; m < M; ++m)
-    {
-        if (BASE::onedimbits_ <= BASETYPE_BITS)
-        { // array of elements, e.g., logic[1:0] x[3][5];
-            ubit -= BASE::onedimbits_;
-        }
-        else
-        { // basetype extender target, e.g., 65-bit vector in 3 WDatas
-            if (m < (M - 1))
-            {
-                ubit -= BASETYPE_BITS;
-            }
-            else
-            {
-                auto mod = BASE::onedimbits_ % BASETYPE_BITS;
-                ubit -= (mod) ? mod : BASETYPE_BITS;
-            }
-        }
-        if (ubit < 0)
-            break; // leave all loops, stop counting dimensions
-    }
-
-    unsigned overhang = bit % ((BASE::onedimbits_ <= BASETYPE_BITS) ? BASE::onedimbits_ : BASETYPE_BITS);
-
-    return std::array<unsigned, 2>{ static_cast<unsigned>(m), overhang };
+    const unsigned local = bit % BASE::onedimbits_;
+    if (BASE::onedimbits_ <= BASETYPE_BITS)
+        return { bit / BASE::onedimbits_, local };
+    return { bit / BASETYPE_BITS, local % BASETYPE_BITS };
 }
 template <typename vcontainer_t, typename vbasetype_t, int M>
 inline void OneD_TDentry<vcontainer_t, vbasetype_t, M>::inject(unsigned m)
@@ -690,7 +666,7 @@ template <typename vcontainer_t, typename vbasetype_t, int M>
 void OneD_TDentry<vcontainer_t, vbasetype_t, M>::set_maskBit(unsigned bit)
 {
     auto b = map_bit(bit);
-    BASE::mask_[b[0]] |= 1 << b[1];
+    BASE::mask_[b[0]] |= vbasetype_t{ 1 } << b[1];
 }
 template <typename vcontainer_t, typename vbasetype_t, int M>
 void OneD_TDentry<vcontainer_t, vbasetype_t, M>::reset_mask(void)
@@ -702,13 +678,13 @@ template <typename vcontainer_t, typename vbasetype_t, int M>
 void OneD_TDentry<vcontainer_t, vbasetype_t, M>::set_value_bit(unsigned bit)
 {
     auto b = map_bit(bit);
-    BASE::assign_value_[b[0]] |= 1 << b[1];
+    BASE::assign_value_[b[0]] |= vbasetype_t{ 1 } << b[1];
 }
 template <typename vcontainer_t, typename vbasetype_t, int M>
 void OneD_TDentry<vcontainer_t, vbasetype_t, M>::reset_value_bit(unsigned bit)
 {
     auto b = map_bit(bit);
-    BASE::assign_value_[b[0]] &= ~(1 << b[1]);
+    BASE::assign_value_[b[0]] &= ~(vbasetype_t{ 1 } << b[1]);
 }
 template <typename vcontainer_t, typename vbasetype_t, int M>
 void OneD_TDentry<vcontainer_t, vbasetype_t, M>::reset_assign_value(void)
@@ -730,7 +706,7 @@ std::vector<bool> OneD_TDentry<vcontainer_t, vbasetype_t, M>::read_data(void) co
         for (int element = 0; element < M; ++element)
             for (int bit = 0; bit < BASE::onedimbits_; ++bit)
             {
-                vbasetype_t msk = (1 << bit);
+                vbasetype_t msk = (vbasetype_t{ 1 } << bit);
                 bitstream.push_back(BASE::data_[element] & msk ? true : false);
             }
     }
@@ -742,7 +718,7 @@ std::vector<bool> OneD_TDentry<vcontainer_t, vbasetype_t, M>::read_data(void) co
             {
                 for (int bit = 0; bit < BASETYPE_BITS; ++bit)
                 {
-                    vbasetype_t msk = (1 << bit);
+                    vbasetype_t msk = (vbasetype_t{ 1 } << bit);
                     bitstream.push_back((BASE::data_[element] & msk) ? true : false);
                 }
             }
@@ -750,7 +726,7 @@ std::vector<bool> OneD_TDentry<vcontainer_t, vbasetype_t, M>::read_data(void) co
             {
                 for (int bit = 0; bit < BASE::onedimbits_ - (M - 1) * BASETYPE_BITS; ++bit)
                 {
-                    vbasetype_t msk = (1 << bit);
+                    vbasetype_t msk = (vbasetype_t{ 1 } << bit);
                     bitstream.push_back((BASE::data_[element] & msk) ? true : false);
                 }
             }
@@ -805,55 +781,13 @@ std::vector<int> OneD_TDentry<vcontainer_t, vbasetype_t, M>::get_cntr(void)
 template <typename vcontainer_t, typename vbasetype_t, int L, int M>
 constexpr std::array<unsigned, 3> TwoD_TDentry<vcontainer_t, vbasetype_t, L, M>::map_bit(unsigned bit)
 {
-    int l = 0, m = 0;
-    long ubit = bit;
-
-    for (l = 0; l < L; ++l)
-    {
-        for (m = 0; m < M; ++m)
-        {
-            if (BASE::onedimbits_ <= BASETYPE_BITS)
-            { // array of elements, e.g., logic[1:0] x[3][5];
-                ubit -= BASE::onedimbits_;
-            }
-            else
-            { // basetype extender target, e.g., 65-bit vector in 3 WDatas
-                if (m < (M - 1))
-                {
-                    ubit -= BASETYPE_BITS;
-                }
-                else
-                {
-                    auto mod = BASE::onedimbits_ % BASETYPE_BITS;
-                    ubit -= (mod) ? mod : BASETYPE_BITS;
-                }
-            }
-            if (ubit < 0)
-                break; // leave all loops, stop counting dimensions
-        }
-        if (ubit < 0)
-            break; // leave all loops, stop counting dimensions
-    }
-
-    unsigned overhang = 0;
+    const unsigned element = bit / BASE::onedimbits_;
+    const unsigned local = bit % BASE::onedimbits_;
     if (BASE::onedimbits_ <= BASETYPE_BITS)
-    {
-        overhang = bit % BASE::onedimbits_;
-    }
-    else
-    {
-        overhang = bit % BASETYPE_BITS;
-        if (m >= (M - 1))
-        {
-            // substract amount of overhang from lower index elements in serialized target vector. We count the number
-            // of elements by multiplying outer dim `k` with the maximum inner dimension L and add the count of inner
-            // dimension to retrieve the number of innermost elements. When de-serializing, we need to substrac the
-            // number of overhang bits from all predecessor inner-most elements from the final overhang bit count
-            overhang -= (l) * (BASE::onedimbits_ % BASETYPE_BITS);
-        }
-    }
-
-    return std::array<unsigned, 3>{ static_cast<unsigned>(l), static_cast<unsigned>(m), overhang };
+        return { element / M, element % M, local };
+    // Discard padding separately for every packed element, not just the last
+    // word. Otherwise bit 65 of an array of 65-bit values lands on bit 1.
+    return { element, local / BASETYPE_BITS, local % BASETYPE_BITS };
 }
 template <typename vcontainer_t, typename vbasetype_t, int L, int M>
 inline void TwoD_TDentry<vcontainer_t, vbasetype_t, L, M>::inject(unsigned l, unsigned m)
@@ -887,7 +821,7 @@ template <typename vcontainer_t, typename vbasetype_t, int L, int M>
 void TwoD_TDentry<vcontainer_t, vbasetype_t, L, M>::set_maskBit(unsigned bit)
 {
     auto b = map_bit(bit);
-    BASE::mask_[b[0]][b[1]] |= 1 << b[2];
+    BASE::mask_[b[0]][b[1]] |= vbasetype_t{ 1 } << b[2];
 }
 template <typename vcontainer_t, typename vbasetype_t, int L, int M>
 void TwoD_TDentry<vcontainer_t, vbasetype_t, L, M>::reset_mask(void)
@@ -900,13 +834,13 @@ template <typename vcontainer_t, typename vbasetype_t, int L, int M>
 void TwoD_TDentry<vcontainer_t, vbasetype_t, L, M>::set_value_bit(unsigned bit)
 {
     auto b = map_bit(bit);
-    BASE::assign_value_[b[0]][b[1]] |= 1 << b[2];
+    BASE::assign_value_[b[0]][b[1]] |= vbasetype_t{ 1 } << b[2];
 }
 template <typename vcontainer_t, typename vbasetype_t, int L, int M>
 void TwoD_TDentry<vcontainer_t, vbasetype_t, L, M>::reset_value_bit(unsigned bit)
 {
     auto b = map_bit(bit);
-    BASE::assign_value_[b[0]][b[1]] &= ~(1 << b[2]);
+    BASE::assign_value_[b[0]][b[1]] &= ~(vbasetype_t{ 1 } << b[2]);
 }
 template <typename vcontainer_t, typename vbasetype_t, int L, int M>
 void TwoD_TDentry<vcontainer_t, vbasetype_t, L, M>::reset_assign_value(void)
@@ -930,7 +864,7 @@ std::vector<bool> TwoD_TDentry<vcontainer_t, vbasetype_t, L, M>::read_data(void)
             for (int element = 0; element < M; ++element)
                 for (int bit = 0; bit < BASE::onedimbits_; ++bit)
                 {
-                    vbasetype_t msk = (1 << bit);
+                    vbasetype_t msk = (vbasetype_t{ 1 } << bit);
                     bitstream.push_back((BASE::data_[row][element] & msk) ? true : false);
                 }
     }
@@ -943,7 +877,7 @@ std::vector<bool> TwoD_TDentry<vcontainer_t, vbasetype_t, L, M>::read_data(void)
                 {
                     for (int bit = 0; bit < BASETYPE_BITS; ++bit)
                     {
-                        vbasetype_t msk = (1 << bit);
+                        vbasetype_t msk = (vbasetype_t{ 1 } << bit);
                         bitstream.push_back((BASE::data_[row][element] & msk) ? true : false);
                     }
                 }
@@ -951,7 +885,7 @@ std::vector<bool> TwoD_TDentry<vcontainer_t, vbasetype_t, L, M>::read_data(void)
                 {
                     for (int bit = 0; bit < BASE::onedimbits_ - (M - 1) * BASETYPE_BITS; ++bit)
                     {
-                        vbasetype_t msk = (1 << bit);
+                        vbasetype_t msk = (vbasetype_t{ 1 } << bit);
                         bitstream.push_back((BASE::data_[row][element] & msk) ? true : false);
                     }
                 }
@@ -1009,61 +943,11 @@ std::vector<int> TwoD_TDentry<vcontainer_t, vbasetype_t, L, M>::get_cntr(void)
 template <typename vcontainer_t, typename vbasetype_t, int K, int L, int M>
 constexpr std::array<unsigned, 4> ThreeD_TDentry<vcontainer_t, vbasetype_t, K, L, M>::map_bit(unsigned bit)
 {
-    int k = 0, l = 0, m = 0;
-    long ubit = bit;
-
-    for (k = 0; k < K; ++k)
-    {
-        for (l = 0; l < L; ++l)
-        {
-            for (m = 0; m < M; ++m)
-            {
-                if (BASE::onedimbits_ <= BASETYPE_BITS)
-                { // array of elements, e.g., logic[1:0] x[3][5];
-                    ubit -= BASE::onedimbits_;
-                }
-                else
-                { // basetype extender target, e.g., 65-bit vector in 3 WDatas
-                    if (m < (M - 1))
-                    {
-                        ubit -= BASETYPE_BITS;
-                    }
-                    else
-                    {
-                        auto mod = BASE::onedimbits_ % BASETYPE_BITS;
-                        ubit -= (mod) ? mod : BASETYPE_BITS;
-                    }
-                }
-                if (ubit < 0)
-                    break; // leave all loops, stop counting dimensions
-            }
-            if (ubit < 0)
-                break; // leave all loops, stop counting dimensions
-        }
-        if (ubit < 0)
-            break; // leave all loops, stop counting dimensions
-    }
-
-    unsigned overhang = 0;
+    const unsigned element = bit / BASE::onedimbits_;
+    const unsigned local = bit % BASE::onedimbits_;
     if (BASE::onedimbits_ <= BASETYPE_BITS)
-    {
-        overhang = bit % BASE::onedimbits_;
-    }
-    else
-    {
-        overhang = bit % BASETYPE_BITS;
-        if (m >= (M - 1))
-        {
-            // substract amount of overhang from lower index elements in serialized target vector. We count the number
-            // of elements by multiplying outer dim `k` with the maximum inner dimension L and add the count of inner
-            // dimension to retrieve the number of innermost elements. When de-serializing, we need to substrac the
-            // number of overhang bits from all predecessor inner-most elements from the final overhang bit count
-            overhang -= ((k)*L + (l)) * (BASE::onedimbits_ % BASETYPE_BITS);
-        }
-    }
-
-    return std::array<unsigned, 4>{ static_cast<unsigned>(k), static_cast<unsigned>(l), static_cast<unsigned>(m),
-                                    overhang };
+        return { element / (L * M), (element / M) % L, element % M, local };
+    return { element / L, element % L, local / BASETYPE_BITS, local % BASETYPE_BITS };
 }
 template <typename vcontainer_t, typename vbasetype_t, int K, int L, int M>
 inline void ThreeD_TDentry<vcontainer_t, vbasetype_t, K, L, M>::inject(unsigned k, unsigned l, unsigned m)
@@ -1097,7 +981,7 @@ template <typename vcontainer_t, typename vbasetype_t, int K, int L, int M>
 void ThreeD_TDentry<vcontainer_t, vbasetype_t, K, L, M>::set_maskBit(unsigned bit)
 {
     auto b = map_bit(bit);
-    BASE::mask_[b[0]][b[1]][b[2]] |= 1 << b[3];
+    BASE::mask_[b[0]][b[1]][b[2]] |= vbasetype_t{ 1 } << b[3];
 }
 template <typename vcontainer_t, typename vbasetype_t, int K, int L, int M>
 void ThreeD_TDentry<vcontainer_t, vbasetype_t, K, L, M>::reset_mask(void)
@@ -1111,13 +995,13 @@ template <typename vcontainer_t, typename vbasetype_t, int K, int L, int M>
 void ThreeD_TDentry<vcontainer_t, vbasetype_t, K, L, M>::set_value_bit(unsigned bit)
 {
     auto b = map_bit(bit);
-    BASE::assign_value_[b[0]][b[1]][b[2]] |= 1 << b[3];
+    BASE::assign_value_[b[0]][b[1]][b[2]] |= vbasetype_t{ 1 } << b[3];
 }
 template <typename vcontainer_t, typename vbasetype_t, int K, int L, int M>
 void ThreeD_TDentry<vcontainer_t, vbasetype_t, K, L, M>::reset_value_bit(unsigned bit)
 {
     auto b = map_bit(bit);
-    BASE::assign_value_[b[0]][b[1]][b[2]] &= ~(1 << b[3]);
+    BASE::assign_value_[b[0]][b[1]][b[2]] &= ~(vbasetype_t{ 1 } << b[3]);
 }
 template <typename vcontainer_t, typename vbasetype_t, int K, int L, int M>
 void ThreeD_TDentry<vcontainer_t, vbasetype_t, K, L, M>::reset_assign_value(void)
@@ -1143,7 +1027,7 @@ std::vector<bool> ThreeD_TDentry<vcontainer_t, vbasetype_t, K, L, M>::read_data(
                 for (int element = 0; element < M; ++element)
                     for (int bit = 0; bit < BASE::onedimbits_; ++bit)
                     {
-                        vbasetype_t msk = (1 << bit);
+                        vbasetype_t msk = (vbasetype_t{ 1 } << bit);
                         bitstream.push_back((BASE::data_[col][row][element] & msk) ? true : false);
                     }
     }
@@ -1157,7 +1041,7 @@ std::vector<bool> ThreeD_TDentry<vcontainer_t, vbasetype_t, K, L, M>::read_data(
                     {
                         for (int bit = 0; bit < BASETYPE_BITS; ++bit)
                         {
-                            vbasetype_t msk = (1 << bit);
+                            vbasetype_t msk = (vbasetype_t{ 1 } << bit);
                             bitstream.push_back((BASE::data_[col][row][element] & msk) ? true : false);
                         }
                     }
@@ -1165,7 +1049,7 @@ std::vector<bool> ThreeD_TDentry<vcontainer_t, vbasetype_t, K, L, M>::read_data(
                     {
                         for (int bit = 0; bit < BASE::onedimbits_ - (M - 1) * BASETYPE_BITS; ++bit)
                         {
-                            vbasetype_t msk = (1 << bit);
+                            vbasetype_t msk = (vbasetype_t{ 1 } << bit);
                             bitstream.push_back((BASE::data_[col][row][element] & msk) ? true : false);
                         }
                     }

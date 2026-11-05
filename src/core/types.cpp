@@ -257,7 +257,7 @@ unsigned long Target::get_element_mask(std::initializer_list<size_t> subscripts)
         {
             for (int i = 0; i < active_bits; ++i)
             {
-                mask |= 1 << i;
+                mask |= 1UL << i;
             }
         }
     }
@@ -265,7 +265,7 @@ unsigned long Target::get_element_mask(std::initializer_list<size_t> subscripts)
     {
         // unpacked
         for (int i = lsb; i < msb + 1; ++i)
-            mask |= 1 << i;
+            mask |= 1UL << i;
     }
     return mask;
 }
