@@ -68,6 +68,9 @@ set(VERILATE_ARGS
 
 message(${RTL_SRCS})
 
+include(${CMAKE_CURRENT_SOURCE_DIR}/reference.cmake)
+add_fiapp_reference(fiapp-reference-sc SYSTEMC VERILATOR_ARGS ${VERILATE_ARGS})
+
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/null.cpp "")
 
 add_library(dummy_proj SHARED
@@ -152,6 +155,7 @@ add_executable(${PROJECT_NAME}
 )
 target_link_libraries(${PROJECT_NAME} PUBLIC
     V${TOP_NAME}_vrtlmod
+    fiapp-reference-sc
 )
 target_include_directories(${PROJECT_NAME} PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/../

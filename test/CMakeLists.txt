@@ -32,6 +32,7 @@ if(BUILD_TESTING)
     )
 
     set(TDIR ${CMAKE_CURRENT_SOURCE_DIR})
+    include(${TDIR}/fiapp/reference.cmake)
     set(TBDIR ${CMAKE_CURRENT_BINARY_DIR})
     set(CC_SUBDIR ${CMAKE_CURRENT_BINARY_DIR}/cc_obj_dir)
     set(RTL_SRCS ${RTL_PKG_FILES} ${RTL_SRC_FILES} ${RTL_UTIL_FILES})
@@ -76,6 +77,7 @@ if(BUILD_TESTING)
         SOURCES ${TDIR}/${DUT_NAME}/${DUT_NAME}.sv
         VERILATOR_ARGS -O0 --hierarchical ${VERILATE_ARGS}
     )
+    add_fiapp_reference(fiapp-reference-cc VERILATOR_ARGS -O0 --hierarchical ${VERILATE_ARGS})
     # Use the runtime selected by Verilator, including verilated_threads.cpp on v5.
     get_target_property(CC_RUNTIME_SOURCES null SOURCES)
     list(FILTER CC_RUNTIME_SOURCES INCLUDE REGEX "/verilated[^/]*[.]cpp$")
@@ -124,6 +126,7 @@ if(BUILD_TESTING)
     )
     target_link_libraries(${PROJECT_NAME}-test-cc PUBLIC
         ${PROJECT_NAME}-test-cc_vrtlmod
+        fiapp-reference-cc
     )
 
     # VERILATE to SystemC VRTL
@@ -143,6 +146,7 @@ if(BUILD_TESTING)
         SOURCES ${TDIR}/${DUT_NAME}/${DUT_NAME}.sv
         VERILATOR_ARGS -O3 ${VERILATE_ARGS}
     )
+    add_fiapp_reference(fiapp-reference-sc SYSTEMC VERILATOR_ARGS -O3 ${VERILATE_ARGS})
     get_target_property(SC_RUNTIME_SOURCES sc-null SOURCES)
     list(FILTER SC_RUNTIME_SOURCES INCLUDE REGEX "/verilated[^/]*[.]cpp$")
     target_link_libraries(sc-null PUBLIC
@@ -195,6 +199,7 @@ if(BUILD_TESTING)
     )
     target_link_libraries(${PROJECT_NAME}-test-sc PUBLIC
         ${PROJECT_NAME}-test-sc_vrtlmod
+        fiapp-reference-sc
     )
 
     ##########################################################################################################

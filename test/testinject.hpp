@@ -25,5 +25,7 @@
 #include "targetdictionary.hpp"
 
 bool testinject(vrtlfi::td::TDentry &target, vrtlfi::td::TD_API &api, std::function<void(int)> const &clockspin,
-                std::function<void(void)> const &reset,
-                std::function<int(vrtlfi::td::TDentry const *)> const &check_diff, std::ostream &out = std::cout);
+                std::function<void(bool)> const &reset,
+                std::function<int(vrtlfi::td::TDentry const *)> const &check_diff,
+                std::function<bool(vrtlfi::td::TDentry &, unsigned)> const &check_placement,
+                std::ostream &out = std::cout);

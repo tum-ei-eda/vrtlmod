@@ -22,6 +22,8 @@
 #pragma once
 
 #include "testinject.hpp"
+#include "fiapp_observe.hpp"
+#include "fiapp_equivalence.hpp"
 
 // Require every state shape in fiapp, so partial discovery cannot pass by testing
 // only the targets that happened to survive a change in Verilator's generated code.
@@ -43,6 +45,15 @@ inline bool check_fiapp_target_coverage(const vrtlfi::td::TD_API &api, std::ostr
         { "reg_VlUnpacked_VlUnpacked_CData_q", 12, 3, 1 },
         { "reg_VlUnpacked_VlWide_q", 130, 65, 1 },
         { "reg_VlUnpacked_VlUnpacked_VlWide_q", 260, 65, 1 },
+        { "reg_8_q", 8, 8, 1 },
+        { "reg_9_q", 9, 9, 1 },
+        { "reg_16_q", 16, 16, 1 },
+        { "reg_17_q", 17, 17, 1 },
+        { "reg_32_q", 32, 32, 1 },
+        { "reg_33_q", 33, 33, 1 },
+        { "reg_64_q", 64, 64, 1 },
+        { "reg_asym_CData_q", 18, 3, 1 },
+        { "reg_asym_VlWide_q", 390, 65, 1 },
     };
     bool passed = true;
     for (const auto &target : expected)
@@ -68,19 +79,19 @@ inline bool check_fiapp_target_coverage(const vrtlfi::td::TD_API &api, std::ostr
 
             ++found;
             total_bits += entry->bits_;
-            if (entry->bits_ > target.bits || entry->bits_ % target.element_bits != 0
-                || entry->onedimbits_ != target.element_bits)
+            if (entry->bits_ > target.bits || entry->bits_ % target.element_bits != 0 ||
+                entry->onedimbits_ != target.element_bits)
             {
-                out << "Wrong target dimensions for " << key << ": " << entry->bits_
-                    << " bits, " << entry->onedimbits_ << " bits per element\n";
+                out << "Wrong target dimensions for " << key << ": " << entry->bits_ << " bits, " << entry->onedimbits_
+                    << " bits per element\n";
                 passed = false;
             }
         }
-        if (total_bits != target.bits * target.instances
-            || (target.bits == target.element_bits && found != target.instances))
+        if (total_bits != target.bits * target.instances ||
+            (target.bits == target.element_bits && found != target.instances))
         {
-            out << "Expected " << target.bits * target.instances << " injectable bits of " << target.name
-                << ", found " << total_bits << " across " << found << " target(s)\n";
+            out << "Expected " << target.bits * target.instances << " injectable bits of " << target.name << ", found "
+                << total_bits << " across " << found << " target(s)\n";
             passed = false;
         }
     }
