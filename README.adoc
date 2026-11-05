@@ -57,9 +57,12 @@ If you use vRTLmod in your academic work you can cite it like this:
 ==== Requirements
 
 . vRTLmod dependencies: `build-essentials, gmake, cmake, g++, libboost-filesystem-dev libboost-date-time-dev`
+  * Verilator v5.054's CMake integration requires CMake >=3.19.
 . Verilator (see: https://www.veripool.org/wiki/verilator and install guide).
-  * Tested with v4.202, v4.204, and v4.228
-  * Currently no support for Verilator version <4 and >4!
+  * Supports Verilator major versions 4 and 5; the v5 compatibility target is v5.054.
+  * Regression-tested with v4.228 and v5.054 using LLVM 18 and SystemC 2.3.4.
+  * v5.020 and v5.046 were also integration-tested during development.
+  * Build vRTLmod against the same Verilator version used to generate the input model.
 . LLVM+Clang versions >=13 and <=18
     * Debian-based distros: `apt install update && apt install llvm-15-dev libclang-15-dev clang-15`
     * From Source: Make sure to build with `LLVM_ENABLE_PROJECTS="clang;clang-tools-extra"`
@@ -83,12 +86,12 @@ Dependencies::
 ----
 apt update
 apt install libfl-dev build-essential ccache autoconf automake autotools-dev bison curl flex g++ \
-            git xz-utils wget
+            git perl python3 xz-utils wget
 ----
 Git Clone::
 [,bash]
 ----
-git clone --depth 1 --branch v4.228 https://github.com/verilator/verilator.git verilator_src
+git clone --depth 1 --branch v5.054 https://github.com/verilator/verilator.git verilator_src
 ----
 Configure, Build, and Install::
 [,bash]
@@ -164,6 +167,10 @@ Test (optional: configure with `-D BUILD_TESTING=On`)::
 cmake --build build --target test 
 ----
 
+The CMake configuration accepts a source/build tree, an install prefix, or its `share/verilator` directory via `VERILATOR_ROOT`.
+The tests cover cycle-based C++, SystemC, the downstream CMake helper, and clock/reset scheduling with both split and inlined generated functions.
+Timing/coroutines, DPI, and multithreaded models are not covered by these tests.
+
 === Docker
 
 A `docker compose` flow is provided.
@@ -188,6 +195,8 @@ NOTE: `-v"$PWD":/vrtlmod` makes the `vrtlmod` directory available in the contain
 Required inputs::
 https://www.veripool.org/wiki/verilator[Verilator] output: `<VRTL-files>` `<VRTL-Hpp-files>`
 
+When `VERILATOR_ROOT` is an install prefix, use `${VERILATOR_ROOT}/share/verilator/include` in the command below.
+
 Command::
 [,bash]
 ----
@@ -195,6 +204,9 @@ vrtlmod [--systemc] [--wl-regxml=<*-vrtlmod.xml>] --out=<outputdir> <VRTL-Cpp-fi
          -- clang++ -I <VRTL-Hpp-dir> -I "${LLVM_DIR}/lib/clang/.../include" \
          -I "${VERILATOR_ROOT}/include" [-I<path/to/systemc/include>]
 ----
+
+The target list follows Verilator's generated clocked regions. Optimization can split arrays into separate targets or merge downstream combinational assignments into those regions.
+Review the generated `*-vrtlmod.xml` and use `--wl-regxml` when a fault campaign requires a specific target set; regenerate the whitelist when changing Verilator versions or optimization settings.
 
 === Integrate vRTLmod in your CMake
 

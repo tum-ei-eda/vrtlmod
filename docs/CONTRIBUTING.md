@@ -38,6 +38,7 @@ ctest --test-dir build -N
 ctest --test-dir build --output-on-failure -j 1 -R fiapp-cc
 ctest --test-dir build --output-on-failure -j 1 -R fiapp-sc
 ctest --test-dir build --output-on-failure -j 1 -R fiapp-cmake
+ctest --test-dir build --output-on-failure -j 1 -R scheduling
 ```
 
 The filters above include the associated build/configure and runtime checks. The [fiapp tests](../test/fiapp/) exercise C++, SystemC, state dimensions, fault injection and differential APIs, including downstream CMake integration. The [scheduling tests](../test/scheduling/) cover split and inlined functions, asynchronous reset, derived clocks and evaluation without a clock event. Keep reproducers small and record random seeds where applicable.
