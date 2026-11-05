@@ -88,6 +88,7 @@ class VrtlParser : public Handler
     std::set<std::pair<std::string, int>> func_macros_regex_paraidx_{ //>>>
                                                                       { "VL_CLEAN_WW", 1 },
                                                                       { "VL_ASSIGN_W", 1 },
+                                                                      { "VL_MEMCPY_W", 0 },
                                                                       { "VL_ASSIGNBIT_II", 1 },
                                                                       { "VL_ASSIGNBIT_QI", 1 },
                                                                       { "VL_ASSIGNBIT_WI", 1 },

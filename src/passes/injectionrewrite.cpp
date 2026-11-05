@@ -24,6 +24,8 @@
 
 #include "vrtlmod/util/logging.hpp"
 
+#include <algorithm>
+
 namespace vrtlmod
 {
 namespace passes
@@ -496,19 +498,47 @@ void InjectionRewriter::action(const VrtlParser &parser,
                 LOG_VERBOSE("{arg1_expr}: ", util::logging::dump_to_str<const clang::Stmt *>(arg, ctx));
                 if (const types::Target *t = check_add_seqinjection(x))
                 {
-                    // TODO: function call assigning new values to arg1_expr, revert back to synchronous injection,
-                    // b.c. hard to deduce assigned bits. This might need a thorough rework.
                     auto assignee_parent_pair = parser.parse_sequential_assignment(arg, Result);
                     auto assignee = assignee_parent_pair.first;
                     auto parent = assignee_parent_pair.second;
 
                     if (assignee != nullptr && parent != nullptr)
                     {
-                        auto asgn = std::make_shared<CallSInj>(x, assignee, prefix, t);
+                        // Retain the destination's array bases. Following only the
+                        // base operand avoids treating readable indices as writes.
+                        std::vector<const clang::Expr *> subscripts;
+                        const clang::Expr *destination = arg->IgnoreParenImpCasts();
+                        while (destination)
+                        {
+                            if (const auto *conversion = llvm::dyn_cast<clang::CXXMemberCallExpr>(destination))
+                            {
+                                if (!llvm::isa<clang::CXXConversionDecl>(conversion->getMethodDecl()))
+                                    break;
+                                destination = conversion->getImplicitObjectArgument()->IgnoreParenImpCasts();
+                            }
+                            else if (const auto *array = llvm::dyn_cast<clang::ArraySubscriptExpr>(destination))
+                            {
+                                subscripts.push_back(array->getIdx());
+                                destination = array->getBase()->IgnoreParenImpCasts();
+                            }
+                            else if (const auto *array = llvm::dyn_cast<clang::CXXOperatorCallExpr>(destination))
+                            {
+                                if (array->getOperator() != clang::OO_Subscript)
+                                    break;
+                                subscripts.push_back(array->getArg(1));
+                                destination = array->getArg(0)->IgnoreParenImpCasts();
+                            }
+                            else
+                                break;
+                        }
+                        std::reverse(subscripts.begin(), subscripts.end());
+                        auto asgn = std::make_shared<CallSInj>(x, arg, prefix, t, subscripts);
                         auto comp = get_finest_compound(active_sequent_func_, asgn->get_base_expr());
-                        // active_compound_->add_assignment(asgn);
                         comp->add_assignment(asgn);
                         map_injected_targets_.at(active_sequent_func_).insert({ prefix, t });
+                        if (std::any_of(subscripts.begin(), subscripts.end(),
+                                        [&](const auto *index) { return !is_integer_literal(index); }))
+                            map_nonliteral_subscript_targets_.at(active_sequent_func_).insert({ prefix, t });
                     }
                 }
             }
@@ -614,21 +644,41 @@ void InjectionRewriter::BinarySInj::rewrite_injection(const VrtlParser &parser, 
 
 void InjectionRewriter::CallSInj::rewrite_injection(const VrtlParser &parser, bool write_as_comment) const
 {
+    std::vector<std::string> subscripts;
+    for (const auto *index : subscripts_)
+        subscripts.push_back(parser.getRewriter().getRewrittenText(index->getSourceRange()));
+
+    std::string injection;
+    if (subscripts.empty())
+        injection = prefix_ + get_synchronous_injection_stmt(*t_);
+    else
+    {
+        const auto dimensions = t_->get_cxx_dimension_lengths();
+        if (subscripts.size() == dimensions.size())
+            injection = prefix_ + get_sequent_injection_stmt(*t_, subscripts);
+        else if (subscripts.size() + 1 == dimensions.size())
+        {
+            // A wide helper writes all words of one unpacked element, not
+            // other elements whose assignments may still follow this call.
+            subscripts.push_back("__vrtlmod_word");
+            injection = util::concat("for (unsigned __vrtlmod_word = 0; __vrtlmod_word < ",
+                                     std::to_string(dimensions.back()), "; ++__vrtlmod_word) ",
+                                     prefix_, get_sequent_injection_stmt(*t_, subscripts));
+        }
+        else
+            return; // Leave unsupported argument shapes to the existing function fallback.
+    }
+
     std::string str = parser.getRewriter().getRewrittenText(expr_->getSourceRange());
     str += "; ";
     if (write_as_comment)
     {
         str += "// ";
-        str += prefix_;
-        auto sis_str = get_synchronous_injection_stmt(*t_);
-        util::strhelp::replaceAll(sis_str, "\n", "\n// ");
-        str += sis_str;
+        util::strhelp::replaceAll(injection, "\n", "\n// ");
+        str += injection;
     }
     else
-    {
-        str += prefix_;
-        str += get_synchronous_injection_stmt(*t_);
-    }
+        str += injection;
 
     parser.getRewriter().ReplaceText(expr_->getSourceRange(), str);
 }

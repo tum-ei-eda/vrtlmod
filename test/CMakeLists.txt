@@ -261,5 +261,6 @@ if(BUILD_TESTING)
     )
 
     add_subdirectory(scheduling)
+    add_subdirectory(helpers)
     add_subdirectory(targetdictionary)
 endif()
