@@ -17,6 +17,10 @@ on:
       - master
   workflow_dispatch: {}
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   requirements:
     strategy:

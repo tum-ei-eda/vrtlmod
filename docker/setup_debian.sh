@@ -154,6 +154,7 @@ configure_systemc() {
 
   echo "[configure] systemc (${BUILD_CONFIG}-c++${BUILD_CXX_STANDARD})"
   cmake -S "${src_dir}" -B "${build_dir}" \
+    -D CMAKE_POLICY_VERSION_MINIMUM=3.5 \
     -D CMAKE_INSTALL_PREFIX="${install_dir}" \
     -D CMAKE_BUILD_TYPE="${BUILD_CONFIG}" \
     -D CMAKE_CXX_STANDARD="${BUILD_CXX_STANDARD}" \
