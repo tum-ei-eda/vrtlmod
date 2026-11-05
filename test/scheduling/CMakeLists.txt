@@ -2,8 +2,9 @@ file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/null.cpp "int main() { return 0; }\n")
 set(SCHEDULING_PREFIX Vscheduling_comb)
 
 # Exercise both split sequential functions and small functions inlined into region
-# drivers. The same runtime assertions must hold for both generated layouts.
-foreach(SCHEDULING_MODE IN ITEMS split inline)
+# drivers, plus functions split across translation units. The same runtime
+# assertions must hold for all generated layouts.
+foreach(SCHEDULING_MODE IN ITEMS split inline filesplit)
     set(SCHEDULING_ORIGINAL_DIR ${CMAKE_CURRENT_BINARY_DIR}/${SCHEDULING_MODE}/${SCHEDULING_PREFIX})
     set(SCHEDULING_MODIFIED_DIR ${SCHEDULING_ORIGINAL_DIR}/vrtlmod)
     set(SCHEDULING_ORIGINAL_TARGET scheduling-original-${SCHEDULING_MODE})
@@ -11,6 +12,8 @@ foreach(SCHEDULING_MODE IN ITEMS split inline)
     set(SCHEDULING_SPLIT_ARGS)
     if(SCHEDULING_MODE STREQUAL "split")
         set(SCHEDULING_SPLIT_ARGS --output-split-cfuncs 1)
+    elseif(SCHEDULING_MODE STREQUAL "filesplit")
+        set(SCHEDULING_SPLIT_ARGS --output-split 50 --output-split-cfuncs 0)
     endif()
 
     add_executable(${SCHEDULING_ORIGINAL_TARGET} EXCLUDE_FROM_ALL ${CMAKE_CURRENT_BINARY_DIR}/null.cpp)
