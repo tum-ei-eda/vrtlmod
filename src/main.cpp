@@ -156,28 +156,38 @@ int main(int argc, const char **argv)
     srcs_and_headers.insert(srcs_and_headers.end(), headers.begin(), headers.end());
     auto srcs_and_headers_wo_symsh = srcs_and_headers;
 
-    clang::tooling::ClangTool CommentTool(op->getCompilations(), srcs_and_headers);
-    if (!bool(NoAutoInclude))
-    {
-        auto_argument_adjust(CommentTool);
-    }
     LOG_INFO("Run CommentTool on sources ...");
-    err = CommentTool.run(vrtlmod::CreateCommentRewritePass(core).get());
+    // Each rewrite changes file sizes. A fresh FileManager prevents stale cached
+    // sizes when a later translation unit includes a header already rewritten.
+    for (const auto &file : srcs_and_headers)
+    {
+        clang::tooling::ClangTool CommentTool(op->getCompilations(), { file });
+        if (!bool(NoAutoInclude))
+            auto_argument_adjust(CommentTool);
+        err = CommentTool.run(vrtlmod::CreateCommentRewritePass(core).get());
+        if (err != 0)
+            return err;
+    }
     LOG_INFO("... done");
 
-    // create a new Clang Tool instance for Macro cleanup in source and header files except Verilated Symboltable header
-    // which does not need cleanup, but breaks the MacroTool Lexer
+    // Symbol-table and precompiled headers only aggregate the other generated
+    // headers. Rewriting their includes again can break the MacroTool lexer.
     // FIXME: MacroTool only breaks for large VRTL models on Symboltable
     srcs_and_headers_wo_symsh.erase(std::remove_if(srcs_and_headers_wo_symsh.begin(), srcs_and_headers_wo_symsh.end(),
                                                    [](const auto &x)
-                                                   { return (x.find("__Syms.h") != std::string::npos); }));
-    clang::tooling::ClangTool MacroTool(op->getCompilations(), srcs_and_headers_wo_symsh);
-    if (!bool(NoAutoInclude))
-    {
-        auto_argument_adjust(MacroTool);
-    }
+                                                   { return (x.find("__Syms.h") != std::string::npos)
+                                                         || (x.find("__pch.h") != std::string::npos); }),
+                                   srcs_and_headers_wo_symsh.end());
     LOG_INFO("Run MacroTool on sources ...");
-    err = MacroTool.run(vrtlmod::CreateMacroRewritePass(core).get());
+    for (const auto &file : srcs_and_headers_wo_symsh)
+    {
+        clang::tooling::ClangTool MacroTool(op->getCompilations(), { file });
+        if (!bool(NoAutoInclude))
+            auto_argument_adjust(MacroTool);
+        err = MacroTool.run(vrtlmod::CreateMacroRewritePass(core).get());
+        if (err != 0)
+            return err;
+    }
     LOG_INFO("... done");
 
     // postprocess *.h / *.hpp files: Remove anonymous structs
@@ -192,6 +202,8 @@ int main(int argc, const char **argv)
     }
     LOG_INFO("Analyze VRTL sources (elaboration)...");
     err = stage1_ParserTool.run(vrtlmod::CreateElaboratePass(core).get());
+    if (err != 0)
+        return err;
     LOG_INFO("... done");
 
     clang::tooling::ClangTool stage2_ParserTool(op->getCompilations(), srcs_and_headers);
@@ -201,6 +213,8 @@ int main(int argc, const char **argv)
     }
     LOG_INFO("Analyze VRTL sources for possible injection points ...");
     err = stage2_ParserTool.run(vrtlmod::CreateAnalyzePass(core).get());
+    if (err != 0)
+        return err;
     LOG_INFO("... done");
 
     core.build_xml();
@@ -217,6 +231,8 @@ int main(int argc, const char **argv)
     }
     LOG_INFO("Rewrite VRTL sources for injection points ...");
     err = stage3_InjectionExprRewriterTool.run(vrtlmod::CreateInjectionPass(core).get());
+    if (err != 0)
+        return err;
     LOG_INFO("... done");
 
     LOG_INFO("Rewrite VRTL headers for injectable signals ...");
@@ -228,6 +244,8 @@ int main(int argc, const char **argv)
             auto_argument_adjust(stage3_SigDeclRewriterTool);
         }
         err = stage3_SigDeclRewriterTool.run(vrtlmod::CreateSignalDeclPass(core).get());
+        if (err != 0)
+            return err;
     }
     LOG_INFO("... done");
 
