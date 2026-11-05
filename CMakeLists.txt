@@ -77,8 +77,8 @@ endif("${isSystemDir}" STREQUAL "-1")
 ####################################################################################################
 # Verilator
 find_package(VERILATOR REQUIRED)
-if( ${verilator_VERSION_MAJOR} LESS 4 OR ${verilator_VERSION_MAJOR} GREATER 4)
-    message(FATAL_ERROR "Verilator version \"${verilator_VERSION}\" is not required major 4.xxx" )
+if(verilator_VERSION_MAJOR LESS 4 OR verilator_VERSION_MAJOR GREATER 5)
+    message(FATAL_ERROR "Unsupported Verilator version \"${verilator_VERSION}\". Expected major version 4 or 5.")
 endif()
 ####################################################################################################
 # LLVM

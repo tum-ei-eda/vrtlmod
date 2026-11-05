@@ -46,6 +46,10 @@ void VrtlParser::run(const clang::ast_matchers::MatchFinder::MatchResult &Result
         last_seq_compound_begin_ = x->getBeginLoc();
         last_seq_compound_end_ = x->getEndLoc();
         last_seq_compound_ctx_ = ctx;
+        const auto *function = Result.Nodes.getNodeAs<clang::FunctionDecl>("sequent_function_def");
+        const auto function_name = function ? function->getNameAsString() : std::string{};
+        last_seq_is_comb_ = function_name.find("___act_comb__") != std::string::npos
+                            || function_name.find("___nba_comb__") != std::string::npos;
         LOG_VERBOSE("{comp}: ", get_source_code_str(x));
     }
 
@@ -53,6 +57,39 @@ void VrtlParser::run(const clang::ast_matchers::MatchFinder::MatchResult &Result
     {
         pass->action(*this, Result);
     }
+}
+
+bool VrtlParser::is_delayed_commit(const clang::ast_matchers::MatchFinder::MatchResult &result) const
+{
+    std::function<bool(const clang::Stmt *)> reads_delayed = [&](const clang::Stmt *stmt) {
+        if (!stmt)
+            return false;
+        const clang::NamedDecl *decl = nullptr;
+        if (const auto *member = llvm::dyn_cast<clang::MemberExpr>(stmt))
+            decl = member->getMemberDecl();
+        else if (const auto *reference = llvm::dyn_cast<clang::DeclRefExpr>(stmt))
+            decl = reference->getDecl();
+        if (decl && decl->getNameAsString().find("__Vdly") == 0)
+            return true;
+        for (const auto *child : stmt->children())
+            if (reads_delayed(child))
+                return true;
+        return false;
+    };
+
+    for (const auto &[id, node] : result.Nodes.getMap())
+        if (id.find("sea_binary_") == 0)
+            if (const auto *assignment = node.get<clang::BinaryOperator>())
+                return reads_delayed(assignment->getRHS());
+
+    if (const auto *call = result.Nodes.getNodeAs<clang::CallExpr>("sea_func"))
+        if (const auto *callee = call->getDirectCallee())
+            for (const auto &[name, destination] : func_macros_regex_paraidx_)
+                if (name == callee->getNameAsString())
+                    for (unsigned index = 0; index < call->getNumArgs(); ++index)
+                        if (index != static_cast<unsigned>(destination) && reads_delayed(call->getArg(index)))
+                            return true;
+    return false;
 }
 
 void VrtlParser::addMatcher(clang::ast_matchers::MatchFinder &finder)
@@ -153,10 +190,21 @@ void VrtlParser::addMatcher(clang::ast_matchers::MatchFinder &finder)
                 matchesName("::_sequent__*"),
                 matchesName("::_multiclk__*")
             )
-#else // VERILATOR_VERSION <= 4.228
+#elif VRTLMOD_VERILATOR_VERSION < 5000
             anyOf(
                 matchesName("__sequent__*"),
                 matchesName("__multiclk__*")
+            )
+#else
+            // Verilator 5 schedules clocked logic in the active and NBA regions.
+            // Input-combinational (ico) and settle (stl) functions also contain
+            // "sequent" in their names, but are not clocked injection locations.
+            anyOf(
+                matchesName("___(act|nba)_sequent__"),
+                matchesName("___(act|nba)_comb__"),
+                // Recent releases inline small region functions into these drivers.
+                matchesName("___eval_(act|nba)(__[0-9]+)?$"),
+                matchesName("___eval_body__(act|nba)(__[0-9]+)?$")
             )
 #endif
         ).bind("sequent_function_def")))

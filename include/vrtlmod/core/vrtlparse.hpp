@@ -55,6 +55,8 @@ class VrtlParser : public Handler
     clang::SourceLocation last_seq_compound_begin_; ///< signals if we are currently in a sequent eval function's scope
     clang::SourceLocation last_seq_compound_end_;   ///< signals if we are currently in a sequent eval function's scope
     clang::ASTContext *last_seq_compound_ctx_{ nullptr }; ///< store context pointer to invalidate inter-file matching
+    bool last_seq_is_comb_{ false };
+    bool is_delayed_commit(const clang::ast_matchers::MatchFinder::MatchResult &result) const;
 
     std::set<std::unique_ptr<VrtlmodPass>> passes_; ///< passes that extend match based action on parsed source code
   public:
@@ -226,6 +228,10 @@ std::pair<const clang::MemberExpr *, const clang::CXXRecordDecl *> VrtlParser::p
 
     if (is_in_sequent(expr, ctx))
     {
+        // Event-region comb helpers can contain the final commit of delayed
+        // state alongside ordinary fanout. Only the delayed writes are targets.
+        if (last_seq_is_comb_ && !is_delayed_commit(Result))
+            return x;
         LOG_VERBOSE("{sea}:\n", "\\- ", get_source_code_str(expr), "\n",
                     util::logging::dump_to_str<const clang::Stmt *>(expr, ctx));
 

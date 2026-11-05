@@ -259,4 +259,6 @@ if(BUILD_TESTING)
     set_tests_properties(run:test/fiapp-cmake
         PROPERTIES DEPENDS ${PROJECT_NAME}:test/fiapp-cmake
     )
+
+    add_subdirectory(scheduling)
 endif()

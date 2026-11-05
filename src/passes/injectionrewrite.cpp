@@ -635,33 +635,69 @@ void InjectionRewriter::CallSInj::rewrite_injection(const VrtlParser &parser, bo
 
 void InjectionRewriter::wrap_up_sequent_function(const clang::FunctionDecl *func, const VrtlParser &parser) const
 {
-    std::stringstream insert;
-    insert.str("");
-    insert.clear();
+    const auto &ts = map_injected_targets_.at(func);
+    if (ts.empty())
+        return;
+    const auto *body = llvm::dyn_cast<clang::CompoundStmt>(func->getBody());
+    if (!body)
+        return;
 
-    auto &ts = map_injected_targets_.at(func);
-    LOG_INFO("INJREW Adding non-dominant injection points to end of sequential function:", func->getNameAsString());
-
-    std::string newc = parser.getRewriter().getRewrittenText(func->getSourceRange());
-
-    LOG_VERBOSE("{compset}: of func ", func->getNameAsString());
-    insert << std::endl << "    //>>> vRTLmod non-dominant target injections" << std::endl;
-
-    for (auto const &it : ts)
+    using Targets = std::set<std::pair<std::string, const types::Target *>>;
+    std::map<const clang::CompoundStmt *, Targets> fallback_targets;
+    if (func->getNameAsString().find("___eval_") == std::string::npos)
+        fallback_targets[body] = ts;
+    else
     {
-        LOG_VERBOSE("\\-> target ", it.second->_self());
-        insert << "    " << it.first << get_synchronous_injection_stmt(*(it.second)) << ";" << std::endl;
+        // Region drivers run even when no clock event is active. Keep fallback
+        // injections inside the trigger block when a helper was inlined there.
+        std::vector<const clang::CompoundStmt *> trigger_bodies;
+        std::function<void(const clang::Stmt *)> find_triggers = [&](const clang::Stmt *stmt) {
+            if (!stmt)
+                return;
+            if (const auto *condition = llvm::dyn_cast<clang::IfStmt>(stmt))
+            {
+                const auto text = parser.get_source_code_str(condition->getCond());
+                if (text.find("__VactTriggered") != std::string::npos
+                    || text.find("__VnbaTriggered") != std::string::npos
+                    || text.find("__VactExecute") != std::string::npos
+                    || text.find("__VnbaExecute") != std::string::npos)
+                    if (const auto *block = llvm::dyn_cast<clang::CompoundStmt>(condition->getThen()))
+                        trigger_bodies.push_back(block);
+            }
+            for (const auto *child : stmt->children())
+                find_triggers(child);
+        };
+        find_triggers(body);
+
+        for (const auto &compound : map_seq_compounds_.at(func))
+            for (const auto &assignment : compound->asngs_)
+            {
+                const auto *expr = assignment->get_base_expr();
+                const clang::CompoundStmt *destination = body;
+                for (const auto *trigger : trigger_bodies)
+                    if (expr->getBeginLoc() >= trigger->getBeginLoc()
+                        && expr->getEndLoc() <= trigger->getEndLoc()
+                        && trigger->getBeginLoc() > destination->getBeginLoc())
+                        destination = trigger;
+                fallback_targets[destination].insert({ assignment->prefix_, assignment->t_ });
+            }
     }
-    insert << "    //<<< VRTLFI non-dominant target injections" << std::endl;
-    insert << "}";
 
-    // find last '}' as function body end
-    auto posLastBr = newc.rfind("}");
-    if (posLastBr != std::string::npos)
+    for (const auto &[block, targets] : fallback_targets)
     {
-        newc.erase(posLastBr);
-        newc.append(insert.str());
-        parser.getRewriter().ReplaceText(func->getSourceRange(), newc);
+        std::stringstream insert;
+        insert << std::endl << "    //>>> vRTLmod non-dominant target injections" << std::endl;
+        for (const auto &target : targets)
+            insert << "    " << target.first << get_synchronous_injection_stmt(*target.second) << ";" << std::endl;
+        insert << "    //<<< VRTLFI non-dominant target injections" << std::endl;
+
+        auto insertion_loc = block->getRBracLoc();
+        // Verilator 5 region drivers return a progress flag. Their fallback
+        // injections must run before the terminal return rather than after it.
+        if (!block->body_empty())
+            if (const auto *ret = llvm::dyn_cast<clang::ReturnStmt>(block->body_back()))
+                insertion_loc = ret->getBeginLoc();
+        parser.getRewriter().InsertTextBefore(insertion_loc, insert.str());
     }
 }
 
