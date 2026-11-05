@@ -147,7 +147,7 @@ function(vrtlmod)
 
     add_custom_command(
         OUTPUT ${OUTPUT}
-        DEPENDS ${SOURCES}
+        DEPENDS ${SOURCES} ${VRTLMOD}
         COMMAND ${VRTLMOD} ${VRTLMOD_ARGS} -- ${LLVM_TOOLS_BINARY_DIR}/clang++ ${CLANG_ARGS}
         COMMENT "executing vrtlmod: .. ${COMMAND_SPACES}"
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}

@@ -17,6 +17,7 @@
 cmake_minimum_required(VERSION 3.15)
 
 if(BUILD_TESTING)
+    include(${CMAKE_CURRENT_SOURCE_DIR}/verilated_sources.cmake)
     list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_BINARY_DIR})
     list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_BINARY_DIR})
 
@@ -75,13 +76,14 @@ if(BUILD_TESTING)
         SOURCES ${TDIR}/${DUT_NAME}/${DUT_NAME}.sv
         VERILATOR_ARGS -O0 --hierarchical ${VERILATE_ARGS}
     )
+    # Use the runtime selected by Verilator, including verilated_threads.cpp on v5.
+    get_target_property(CC_RUNTIME_SOURCES null SOURCES)
+    list(FILTER CC_RUNTIME_SOURCES INCLUDE REGEX "/verilated[^/]*[.]cpp$")
 
-    file(GLOB CIN ${CC_SUBDIR}/*)
+    collect_verilated_test_sources(CIN null "${CC_SUBDIR}")
     string(REPLACE "${CC_SUBDIR}/" ";${CC_SUBDIR}/vrtlmod/" COUT ${CIN})
 
     message ("${PROJECT_NAME}-test-cc vrtlmod sources: ${COUT}")
-
-    file(GLOB CC_SOURCES ${CC_SUBDIR}/*)
 
     string(REPLACE ";" " " CIN_STR "${CIN}")
 
@@ -104,9 +106,10 @@ if(BUILD_TESTING)
     add_library(${PROJECT_NAME}-test-cc_vrtlmod SHARED
         EXCLUDE_FROM_ALL
         ${COUT}
-        ${VERILATOR_INCLUDE_DIRECTORY}/verilated.cpp
+        ${CC_RUNTIME_SOURCES}
         ${GENERATED_API_SRCS}
     )
+    target_link_libraries(${PROJECT_NAME}-test-cc_vrtlmod PUBLIC ${VERILATOR_MT_CFLAGS})
     target_include_directories(${PROJECT_NAME}-test-cc_vrtlmod PUBLIC
         ${CC_SUBDIR}/vrtlmod
         ${VERILATOR_INCLUDE_DIRECTORY}
@@ -140,15 +143,15 @@ if(BUILD_TESTING)
         SOURCES ${TDIR}/${DUT_NAME}/${DUT_NAME}.sv
         VERILATOR_ARGS -O3 ${VERILATE_ARGS}
     )
+    get_target_property(SC_RUNTIME_SOURCES sc-null SOURCES)
+    list(FILTER SC_RUNTIME_SOURCES INCLUDE REGEX "/verilated[^/]*[.]cpp$")
     target_link_libraries(sc-null PUBLIC
         SystemC::systemc
     )
-    file(GLOB SCIN ${SC_SUBDIR}/*)
+    collect_verilated_test_sources(SCIN sc-null "${SC_SUBDIR}")
     string(REPLACE "${SC_SUBDIR}/" ";${SC_SUBDIR}/vrtlmod/" SCOUT ${SCIN})
 
     message ("${PROJECT_NAME}-test-sc vrtlmod sources: ${SCOUT}")
-
-    file(GLOB CC_SOURCES ${SC_SUBDIR}/*)
 
     set(GENERATED_API_SRCS
         ${SC_SUBDIR}/vrtlmod/V${DUT_NAME}_vrtlmodapi.cpp
@@ -170,7 +173,7 @@ if(BUILD_TESTING)
     add_library(${PROJECT_NAME}-test-sc_vrtlmod SHARED
         EXCLUDE_FROM_ALL
         ${SCOUT}
-        ${VERILATOR_INCLUDE_DIRECTORY}/verilated.cpp
+        ${SC_RUNTIME_SOURCES}
         ${GENERATED_API_SRCS}
     )
     target_include_directories(${PROJECT_NAME}-test-sc_vrtlmod PUBLIC
@@ -182,6 +185,7 @@ if(BUILD_TESTING)
     )
     target_link_libraries(${PROJECT_NAME}-test-sc_vrtlmod PUBLIC
         ${SystemC_LIBRARIES}
+        ${VERILATOR_MT_CFLAGS}
     )
 
     add_executable( ${PROJECT_NAME}-test-sc
@@ -227,17 +231,20 @@ if(BUILD_TESTING)
     # Testing the CMake config helper scripts: ###############################################################
     set(DIR_CMAKE_TEST ${CMAKE_CURRENT_BINARY_DIR}/cmaked)
     add_test(NAME ${PROJECT_NAME}:configure:test/fiapp-cmake
-        COMMAND ${CMAKE_COMMAND} "-S ${CMAKE_CURRENT_SOURCE_DIR}/fiapp" "-B ${DIR_CMAKE_TEST}"
+        # The wrapper finds its binary relative to itself. An exported
+        # share/verilator root breaks that lookup in distribution packages.
+        COMMAND ${CMAKE_COMMAND} -E env --unset=VERILATOR_ROOT
+            ${CMAKE_COMMAND} "-S ${CMAKE_CURRENT_SOURCE_DIR}/fiapp" "-B ${DIR_CMAKE_TEST}"
             "-D CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
             "-D CMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}"
             "-D VRTLMOD_ROOT=${CMAKE_BINARY_DIR}"
-            "-D SystemC_DIR=\'${SystemC_DIR}\'"
-            "-D SystemCLanguage_DIR=\'${SystemCLanguage_DIR}\'"
+            "-DVERILATOR_ROOT=${VERILATOR_ROOT}"
+            "-DSystemC_DIR=${SystemC_DIR}"
+            "-DSystemCLanguage_DIR=${SystemCLanguage_DIR}"
     )
     set_tests_properties(${PROJECT_NAME}:configure:test/fiapp-cmake
         PROPERTIES
         DEPENDS ${PROJECT_NAME}:build
-        ENVIRONMENT VERILATOR_ROOT=$ENV{VERILATOR_ROOT}
     )
     add_test(NAME ${PROJECT_NAME}:test/fiapp-cmake
         COMMAND ${CMAKE_COMMAND} --build ${DIR_CMAKE_TEST}

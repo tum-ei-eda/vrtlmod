@@ -24,6 +24,17 @@ else()
     message(STATUS "VERILATOR_ROOT: ${VERILATOR_ROOT}")
 endif()
 
+# Bind the executable to the requested tree, including when ROOT is share/verilator.
+# Otherwise the upstream package can pick a different version from PATH.
+unset(_VRTLMOD_VERILATOR_WRAPPER CACHE)
+find_program(_VRTLMOD_VERILATOR_WRAPPER NAMES verilator
+    HINTS "${VERILATOR_ROOT}/bin" "${VERILATOR_ROOT}/../../bin"
+    NO_DEFAULT_PATH)
+if(_VRTLMOD_VERILATOR_WRAPPER)
+    set(VERILATOR_BIN "${_VRTLMOD_VERILATOR_WRAPPER}")
+endif()
+unset(_VRTLMOD_VERILATOR_WRAPPER CACHE)
+
 if(EXISTS "${VERILATOR_ROOT}/Makefile")
     # This is a non-install Verilator, aka repository+build
     # VERILATOR_ROOT/
@@ -51,13 +62,13 @@ else()
 
         set(VERILATOR_INCLUDE_DIRS ${VERILATOR_INCLUDE_DIRECTORY} ${VERILATOR_INCLUDE_DIRECTORY}/vltstd ${VERILATOR_INCLUDE_DIRECTORY}/gtkwave)
 
+    elseif(IS_DIRECTORY "${VERILATOR_ROOT}/include")
+        # Verilator's own CMake package uses <install>/share/verilator as its root.
+        set(VERILATOR_INCLUDE_DIRECTORY "${VERILATOR_ROOT}/include")
+        find_package(verilator HINTS ${VERILATOR_ROOT} REQUIRED)
+        set(VERILATOR_INCLUDE_DIRS ${VERILATOR_INCLUDE_DIRECTORY} ${VERILATOR_INCLUDE_DIRECTORY}/vltstd ${VERILATOR_INCLUDE_DIRECTORY}/gtkwave)
     else()
-        # This might be pointing to <install>/share/verilator/ and is not supported
-        # VERILATOR_ROOT/
-        #               |-> bin/verilator_includer
-        #               |-> include/
-        #               \-> examples/
-        message(FATAL_ERROR "Set VERILATOR_ROOT to base <install> directory!")
+        message(FATAL_ERROR "VERILATOR_ROOT must point to a Verilator source tree, install prefix, or share/verilator directory.")
     endif()
 endif()
 

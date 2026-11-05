@@ -16,6 +16,7 @@
 
 cmake_minimum_required(VERSION 3.15 FATAL_ERROR)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/../verilated_sources.cmake)
 
 set(VRTL_NAME fiapp)
 set(TOP_NAME ${VRTL_NAME})
@@ -26,10 +27,9 @@ if(NOT CMAKE_CXX_STANDARD)
     message(WARNING "CMAKE_CXX_STANDARD not set. Default to ${CMAKE_CXX_STANDARD}")
 endif()
 
-if(NOT IS_DIRECTORY $ENV{VERILATOR_ROOT})
-    message(FATAL_ERROR "Set VERILATOR_ROOT environment variable!")
+if(NOT VERILATOR_ROOT)
+    set(VERILATOR_ROOT "$ENV{VERILATOR_ROOT}")
 endif()
-set(VERILATOR_ROOT $ENV{VERILATOR_ROOT})
 message(STATUS "VERILATOR_ROOT: ${VERILATOR_ROOT}")
 find_package(VERILATOR REQUIRED)
 
@@ -83,6 +83,8 @@ verilate(dummy_proj
     VERILATOR_ARGS ${VERILATE_ARGS}
     SOURCES ${RTL_SRCS}
 )
+get_target_property(VERILATOR_RUNTIME_SOURCES dummy_proj SOURCES)
+list(FILTER VERILATOR_RUNTIME_SOURCES INCLUDE REGEX "/verilated[^/]*[.]cpp$")
 
 target_link_libraries(dummy_proj PRIVATE
     ${SystemC_LIBRARIES}
@@ -91,13 +93,14 @@ target_include_directories(dummy_proj PRIVATE
     ${SYSTEMC_INCLUDE_DIRS}
 )
 
-file(GLOB CC_SOURCES ${CMAKE_CURRENT_BINARY_DIR}/${VRTL_NAME}/sc_obj_dir/*)
+collect_verilated_test_sources(CC_SOURCES dummy_proj "${CMAKE_CURRENT_BINARY_DIR}/${VRTL_NAME}/sc_obj_dir")
 
 find_package(vrtlmod HINTS $ENV{VRTLMOD_ROOT} ${VRTLMOD_ROOT} REQUIRED)
 
 set(VRTL_DIR ${VRTL_NAME}/sc_obj_dir)
 
-file( GLOB VRTL_SRCS ${CMAKE_CURRENT_BINARY_DIR}/${VRTL_DIR}/*.cpp)
+set(VRTL_SRCS ${CC_SOURCES})
+list(FILTER VRTL_SRCS INCLUDE REGEX "[.](cpp|cc)$")
 
 set(VRTLMOD_OUTSOURCES ${VRTL_SRCS})
 
@@ -107,19 +110,6 @@ list(TRANSFORM VRTLMOD_OUTSOURCES REPLACE "/${VRTL_DIR}/" "/${VRTLMOD_OUT_DIR}/"
 
 message("vrtlmod outsources" ${VRTLMOD_OUTSOURCES})
 
-if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/${VRTLMOD_OUT_DIR}")
-    set(MAKE_VRTLMOD On)
-else()
-    set(VARSET ${VRTLMOD_OUTSOURCES} ${CMAKE_CURRENT_BINARY_DIR}/${VRTLMOD_OUT_DIR}/V${TOP_NAME}_vrtlmodapi.cpp)
-    foreach(var ${VARSET})
-        if( NOT EXISTS "${var}" )
-            set(MAKE_VRTLMOD On)
-        endif()
-    endforeach()
-endif()
-
-message("run vrtlmod: " ${MAKE_VRTLMOD})
-
 set(GENERATED_API_SRCS
     ${CMAKE_CURRENT_BINARY_DIR}/${VRTLMOD_OUT_DIR}/V${TOP_NAME}_vrtlmodapi.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/${VRTLMOD_OUT_DIR}/V${TOP_NAME}_vrtlmod_diffapi.cpp
@@ -128,26 +118,25 @@ set(GENERATED_API_SRCS
     ${CMAKE_CURRENT_BINARY_DIR}/${VRTLMOD_OUT_DIR}/V${TOP_NAME}_vrtlmod_diffapi_compute.cpp
 )
 
-if(MAKE_VRTLMOD)
-    vrtlmod(
-        SOURCES ${CC_SOURCES}
-        OUTPUT ${VRTLMOD_OUTSOURCES} ${GENERATED_API_SRCS} 
-        VERBOSE
-        SYSTEMC
-        OUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/${VRTLMOD_OUT_DIR}
-        INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/${VRTL_DIR}/ ${VERILATOR_INCLUDE_DIRECTORY} ${VERILATOR_INCLUDE_DIRECTORY}/vltstd
-        ${SYSTEMC_INCLUDE_DIRS}
-    )
-endif()
+vrtlmod(
+    SOURCES ${CC_SOURCES}
+    OUTPUT ${VRTLMOD_OUTSOURCES} ${GENERATED_API_SRCS}
+    VERBOSE
+    SYSTEMC
+    OUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/${VRTLMOD_OUT_DIR}
+    INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/${VRTL_DIR}/ ${VERILATOR_INCLUDE_DIRECTORY} ${VERILATOR_INCLUDE_DIRECTORY}/vltstd
+    ${SYSTEMC_INCLUDE_DIRS}
+)
 
 add_library(V${TOP_NAME}_vrtlmod SHARED
     ${CMAKE_CURRENT_BINARY_DIR}/null.cpp
     ${VRTLMOD_OUTSOURCES}
-    ${VERILATOR_INCLUDE_DIRECTORY}/verilated.cpp
+    ${VERILATOR_RUNTIME_SOURCES}
     ${GENERATED_API_SRCS}
 )
 target_link_libraries(V${TOP_NAME}_vrtlmod PUBLIC
     ${SystemC_LIBRARIES}
+    ${VERILATOR_MT_CFLAGS}
 )
 target_include_directories(V${TOP_NAME}_vrtlmod PUBLIC
     ${VERILATOR_INCLUDE_DIRECTORY}
