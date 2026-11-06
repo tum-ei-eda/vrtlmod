@@ -1,6 +1,29 @@
-/*! \mainpage Vrtlmod: Verilated RTL modifier for target injection
-\image html _tum.png
-\image html vrtlmod-icon.svg
-\section my-intro Introduction
-\includedoc myIntro.html
+/*! \mainpage vRTLmod API reference
+
+vRTLmod adds fault injection and differential analysis APIs to Verilator-generated
+C++ and SystemC models. This reference covers the common injection interfaces and
+the implementation used to analyze, rewrite, and generate model code.
+
+For installation and a runnable first experiment, start with
+<a href="https://tum-ei-eda.github.io/vrtlmod/getting-started.html">Get started</a>.
+The <a href="https://tum-ei-eda.github.io/vrtlmod/using-vrtlmod.html">user guide</a>
+explains target selection, injection timing, and build integration.
+
+\section injection-interfaces Fault injection interfaces
+
+- \ref vrtlfi::td::TD_API "Target dictionary API": prepare faults and look up injection targets.
+- \ref vrtlfi::td::TDentry "Target entries": control masks, arming, state access, and injection counters.
+
+\section implementation Implementation
+
+- \ref core.hpp "Core interfaces": coordinate model analysis, target selection, and rewriting.
+- \ref vrtlmod::types "Model types": represent modules, variables, cells, and targets.
+- \ref vrtlmod::passes "Transformation passes": analyze and rewrite generated C++ through Clang.
+- \ref vrtlmod::vapi::VapiGenerator "API generator": emit the injection and differential APIs.
+
+\section reference-index Browse the reference
+
+<a href="annotated.html">Classes</a> &middot;
+<a href="namespaces.html">Namespaces</a> &middot;
+<a href="files.html">Files</a>
 */

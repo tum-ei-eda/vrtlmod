@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Use vRTLmod to add fault injection to Verilator C++ and SystemC models. Get started, select injection targets, and run your first fault experiment.">
+  <meta name="theme-color" content="#154b83">
+  <title>vRTLmod — Fault injection for Verilator models</title>
+  <link rel="icon" href="assets/vrtlmod-icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/site.css">
+  <script src="assets/site.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="shell header-inner">
+      <a class="brand" href="index.html" aria-label="vRTLmod home"><span class="brand-mark" aria-hidden="true">v</span>vRTLmod</a>
+      <nav aria-label="Main">
+        <a href="getting-started.html">Get started</a>
+        <a href="using-vrtlmod.html">User guide</a>
+        <a href="api/index.html">API reference</a>
+        <a class="nav-external" href="https://github.com/tum-ei-eda/vrtlmod">GitHub <svg class="arrow" aria-hidden="true" viewBox="0 0 16 16" fill="none"><path d="M3 13 13 3M3 3h10v10" stroke="currentColor" stroke-width="1.5"/></svg></a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero shell" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="status-dot" aria-hidden="true"></span> Fault injection for Verilator</p>
+        <h1 id="hero-title">Find out what<br>one bit can change.</h1>
+        <p class="hero-description">Turn your Verilator model into a fault injection experiment. Select a state variable, inject a fault, and follow its effect through your simulation.</p>
+        <div class="actions">
+          <a class="button button-primary" href="getting-started.html">Run your first experiment <svg class="arrow" aria-hidden="true" viewBox="0 0 16 16" fill="none"><path d="M3 13 13 3M3 3h10v10" stroke="currentColor" stroke-width="1.5"/></svg></a>
+          <a class="text-link" href="#workflow">How it works <span aria-hidden="true">↓</span></a>
+        </div>
+        <p class="hero-meta">Open source <span aria-hidden="true">/</span> C++ &amp; SystemC <span aria-hidden="true">/</span> Verilator 4 &amp; 5</p>
+      </div>
+
+      <div class="experiment" aria-labelledby="experiment-title">
+        <div class="experiment-header">
+          <span class="eyebrow" id="experiment-title">A bit flip, illustrated</span>
+          <span class="experiment-tag">8-bit register</span>
+        </div>
+        <div class="experiment-signal"><span class="signal-dot" aria-hidden="true"></span> top.counter <span class="signal-type">[7:0]</span></div>
+        <p class="experiment-prompt">Choose a bit to flip.</p>
+        <div class="bit-labels" aria-hidden="true"><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span><span>0</span></div>
+        <div class="bit-register" role="group" aria-label="Select the bit to flip">
+          <button type="button" class="bit" data-bit="7" aria-label="Flip bit 7" aria-pressed="false">0</button>
+          <button type="button" class="bit" data-bit="6" aria-label="Flip bit 6" aria-pressed="false">0</button>
+          <button type="button" class="bit" data-bit="5" aria-label="Flip bit 5" aria-pressed="false">1</button>
+          <button type="button" class="bit" data-bit="4" aria-label="Flip bit 4" aria-pressed="false">0</button>
+          <button type="button" class="bit selected" data-bit="3" aria-label="Flip bit 3" aria-pressed="true">0</button>
+          <button type="button" class="bit" data-bit="2" aria-label="Flip bit 2" aria-pressed="false">1</button>
+          <button type="button" class="bit" data-bit="1" aria-label="Flip bit 1" aria-pressed="false">0</button>
+          <button type="button" class="bit" data-bit="0" aria-label="Flip bit 0" aria-pressed="false">1</button>
+        </div>
+        <div class="experiment-values" aria-live="polite" aria-atomic="true">
+          <div><span class="value-label">Reference</span><span class="register-value">0x2D <small>45</small></span></div>
+          <div class="injected-value"><span class="value-label">With bit <span data-selected-bit>3</span> flipped</span><span class="register-value"><span data-fault-hex>0x25</span> <small data-fault-decimal>37</small></span></div>
+        </div>
+        <div class="experiment-equation"><code>value <span>^</span> mask <span>=</span> result</code><code>0x2D <span>^</span> <span data-mask>0x08</span> <span>=</span> <span data-result>0x25</span></code></div>
+        <p class="experiment-note">An illustration of a single XOR bit flip. Your actual fault experiment runs in your C++ or SystemC simulation.</p>
+      </div>
+    </section>
+
+    <div class="compatibility-strip">
+      <div class="shell compatibility-inner"><p>Work with the simulation you already have.</p><div><span>Verilator models</span><span>LLVM / Clang analysis</span><span>Generated injection API</span></div></div>
+    </div>
+
+    <section class="shell workflow section-space" id="workflow" aria-labelledby="workflow-title">
+      <div class="section-heading"><p class="eyebrow">From RTL to experiment</p><h2 id="workflow-title">Three steps.<br>A controllable fault.</h2><p>vRTLmod instruments Verilator’s generated code. You keep your RTL sources and control the experiment from the simulation harness.</p></div>
+      <ol class="workflow-steps">
+        <li><span class="step-number">01</span><div><h3>Generate your model</h3><p>Use Verilator to translate your RTL into a C++ or SystemC model.</p><code class="inline-command">RTL → Verilator → C++</code></div></li>
+        <li><span class="step-number">02</span><div><h3>Add injection points</h3><p>Pass the generated sources and headers to vRTLmod. Get a rewritten model, a target inventory, and an injection API.</p><code class="inline-command">vrtlmod --out=instrumented …</code></div></li>
+        <li><span class="step-number">03</span><div><h3>Run the experiment</h3><p>Pick an injectable target, prepare a fault, arm it, and advance the simulation through the relevant state update.</p><a class="text-link" href="using-vrtlmod.html">Understand injection timing <span aria-hidden="true">→</span></a></div></li>
+      </ol>
+    </section>
+
+    <section class="experiment-section section-space" aria-labelledby="explore-title">
+      <div class="shell explore-layout">
+        <div class="section-heading"><p class="eyebrow">Your experiment, your targets</p><h2 id="explore-title">Start with one fault.<br>Build your campaign.</h2><p>Make the target set and injection timing explicit before scaling up a fault campaign.</p><a class="text-link" href="using-vrtlmod.html">Read the user guide <span aria-hidden="true">→</span></a></div>
+        <dl class="capability-list">
+          <div><dt>See what is injectable</dt><dd>Inspect the generated XML inventory and target dictionary. Target names and layouts reflect the model produced by your Verilator version and optimization settings.</dd></div>
+          <div><dt>Choose the scope</dt><dd>Use an XML whitelist to limit instrumentation to the state variables relevant to your experiment.</dd></div>
+          <div><dt>Observe the effect</dt><dd>Use the generated injection API and differential APIs to examine state changes alongside your simulation’s own checks.</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <section class="shell resources section-space" aria-labelledby="resources-title">
+      <div class="section-heading"><p class="eyebrow">Choose your next step</p><h2 id="resources-title">Guides for your next experiment.</h2></div>
+      <div class="resource-links">
+        <a href="getting-started.html"><span class="resource-index">01 / FIRST RUN</span><h3>Get started <svg class="arrow" aria-hidden="true" viewBox="0 0 16 16" fill="none"><path d="M3 13 13 3M3 3h10v10" stroke="currentColor" stroke-width="1.5"/></svg></h3><p>Build vRTLmod and follow a small, runnable example.</p></a>
+        <a href="using-vrtlmod.html"><span class="resource-index">02 / YOUR MODEL</span><h3>User guide <svg class="arrow" aria-hidden="true" viewBox="0 0 16 16" fill="none"><path d="M3 13 13 3M3 3h10v10" stroke="currentColor" stroke-width="1.5"/></svg></h3><p>Understand target selection, fault timing, and CMake integration.</p></a>
+        <a href="api/index.html"><span class="resource-index">03 / REFERENCE</span><h3>API reference <svg class="arrow" aria-hidden="true" viewBox="0 0 16 16" fill="none"><path d="M3 13 13 3M3 3h10v10" stroke="currentColor" stroke-width="1.5"/></svg></h3><p>Look up the implementation interfaces in the Doxygen documentation.</p></a>
+      </div>
+    </section>
+
+    <section class="research-section" aria-labelledby="research-title">
+      <div class="shell research-inner"><div><p class="eyebrow">Research &amp; open source</p><h2 id="research-title">Built for exploring hardware reliability.</h2><p>Developed at the Chair of Electronic Design Automation, Technical University of Munich. If vRTLmod supports your research, please cite the relevant publication.</p></div><div class="research-links"><a href="https://doi.org/10.1145/3587135.3591435">vRTLmod · Computing Frontiers 2023 <svg class="arrow" aria-hidden="true" viewBox="0 0 16 16" fill="none"><path d="M3 13 13 3M3 3h10v10" stroke="currentColor" stroke-width="1.5"/></svg></a><a href="https://doi.org/10.23919/DATE64628.2025.10993266">Differential fault effect checks · DATE 2025 <svg class="arrow" aria-hidden="true" viewBox="0 0 16 16" fill="none"><path d="M3 13 13 3M3 3h10v10" stroke="currentColor" stroke-width="1.5"/></svg></a><a href="https://github.com/tum-ei-eda/vrtlmod/blob/master/README.adoc#publications">Citation details <svg class="arrow" aria-hidden="true" viewBox="0 0 16 16" fill="none"><path d="M3 13 13 3M3 3h10v10" stroke="currentColor" stroke-width="1.5"/></svg></a></div></div>
+    </section>
+  </main>
+
+  <footer class="site-footer"><div class="shell footer-inner"><a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true">v</span>vRTLmod</a><p>Verilated RTL Injection Modifier</p><nav aria-label="Footer"><a href="https://github.com/tum-ei-eda/vrtlmod/blob/master/LICENSE">Apache 2.0</a><a href="https://github.com/tum-ei-eda/vrtlmod/issues">Report an issue</a><a href="https://github.com/tum-ei-eda/vrtlmod">Source code <svg class="arrow" aria-hidden="true" viewBox="0 0 16 16" fill="none"><path d="M3 13 13 3M3 3h10v10" stroke="currentColor" stroke-width="1.5"/></svg></a></nav></div></footer>
+</body>
+</html>

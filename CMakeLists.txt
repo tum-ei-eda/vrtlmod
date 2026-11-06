@@ -281,23 +281,12 @@ if(LLVM_FOUND AND Clang_FOUND AND verilator_FOUND)
 endif()
 
 option(BUILD_DOC "Build documentation" OFF)
-find_package(Doxygen)
-if (DOXYGEN_FOUND)
-    set(DOXYGEN_IN "${CMAKE_CURRENT_SOURCE_DIR}/docs/doxygen/doxyfile.cmake.in")
-    set(DOXYGEN_OUT "${CMAKE_CURRENT_BINARY_DIR}/docs/doxyfile")
-
-    configure_file("${DOXYGEN_IN}" "${DOXYGEN_OUT}" @ONLY)
-
-    add_custom_target( doc
-        COMMAND "${DOXYGEN_EXECUTABLE}" "${DOXYGEN_OUT}"
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-        COMMENT "Generating ${PROJECT_NAME} API documentation with Doxygen"
-        VERBATIM
-    )
-
-else (DOXYGEN_FOUND)
-    message("Doxygen need to be installed to generate the doxygen documentation")
-endif (DOXYGEN_FOUND)
+include("${CMAKE_CURRENT_SOURCE_DIR}/docs/cmake/VrtlmodDocs.cmake")
+if(BUILD_DOC)
+    vrtlmod_add_documentation("${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/docs" REQUIRED)
+else()
+    vrtlmod_add_documentation("${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/docs")
+endif()
 
 ########### TESTING #################
 add_subdirectory(test)
