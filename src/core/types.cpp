@@ -24,9 +24,9 @@
 #include "vrtlmod/util/logging.hpp"
 #include "vrtlmod/util/utility.hpp"
 
+#include <cstdint>
+#include <limits>
 #include <sstream>
-
-#include "verilated.h"
 
 namespace vrtlmod
 {
@@ -241,17 +241,17 @@ unsigned long Target::get_element_mask(std::initializer_list<size_t> subscripts)
     auto msb = msblsb_pair.first;
     auto lsb = msblsb_pair.second;
 
-    if (one_dim_bits >
-        sizeof(QData) * 8) //(cxxtypedim.back().find("WData[") != std::string::npos) //(one_dim_bits > 64)
+    // Verilator uses 64-bit scalars and 32-bit words for wider packed values.
+    if (one_dim_bits > std::numeric_limits<std::uint64_t>::digits)
     {
         int elementsubs = *(subscripts.end() - 1);
         int elementsize = dimlens.back();
-        auto active_bits = one_dim_bits % (sizeof(EData) * 8);
+        auto active_bits = one_dim_bits % std::numeric_limits<std::uint32_t>::digits;
         // packed in WData
         if (((elementsubs + 1) != elementsize) || (active_bits == 0) // fully used last element, i.e., no inactive rest
         )
         {
-            mask = EData(-1);
+            mask = std::numeric_limits<std::uint32_t>::max();
         }
         else
         {
