@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="refresh" content="0; url=@redirect_target@">
+  <title>vRTLmod API reference</title>
+  <link rel="canonical" href="@redirect_target@">
+  <script>window.location.replace("@redirect_target@" + window.location.search + window.location.hash);</script>
+</head>
+<body><p>The API reference has moved to <a href="@redirect_target@">this page</a>.</p></body>
+</html>

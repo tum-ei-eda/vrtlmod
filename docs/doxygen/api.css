@@ -1,0 +1,5 @@
+/* Keep the reference readable when the desktop navigation tree will not fit. */
+@media (max-width: 760px) {
+  #side-nav, #splitbar { display: none; }
+  #doc-content { margin-left: 0 !important; }
+}

@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Build vRTLmod and inject your first bit flip into a small Verilator counter simulation.">
+  <meta name="theme-color" content="#154b83">
+  <title>Get started · vRTLmod</title>
+  <link rel="icon" href="assets/vrtlmod-icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/site.css">
+  <script src="assets/site.js" defer></script>
+</head>
+<body class="docs-page">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="shell header-inner">
+      <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true">v</span>vRTLmod</a>
+      <nav aria-label="Main">
+        <a href="getting-started.html" aria-current="page">Get started</a>
+        <a href="using-vrtlmod.html">User guide</a>
+        <a href="api/index.html">API reference</a>
+        <a class="nav-external" href="https://github.com/tum-ei-eda/vrtlmod">GitHub <span aria-hidden="true">↗</span></a>
+      </nav>
+    </div>
+  </header>
+  <main class="shell docs-layout">
+    <aside class="docs-nav" aria-label="On this page">
+      <p>On this page</p>
+      <a href="#requirements">Requirements</a>
+      <a href="#build">Build vRTLmod</a>
+      <a href="#example">Get the example</a>
+      <a href="#generate">Generate and instrument</a>
+      <a href="#run">Compile and run</a>
+      <a href="#injection">How the injection works</a>
+      <a href="#next">Next steps</a>
+    </aside>
+    <article class="docs-content" id="main">
+      <p class="eyebrow">First injection</p>
+      <h1>From RTL to a visible bit flip</h1>
+      <p class="lead">Instrument an eight-bit counter, compile its generated injection API, and flip one bit while the simulation runs.</p>
+      <p>The example starts with a normal counter value of 1. At the next clock edge it would become 2. vRTLmod flips bit 0 of the updated state, so the harness observes 3 and checks that result.</p>
+
+      <h2 id="requirements">1. Choose matching tools</h2>
+      <p>You need a C++ compiler, CMake, Verilator, and LLVM with Clang development libraries. Use the same Verilator installation to build vRTLmod and generate your model. The commands below use Linux, Bash, C++17, and LLVM 18. The complete counter example was checked with Verilator 5.020 and 5.054 using GCC 13.</p>
+      <p>On a Debian or Ubuntu release whose configured repositories provide LLVM 18, the dependency packages are:</p>
+      <pre><code class="language-bash">sudo apt update
+sudo apt install build-essential cmake git verilator \
+  llvm-18-dev libclang-18-dev clang-18 libzstd-dev</code></pre>
+      <p>Package availability varies by distribution. vRTLmod supports LLVM/Clang 13–18; if you install another supported version, adjust <code>LLVM_DIR</code> and the Clang path below together. Verilator 5.054's CMake package requires CMake 3.19 or newer.</p>
+      <div class="callout">
+        <p><strong>SystemC is optional here.</strong> This example generates a plain C++ model. SystemC is needed for SystemC models and the corresponding integration tests. C++17 and newer vRTLmod builds do not require Boost.</p>
+      </div>
+      <p>This walkthrough selects Verilator from <code>PATH</code>. In the shell used for the example, clear any overrides that would select a different installation:</p>
+      <pre><code class="language-bash">unset VERILATOR_ROOT VERILATOR_BIN
+verilator --version</code></pre>
+      <p>For a custom installation, put its <code>bin</code> directory first on <code>PATH</code> before continuing. See <a href="using-vrtlmod.html#toolchains">toolchain selection</a> for explicit CMake roots.</p>
+
+      <h2 id="build">2. Build and install vRTLmod</h2>
+      <pre><code class="language-bash">git clone --recurse-submodules https://github.com/tum-ei-eda/vrtlmod.git
+cd vrtlmod
+cmake -S . -B build \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_CXX_STANDARD=17 \
+  -DLLVM_DIR=/usr/lib/llvm-18/lib/cmake/llvm \
+  -DCMAKE_INSTALL_PREFIX="$PWD/install" \
+  -DBUILD_TESTING=OFF
+cmake --build build --parallel 2
+cmake --install build
+export PATH="$PWD/install/bin:$PATH"</code></pre>
+      <p>The configure output reports the selected Verilator executable, runtime root, and version. Check that these match the installation you intend to use. Set the install prefix during configuration, as shown above.</p>
+
+      <h2 id="example">3. Get the counter and harness</h2>
+      <p>From the repository directory, copy the two example files into a separate working directory:</p>
+      <pre><code class="language-bash">mkdir -p counter-demo
+cp docs/site/examples/counter.sv docs/site/examples/main.cpp counter-demo/
+cd counter-demo</code></pre>
+      <p>You can also download <a href="examples/counter.sv" download>counter.sv</a> and <a href="examples/main.cpp" download>main.cpp</a> into an empty directory if you already have vRTLmod installed.</p>
+      <p>The RTL has a synchronous reset and an enable:</p>
+      <pre><code class="language-systemverilog">module counter (
+    input  logic       clk,
+    input  logic       reset,
+    input  logic       enable,
+    output logic [7:0] count
+);
+    always_ff @(posedge clk) begin
+        if (reset)
+            count &lt;= 8'd0;
+        else if (enable)
+            count &lt;= count + 8'd1;
+    end
+endmodule</code></pre>
+
+      <h2 id="generate">4. Generate and instrument the C++ model</h2>
+      <pre><code class="language-bash">verilator --cc --top-module counter --prefix Vcounter \
+  --Mdir obj_dir counter.sv
+
+vrtlmod --out=modified obj_dir/Vcounter*.cpp obj_dir/Vcounter*.h \
+  -- /usr/lib/llvm-18/bin/clang++ -xc++ -std=c++17 -Iobj_dir</code></pre>
+      <p>Verilator creates the original model in <code>obj_dir</code>. vRTLmod copies and instruments its code in <code>modified</code>; the original files remain available. Pass both the generated C++ sources and headers. The arguments after <code>--</code> configure Clang's parsing of those files.</p>
+      <p>The verified example produces these artifacts in <code>modified</code>:</p>
+      <table>
+        <thead><tr><th scope="col">Files</th><th scope="col">Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>Vcounter.cpp</code>, <code>Vcounter.h</code>, and generated root/symbol-table files</td><td>The copied and rewritten Verilator model. Internal file splitting varies by Verilator version.</td></tr>
+          <tr><td><code>Vcounter-vrtlmod.xml</code></td><td>Analyzed modules, variables, and injection locations.</td></tr>
+          <tr><td><code>Vcounter_vrtlmodapi.hpp</code><br><code>Vcounter_vrtlmodapi.cpp</code></td><td>The <code>VcounterVRTLmodAPI</code> wrapper.</td></tr>
+          <tr><td><code>targetdictionary.hpp</code></td><td>The shared injection interface.</td></tr>
+          <tr><td><code>Vcounter_vrtlmod_diffapi.hpp</code><br><code>Vcounter_vrtlmod_diffapi.cpp</code><br><code>Vcounter_vrtlmod_diffapi_compare_fast.cpp</code><br><code>Vcounter_vrtlmod_diffapi_compare.cpp</code><br><code>Vcounter_vrtlmod_diffapi_compute.cpp</code></td><td>The generated differential comparison API.</td></tr>
+          <tr><td><code>Vcounter_vrtlmod_td_module.py</code></td><td>Generated Python target metadata.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="run">5. Compile and run the simulation</h2>
+      <p>This small, cycle-based model needs Verilator's base runtime and, when provided by the installation, its thread runtime. The Bash array below selects those files without assuming an install-prefix layout:</p>
+      <pre><code class="language-bash">VERILATOR_SHARE="$(verilator --getenv VERILATOR_ROOT)"
+runtime_sources=("$VERILATOR_SHARE/include/verilated.cpp")
+if [[ -f "$VERILATOR_SHARE/include/verilated_threads.cpp" ]]; then
+  runtime_sources+=("$VERILATOR_SHARE/include/verilated_threads.cpp")
+fi
+
+c++ -std=c++17 -O1 \
+  -Imodified \
+  -I"$VERILATOR_SHARE/include" \
+  -I"$VERILATOR_SHARE/include/vltstd" \
+  main.cpp modified/Vcounter*.cpp "${runtime_sources[@]}" \
+  -pthread -o counter-demo
+./counter-demo</code></pre>
+      <p>Both tested Verilator versions, 5.020 and 5.054, produce:</p>
+      <pre><code>TOP.count: 8 bits, injectable=1
+Injected bit 0 of TOP.count: count=3 (expected 3)</code></pre>
+      <p>The harness returns a nonzero exit code if initialization, target selection, preparation, or the observed fault is wrong. Target names may change with Verilator versions and optimization; the harness selects the sole injectable eight-bit entry instead of hardcoding its name.</p>
+      <div class="callout">
+        <p><strong>For larger builds, use CMake's model metadata.</strong> Models using tracing, coverage, timing, or other features can require additional runtime sources and libraries. The <a href="using-vrtlmod.html#cmake">CMake integration guide</a> shows where the maintained example obtains the runtime selected by Verilator.</p>
+      </div>
+
+      <h2 id="injection">6. Understand the injection sequence</h2>
+      <p>The downloaded harness owns a <code>VcounterVRTLmodAPI</code>. Its <code>vrtl_</code> member is the normal Verilator model; its <code>td_</code> dictionary lists generated targets. After reset and one ordinary count, the harness finds the counter, prepares bit 0, and arms it:</p>
+      <pre><code class="language-cpp">// Inside the example harness; target is selected from simulation.td_.
+target-&gt;disarm();
+target-&gt;reset_mask();
+if (simulation.prep_inject(*target, 0) != vrtlfi::td::TD_API::GENERIC_OK)
+    return 1;
+target-&gt;arm();
+tick();                    // Drive clk low, high, low, evaluating each phase.
+target-&gt;disarm();</code></pre>
+      <p><code>prep_inject()</code> sets the mask and resets injection counters. It does not arm the target. The generated model hooks apply the fault while the relevant state update executes. Calling <code>arm()</code> alone does not advance simulation time or create a clock edge.</p>
+
+      <h2 id="next">Next steps</h2>
+      <p>Use the <a href="using-vrtlmod.html">user guide</a> to select targets with an XML whitelist, integrate generated code into CMake, and compare faulty and reference simulations. The <a href="api/index.html">API reference</a> documents implementation types and methods.</p>
+      <a class="next-link" href="using-vrtlmod.html">Continue to the user guide →</a>
+    </article>
+  </main>
+  <footer class="site-footer">
+    <div class="shell footer-inner">
+      <p><a href="https://github.com/tum-ei-eda/vrtlmod">vRTLmod on GitHub</a> · <a href="https://github.com/tum-ei-eda/vrtlmod/blob/master/LICENSE">Apache-2.0 license</a></p>
+    </div>
+  </footer>
+</body>
+</html>

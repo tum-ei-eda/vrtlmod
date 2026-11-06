@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Use vRTLmod's command line, XML target selection, generated injection API, and CMake integration.">
+  <meta name="theme-color" content="#154b83">
+  <title>User guide · vRTLmod</title>
+  <link rel="icon" href="assets/vrtlmod-icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/site.css">
+  <script src="assets/site.js" defer></script>
+</head>
+<body class="docs-page">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="shell header-inner">
+      <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true">v</span>vRTLmod</a>
+      <nav aria-label="Main">
+        <a href="getting-started.html">Get started</a>
+        <a href="using-vrtlmod.html" aria-current="page">User guide</a>
+        <a href="api/index.html">API reference</a>
+        <a class="nav-external" href="https://github.com/tum-ei-eda/vrtlmod">GitHub <span aria-hidden="true">↗</span></a>
+      </nav>
+    </div>
+  </header>
+  <main class="shell docs-layout">
+    <aside class="docs-nav" aria-label="On this page">
+      <p>On this page</p>
+      <a href="#workflow">Workflow</a>
+      <a href="#toolchains">Toolchain selection</a>
+      <a href="#cli">Command line</a>
+      <a href="#targets">Choose targets</a>
+      <a href="#api">Drive an injection</a>
+      <a href="#cmake">CMake integration</a>
+      <a href="#comparison">Compare simulations</a>
+      <a href="#limits">Coverage and limits</a>
+    </aside>
+    <article class="docs-content" id="main">
+      <p class="eyebrow">User guide</p>
+      <h1>Use vRTLmod in your simulation</h1>
+      <p class="lead">Choose the generated state you want to instrument, build its injection API into your harness, and control when faults enter the model.</p>
+
+      <h2 id="workflow">The workflow</h2>
+      <ol>
+        <li>Generate a C++ or SystemC model with Verilator.</li>
+        <li>Run vRTLmod on the generated sources and headers.</li>
+        <li>Inspect the target inventory and optionally select a subset with a whitelist.</li>
+        <li>Compile the rewritten model, generated API, and required Verilator runtime into your simulation.</li>
+        <li>Prepare and arm a target, then drive the model's clock or event from your harness.</li>
+      </ol>
+      <p>vRTLmod instruments generated C++; it does not replace Verilator or run a fault campaign by itself. Start with the <a href="getting-started.html">complete counter example</a> if you have not yet built an instrumented simulation.</p>
+
+      <h2 id="toolchains">Keep the toolchain consistent</h2>
+      <p>Build vRTLmod against the same Verilator installation used to generate its input model. The supported major versions are 4 and 5, with v5 compatibility targeting 5.054. LLVM/Clang versions 13–18 are supported.</p>
+      <p>When configuring this repository or its maintained CMake examples, Verilator selection follows this order:</p>
+      <ol>
+        <li><code>VERILATOR_ROOT</code> passed to CMake, including a cached value.</li>
+        <li>The <code>VERILATOR_ROOT</code> environment variable.</li>
+        <li><code>verilator</code> on <code>PATH</code>.</li>
+      </ol>
+      <p>An explicit root can name a source/build tree, an installation prefix, or its <code>share/verilator</code> directory. Invalid explicit roots fail configuration. CMake reports the selected executable, runtime root, and version, then uses matching headers and the matching Verilator CMake package.</p>
+      <pre><code class="language-bash">cmake -S . -B build-custom \
+  -DVERILATOR_ROOT=/path/to/verilator-install \
+  -DLLVM_DIR=/path/to/llvm/lib/cmake/llvm \
+  -DCMAKE_CXX_STANDARD=17</code></pre>
+      <p>The selected root is cached. Use separate build directories for different installations. A CMake selection does not change the <code>verilator</code> command in your shell: use that same installation's command when generating model inputs manually.</p>
+      <p>C++17 is the default and needs no Boost dependency. Builds with older C++ standards use Boost.Filesystem; LLVM 16–18 require at least C++17. SystemC models additionally need a compatible SystemC installation built with a matching C++ standard.</p>
+
+      <h2 id="cli">Run the command line tool</h2>
+      <p>Provide the generated model's C++ files <em>and</em> headers. Keep Verilator's own runtime sources separate: they belong in the simulation build, not in the instrumentation input set.</p>
+      <pre><code class="language-bash">vrtlmod --out=modified obj_dir/Vcounter*.cpp obj_dir/Vcounter*.h \
+  -- /usr/lib/llvm-18/bin/clang++ -xc++ -std=c++17 -Iobj_dir</code></pre>
+      <p>The example uses the prefix <code>Vcounter</code> and LLVM 18; adapt both to your model and toolchain. vRTLmod adds include paths from its build configuration automatically. Supply additional model or library includes after <code>--</code>. Use <code>--no-auto-include</code> only when you intend to provide all required include paths yourself.</p>
+      <p>Input basenames are copied into the output directory, so use separate output directories for models with colliding filenames. Do not pass build scripts, makefiles, or unrelated source trees as model inputs.</p>
+      <table>
+        <thead><tr><th scope="col">Option</th><th scope="col">Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>--out=DIR</code></td><td>Write copied and rewritten code to <code>DIR</code>. Default: <code>vrtlmod-out</code>.</td></tr>
+          <tr><td><code>--systemc</code></td><td>Interpret the input as a Verilator SystemC model. Also provide SystemC's include directory to Clang.</td></tr>
+          <tr><td><code>--xml-only</code></td><td>Analyze the model and write its XML inventory without generating the injection API. Use a separate analysis output directory.</td></tr>
+          <tr><td><code>--wl-regxml=FILE</code></td><td>Select injectable variables using an edited vRTLmod XML inventory.</td></tr>
+          <tr><td><code>--overwrite</code></td><td>Modify the supplied source and header files in place. Omit this for the normal copy-to-output workflow.</td></tr>
+          <tr><td><code>--verbose</code>, <code>-v</code></td><td>Include detailed diagnostic output.</td></tr>
+          <tr><td><code>--silent</code>, <code>-s</code></td><td>Suppress warning and informational logging.</td></tr>
+          <tr><td><code>--no-auto-include</code></td><td>Disable automatically added Verilator, Clang, and standard-library include paths.</td></tr>
+          <tr><td><code>--diff-unroll</code></td><td>Unroll multidimensional accesses in generated differential comparison code.</td></tr>
+          <tr><td><code>--print-td</code></td><td>Print the common target-dictionary header.</td></tr>
+          <tr><td><code>--help</code></td><td>Show available command-line options, including Clang tooling options.</td></tr>
+        </tbody>
+      </table>
+      <p>The <code>--overwrite</code> option controls whether <em>input</em> files are modified. Existing files in a normal output directory can still be replaced when you rerun the command.</p>
+
+      <h2 id="targets">Choose injection targets</h2>
+      <p>The generated <code>Vcounter-vrtlmod.xml</code> describes analyzed modules and variables. Variables with injection locations are eligible for instrumentation. This is vRTLmod's analysis XML, distinct from Verilator's own netlist XML.</p>
+      <p>For a two-pass selection workflow, first analyze the original generated model:</p>
+      <pre><code class="language-bash">vrtlmod --xml-only --out=inventory \
+  obj_dir/Vcounter*.cpp obj_dir/Vcounter*.h \
+  -- /usr/lib/llvm-18/bin/clang++ -xc++ -std=c++17 -Iobj_dir
+cp inventory/Vcounter-vrtlmod.xml whitelist.xml</code></pre>
+      <p>Edit <code>whitelist.xml</code> by deleting unwanted variable nodes while retaining the surrounding module structure and attributes of retained entries. Then instrument the <em>original</em> generated inputs again:</p>
+      <pre><code class="language-bash">vrtlmod --wl-regxml=whitelist.xml --out=selected \
+  obj_dir/Vcounter*.cpp obj_dir/Vcounter*.h \
+  -- /usr/lib/llvm-18/bin/clang++ -xc++ -std=c++17 -Iobj_dir</code></pre>
+      <div class="callout">
+        <p><strong>Check the selected dictionary before a campaign.</strong> A nonexistent whitelist path currently produces a warning and falls back to the unfiltered target set. The analysis XML is written before filtering; inspect the reported remaining targets and the generated API's <code>td_</code> dictionary to confirm the selection.</p>
+      </div>
+      <p>Target inventory follows Verilator's generated clocked regions. Optimization can split arrays into separate targets, rename variables, or merge other assignments into those regions. Regenerate and review the whitelist when changing the RTL, Verilator version, or optimization settings.</p>
+
+      <h2 id="api">Prepare, arm, clock, disarm</h2>
+      <p>For a model with prefix <code>Vcounter</code>, include <code>Vcounter_vrtlmodapi.hpp</code> and construct <code>VcounterVRTLmodAPI</code>. Its <code>vrtl_</code> member owns the instrumented Verilator model. Its public <code>td_</code> dictionary maps generated target names to entries.</p>
+      <p>Inside your simulation harness, enumerate injectable entries before selecting a name:</p>
+      <pre><code class="language-cpp">VcounterVRTLmodAPI simulation;
+for (const auto &amp;entry : simulation.td_) {
+    if (entry.second-&gt;injectable_)
+        std::cout &lt;&lt; entry.first &lt;&lt; ": " &lt;&lt; entry.second-&gt;bits_ &lt;&lt; " bits\n";
+}</code></pre>
+      <p>The following is a harness fragment, not a complete program. Replace the target name with one from your generated dictionary and supply <code>tick()</code> to drive the relevant clock and call <code>eval()</code>:</p>
+      <pre><code class="language-cpp">auto *target = simulation.get_target("TOP.count");
+if (!target || !target-&gt;injectable_)
+    return 1;
+
+target-&gt;disarm();
+target-&gt;reset_mask();
+if (simulation.prep_inject(*target, 0) != vrtlfi::td::TD_API::GENERIC_OK)
+    return 1;
+target-&gt;arm();
+tick();
+target-&gt;disarm();</code></pre>
+      <p><code>prep_inject()</code> defaults to a bit flip, adds the selected bit to the mask, and resets injection counters. It does not arm the target. Clear the mask before a new independent selection, check the return code, and explicitly arm and disarm the entry.</p>
+      <p>Generated update hooks apply the fault during simulation. Arming an entry does not schedule a clock event; your harness remains responsible for clocks, reset, enables, and evaluation. Observe the result through ordinary model outputs or the entry's <code>read_data()</code>; use <code>get_cntr()</code> to inspect injection counts. The <a href="examples/main.cpp" download>counter harness</a> also checks the expected output independently.</p>
+      <p>For SystemC, generate the input with Verilator's SystemC mode and pass <code>--systemc</code> to vRTLmod. Bind the model's ports to SystemC signals, then advance simulation with <code>sc_start()</code>. The <a href="https://github.com/tum-ei-eda/vrtlmod/blob/master/test/fiapp/sc_fiapp_test.cpp">maintained SystemC harness</a> shows that sequence.</p>
+
+      <h2 id="cmake">Integrate with CMake</h2>
+      <p>The installed <code>cmake/vrtlmod-config.cmake</code> package provides <code>vrtlmod()</code>, which adds the instrumentation command to your build. It does not create or link the final simulation target.</p>
+      <p>The maintained <a href="https://github.com/tum-ei-eda/vrtlmod/blob/master/test/fiapp/CMakeLists.txt">test/fiapp example</a> demonstrates the complete SystemC integration. From a vRTLmod checkout with vRTLmod and SystemC already installed:</p>
+      <pre><code class="language-bash">cmake -S test/fiapp -B build-fiapp \
+  -DVRTLMOD_ROOT="$PWD/install" \
+  -DSystemCLanguage_DIR=/path/to/systemc/lib/cmake/SystemCLanguage
+cmake --build build-fiapp --parallel 2
+./build-fiapp/fiapp-cmake-test build-fiapp/diff.csv</code></pre>
+      <p>Adjust the install locations, and select the same Verilator used to build vRTLmod. This example uses SystemC; it is separate from the plain C++ counter walkthrough.</p>
+      <p>For your own build:</p>
+      <ol>
+        <li>Generate the original model and collect its model sources and headers.</li>
+        <li>Load vRTLmod with <code>find_package(vrtlmod CONFIG REQUIRED)</code>, using <code>vrtlmod_DIR</code> or <code>CMAKE_PREFIX_PATH</code> to locate the installed package.</li>
+        <li>Call <code>vrtlmod(SOURCES … OUTPUT … OUT_DIR … INCLUDE_DIRS …)</code>. Declare the rewritten model and generated API sources in <code>OUTPUT</code>.</li>
+        <li>Compile those outputs into your target, include their directory, and link the runtime sources and libraries required by the selected Verilator model.</li>
+      </ol>
+      <p>The helper accepts <code>SYSTEMC</code>, <code>WHITELIST_XML</code>, <code>VERBOSE</code>, and <code>SILENT</code>. Clang and SystemC include/tool paths can also be supplied explicitly; see the <a href="https://github.com/tum-ei-eda/vrtlmod/blob/master/cmake/vrtlmod-config.cmake.in">package implementation</a> for the full argument list.</p>
+      <div class="callout">
+        <p><strong>Reuse Verilator's selected runtime.</strong> The maintained example reads the original model target's <code>SOURCES</code> property and collects its <code>verilated*.cpp</code> files. It also links <code>VERILATOR_MT_CFLAGS</code>. This avoids missing runtime symbols when a Verilator version needs additional sources, such as <code>verilated_threads.cpp</code>.</p>
+      </div>
+      <p>The repository's <code>FindVERILATOR.cmake</code> adds <code>vrtlmod_verilate(target …)</code> for consistent toolchain selection during configuration and regeneration. It accepts upstream <code>verilate()</code> arguments and keeps the caller's environment intact. Older Verilator packages without a command hook require a Makefile or Ninja generator for this adapter. The adapter belongs to the repository's discovery module; the installed <code>vrtlmod()</code> package does not itself provide it.</p>
+
+      <h2 id="comparison">Compare faulty and reference runs</h2>
+      <p>vRTLmod also emits <code>Vcounter_vrtlmod_diffapi.hpp</code> and associated C++ sources. The generated <code>VcounterVRTLmodAPIDifferential</code> can compare two API-backed models, report target differences, and produce difference vectors or CSV output. See the <a href="https://github.com/tum-ei-eda/vrtlmod/blob/master/test/fiapp/fiapp_test.cpp">C++ integration harness</a> for <code>compare_fast()</code>, dictionary comparison, and CSV usage.</p>
+      <p>For validation, retain an unmodified model as well. Give it a distinct Verilator prefix if it shares an executable with the instrumented model, drive both with identical inputs, and compare observable behavior with injection disabled. The maintained tests use this independent baseline in addition to the generated differential API.</p>
+
+      <h2 id="limits">Coverage and practical limits</h2>
+      <p>Regression coverage includes cycle-based C++ and SystemC models, the downstream CMake helper, scalar and multidimensional state, helper-call destinations, and clock/reset scheduling with split, inlined, and separate generated functions. The main compatibility baseline uses Verilator 4.228 and 5.054 with LLVM 18 and SystemC 2.3.4; 5.020 and 5.046 were also integration-tested during development.</p>
+      <p>Timing/coroutines, DPI, and multithreaded simulation are not covered by those integration tests. Generated storage shape and target names can change with optimization. Review the inventory and validate fault placement against your own model before using a new configuration for a campaign.</p>
+      <p>If parsing fails, first check the Verilator version match, model headers, C++ standard, and additional include paths. Add <code>--verbose</code> to collect diagnostics and consult the <a href="https://github.com/tum-ei-eda/vrtlmod/blob/master/docs/CONTRIBUTING.md">contributor guide</a> for targeted regression commands.</p>
+      <a class="next-link" href="api/index.html">Explore the API reference →</a>
+    </article>
+  </main>
+  <footer class="site-footer">
+    <div class="shell footer-inner">
+      <p><a href="https://github.com/tum-ei-eda/vrtlmod">vRTLmod on GitHub</a> · <a href="https://github.com/tum-ei-eda/vrtlmod/blob/master/LICENSE">Apache-2.0 license</a></p>
+    </div>
+  </footer>
+</body>
+</html>

@@ -8,7 +8,7 @@ Start with the [README](../README.adoc), the relevant interfaces in [include/vrt
 
 Use the configured C++ standard, currently C++17 by default, and follow the repository's [.clang-format](../.clang-format). Format changed project code consistently with its surroundings and preserve intentional `clang-format off` regions in AST matchers. Keep assumptions about Verilator output and Clang AST shapes explicit, including version-specific behavior. RTL fixtures may use SystemVerilog as needed to exercise supported model forms.
 
-Model analysis and target discovery live in [src/core](../src/core/), transformation passes in [src/passes](../src/passes/), and generated API templates and runtime support in [src/vapi](../src/vapi/). Keep their corresponding interfaces in `include/vrtlmod/` aligned. Build integration belongs in [cmake](../cmake/), regression fixtures and reusable injection checks in [test](../test/), and Doxygen documentation in [docs/doxygen](doxygen/), with shared images in [docs/figures](figures/). Register source files and test dependencies through CMake. Preserve upstream conventions and notices in [third_party](../third_party/).
+Model analysis and target discovery live in [src/core](../src/core/), transformation passes in [src/passes](../src/passes/), and generated API templates and runtime support in [src/vapi](../src/vapi/). Keep their corresponding interfaces in `include/vrtlmod/` aligned. Build integration belongs in [cmake](../cmake/), regression fixtures and reusable injection checks in [test](../test/), user documentation in [docs/site](site/), and Doxygen documentation in [docs/doxygen](doxygen/), with shared images in [docs/figures](figures/). Register source files and test dependencies through CMake. Preserve upstream conventions and notices in [third_party](../third_party/).
 
 ## Development and validation
 
@@ -58,7 +58,19 @@ For behavioral changes, cover the affected cases and relevant toolchain versions
 
 For performance or benchmark claims, compare matched RTL, tool versions, Verilator/compiler flags, workloads and fault campaign settings. Keep target coverage and injection behavior comparable. Report transformation time, generated model build time and simulation performance separately; include memory or code size when making claims about them. Larger benchmark integration uses the external `tum-ei-eda/vrtlmod-test` repository; see the benchmark job in [CI](../.github/workflows/ci.yml) for its additional setup. Keep generated models, APIs and logs under `build/` or another ignored build directory, and include concise results and reproduction commands in the contribution.
 
-For API documentation changes, install Doxygen and Graphviz before configuring, then run `cmake --build build --target doc`. The generated documentation belongs under `build/docs/`; open `build/docs/html/index.html` to view it. The optional [Makefile](Makefile) delegates to the same configured CMake build: `make -C docs dox` generates documentation, and `make -C docs pdf` also builds `build/docs/vrtlmod.pdf` with the LaTeX tools required by Doxygen. For a different build directory, pass `BUILD_DIR=/absolute/path/to/build`.
+The GitHub Pages site starts with user documentation in [docs/site](site/), with the generated Doxygen reference under `api/`. Keep instructions grounded in runnable examples and document the observable model behavior before implementation details. The site uses plain HTML, CSS and optional JavaScript, with no framework or remote asset dependencies.
+
+Build the full site with only CMake, Doxygen and Graphviz; LLVM, Verilator and a C++ compiler are not required to build documentation:
+
+```sh
+cmake -S docs -B build-docs
+cmake --build build-docs --target pages
+python3 -m http.server 8000 --directory build-docs/docs/site
+```
+
+Open `http://localhost:8000/` for the user documentation and `http://localhost:8000/api/` for the implementation reference. Check navigation, local links, narrow screens and the optional bit-flip illustration when changing the site. Run the [counter example](site/examples/) when changing the getting-started commands. Pull requests that affect documentation build a Pages artifact; deployment runs from `master`.
+
+For API documentation changes in an existing project build, install Doxygen and Graphviz before configuring, then run `cmake --build build --target doc`. The generated reference remains at `build/docs/html/index.html`. `cmake --build build --target pages` assembles the combined site at `build/docs/site/`. The optional [Makefile](Makefile) delegates to the same configured CMake build: `make -C docs pages` assembles the site, `make -C docs dox` generates the reference, and `make -C docs pdf` also builds `build/docs/vrtlmod.pdf` with the LaTeX tools required by Doxygen. For a different build directory, pass `BUILD_DIR=/absolute/path/to/build`.
 
 ## Issues and pull requests
 
