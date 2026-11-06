@@ -61,8 +61,10 @@ class InjectionRewriter final : public VrtlmodPass
         void rewrite_injection(const VrtlParser &parser, bool write_as_comment = false) const override;
         const clang::CallExpr *expr_;
         const clang::Expr *arg_;
-        CallSInj(const clang::CallExpr *expr, const clang::Expr *arg, const std::string &prefix, const types::Target *t)
-            : SInj(prefix, t), expr_(expr), arg_(arg)
+        std::vector<const clang::Expr *> subscripts_;
+        CallSInj(const clang::CallExpr *expr, const clang::Expr *arg, const std::string &prefix,
+                 const types::Target *t, const std::vector<const clang::Expr *> &subscripts)
+            : SInj(prefix, t), expr_(expr), arg_(arg), subscripts_(subscripts)
         {
             SInj::type_ = SInj::TYPE::SUBSCRIPTED;
         }

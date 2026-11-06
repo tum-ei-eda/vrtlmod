@@ -29,8 +29,6 @@
 
 #include <pugixml.hpp>
 
-#include <boost/lexical_cast.hpp>
-
 #include "vrtlmod/core/filecontext.hpp"
 
 #include "vrtlmod/util/logging.hpp"
@@ -200,7 +198,7 @@ struct Variable : public Locatable //, public Ancestral<Module>
     };
 
     virtual std::string get_class(void) const { return get_inj_loc() != "" ? "undef" : "reg"; }
-    virtual int get_bits(void) const { return boost::lexical_cast<int>(pugi::xml_node::attribute("bits").value()); }
+    virtual int get_bits(void) const { return util::parse_int(pugi::xml_node::attribute("bits").value()); }
     virtual std::string get_bases(void) const { return pugi::xml_node::attribute("bases").value(); }
     virtual std::string get_dimensions(void) const { return pugi::xml_node::attribute("dim").value(); }
     virtual std::string get_cxx_type(void) const { return pugi::xml_node::attribute("cxx_type").value(); }

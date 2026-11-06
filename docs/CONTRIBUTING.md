@@ -12,7 +12,7 @@ Model analysis and target discovery live in [src/core](../src/core/), transforma
 
 ## Development and validation
 
-Install the dependencies and supported toolchain versions described in the [README](../README.adoc): CMake, a C++ compiler, LLVM/Clang development libraries, Verilator and Boost. The test suite also requires SystemC and its `SystemCLanguage` CMake package. CMake locates these dependencies; environment setup and container builds are provided separately under [docker](../docker/).
+Install the dependencies and supported toolchain versions described in the [README](../README.adoc): CMake, a C++ compiler, LLVM/Clang development libraries and Verilator. Builds using C++ standards older than C++17 also require Boost.Filesystem >=1.70. The test suite also requires SystemC and its `SystemCLanguage` CMake package, plus Python 3 for fixture inventory checks. CMake locates these dependencies; environment setup and container builds are provided separately under [docker](../docker/).
 
 Initialize submodules, then configure and build from the repository root, replacing the installation paths below:
 
@@ -29,6 +29,10 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure -j 1
 ```
 
+Omit `-DVERILATOR_ROOT` and leave that environment variable unset to use `verilator` from `PATH`, including a distribution package. An explicit CMake root takes precedence over the environment root, which takes precedence over `PATH`. Invalid explicit roots fail configuration; the selected root is cached in the build directory.
+
+Use `vrtlmod_verilate(target ...)` for model generation; it accepts the arguments of upstream `verilate()` and keeps the caller's environment intact. Older Verilator packages require a Makefile or Ninja generator for the adapter's build-command environment handling.
+
 Build vRTLmod against the same Verilator version used to generate the input model. Use separate build directories for different Verilator or LLVM installations. Record the C++ standard and `VRTLMOD_STDLIB` setting when they affect parsing or compatibility.
 
 Run checks appropriate to the behavior and configuration being changed. List the available tests or select a relevant subset with:
@@ -38,9 +42,17 @@ ctest --test-dir build -N
 ctest --test-dir build --output-on-failure -j 1 -R fiapp-cc
 ctest --test-dir build --output-on-failure -j 1 -R fiapp-sc
 ctest --test-dir build --output-on-failure -j 1 -R fiapp-cmake
+ctest --test-dir build --output-on-failure -j 1 -R scheduling
+ctest --test-dir build --output-on-failure -j 1 -R targetdictionary
+ctest --test-dir build --output-on-failure -j 1 -R utility
+ctest --test-dir build --output-on-failure -j 1 -R verilator-discovery
+ctest --test-dir build --output-on-failure -j 1 -R helpers
+ctest --test-dir build --output-on-failure -j 1 -R layouts
 ```
 
-The filters above include the associated build/configure and runtime checks. The [fiapp tests](../test/fiapp/) exercise C++, SystemC, state dimensions, fault injection and differential APIs, including downstream CMake integration. The [scheduling tests](../test/scheduling/) cover split and inlined functions, asynchronous reset, derived clocks and evaluation without a clock event. Keep reproducers small and record random seeds where applicable.
+The filters above include the associated build/configure and runtime checks. The [fiapp tests](../test/fiapp/) compare plain and rewritten models with injection disabled, and check exact fault placement, state dimensions and differential APIs in C++ and SystemC, including downstream CMake integration. The [scheduling tests](../test/scheduling/) cover split functions and files, inlined functions, enables, independent and derived clocks, asynchronous reset and evaluation without a clock event. The [target dictionary tests](../test/targetdictionary/) check physical bit mapping and counters independently of generated APIs. The [utility tests](../test/utility/) check signed integer parsing, malformed values and overflow. The [helper](../test/helpers/) and [layout](../test/layouts/) fixtures check writable destinations, source/index exclusions, named wrappers and scoped SystemC port types. Keep reproducers small and record random seeds where applicable.
+
+The [Verilator discovery checks](../test/verilator_discovery/) verify selection priority, matching executable and headers, invalid roots and generated-source regeneration under conflicting environment settings.
 
 For behavioral changes, cover the affected cases and relevant toolchain versions. Check expected target coverage and dimensions, injection timing and counts, and observable state or differential results against an independent expectation. Verify that disabling injection preserves the original model's behavior. Include held registers, enables, reset, dynamic indices and packed/unpacked arrays where the contract needs them. State which checks ran and which remain untested; documentation-only changes need link and formatting checks rather than simulation.
 

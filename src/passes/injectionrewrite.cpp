@@ -24,6 +24,8 @@
 
 #include "vrtlmod/util/logging.hpp"
 
+#include <algorithm>
+
 namespace vrtlmod
 {
 namespace passes
@@ -128,7 +130,12 @@ void InjectionRewriter::action(const VrtlParser &parser,
     };
 
     std::string prefix = "";
-    if (const clang::MemberExpr *instance = Result.Nodes.getNodeAs<clang::MemberExpr>("instance"))
+    if (const clang::Expr *base = Result.Nodes.getNodeAs<clang::Expr>("signal_base"))
+    {
+        prefix = parser.getRewriter().getRewrittenText(base->getSourceRange());
+        prefix += base->getType()->isPointerType() ? "->" : ".";
+    }
+    else if (const clang::MemberExpr *instance = Result.Nodes.getNodeAs<clang::MemberExpr>("instance"))
     {
         prefix = parser.getRewriter().getRewrittenText(instance->getSourceRange());
         prefix += ".";
@@ -136,7 +143,7 @@ void InjectionRewriter::action(const VrtlParser &parser,
     else if (const clang::Expr *top = Result.Nodes.getNodeAs<clang::Expr>("top"))
     {
         prefix = parser.getRewriter().getRewrittenText(top->getSourceRange());
-        prefix += "->";
+        prefix += top->getType()->isPointerType() ? "->" : ".";
     }
     else if (const clang::CXXThisExpr *x = Result.Nodes.getNodeAs<clang::CXXThisExpr>("this"))
     {
@@ -491,19 +498,47 @@ void InjectionRewriter::action(const VrtlParser &parser,
                 LOG_VERBOSE("{arg1_expr}: ", util::logging::dump_to_str<const clang::Stmt *>(arg, ctx));
                 if (const types::Target *t = check_add_seqinjection(x))
                 {
-                    // TODO: function call assigning new values to arg1_expr, revert back to synchronous injection,
-                    // b.c. hard to deduce assigned bits. This might need a thorough rework.
                     auto assignee_parent_pair = parser.parse_sequential_assignment(arg, Result);
                     auto assignee = assignee_parent_pair.first;
                     auto parent = assignee_parent_pair.second;
 
                     if (assignee != nullptr && parent != nullptr)
                     {
-                        auto asgn = std::make_shared<CallSInj>(x, assignee, prefix, t);
+                        // Retain the destination's array bases. Following only the
+                        // base operand avoids treating readable indices as writes.
+                        std::vector<const clang::Expr *> subscripts;
+                        const clang::Expr *destination = arg->IgnoreParenImpCasts();
+                        while (destination)
+                        {
+                            if (const auto *conversion = llvm::dyn_cast<clang::CXXMemberCallExpr>(destination))
+                            {
+                                if (!llvm::isa<clang::CXXConversionDecl>(conversion->getMethodDecl()))
+                                    break;
+                                destination = conversion->getImplicitObjectArgument()->IgnoreParenImpCasts();
+                            }
+                            else if (const auto *array = llvm::dyn_cast<clang::ArraySubscriptExpr>(destination))
+                            {
+                                subscripts.push_back(array->getIdx());
+                                destination = array->getBase()->IgnoreParenImpCasts();
+                            }
+                            else if (const auto *array = llvm::dyn_cast<clang::CXXOperatorCallExpr>(destination))
+                            {
+                                if (array->getOperator() != clang::OO_Subscript)
+                                    break;
+                                subscripts.push_back(array->getArg(1));
+                                destination = array->getArg(0)->IgnoreParenImpCasts();
+                            }
+                            else
+                                break;
+                        }
+                        std::reverse(subscripts.begin(), subscripts.end());
+                        auto asgn = std::make_shared<CallSInj>(x, arg, prefix, t, subscripts);
                         auto comp = get_finest_compound(active_sequent_func_, asgn->get_base_expr());
-                        // active_compound_->add_assignment(asgn);
                         comp->add_assignment(asgn);
                         map_injected_targets_.at(active_sequent_func_).insert({ prefix, t });
+                        if (std::any_of(subscripts.begin(), subscripts.end(),
+                                        [&](const auto *index) { return !is_integer_literal(index); }))
+                            map_nonliteral_subscript_targets_.at(active_sequent_func_).insert({ prefix, t });
                     }
                 }
             }
@@ -609,54 +644,110 @@ void InjectionRewriter::BinarySInj::rewrite_injection(const VrtlParser &parser, 
 
 void InjectionRewriter::CallSInj::rewrite_injection(const VrtlParser &parser, bool write_as_comment) const
 {
+    std::vector<std::string> subscripts;
+    for (const auto *index : subscripts_)
+        subscripts.push_back(parser.getRewriter().getRewrittenText(index->getSourceRange()));
+
+    std::string injection;
+    if (subscripts.empty())
+        injection = prefix_ + get_synchronous_injection_stmt(*t_);
+    else
+    {
+        const auto dimensions = t_->get_cxx_dimension_lengths();
+        if (subscripts.size() == dimensions.size())
+            injection = prefix_ + get_sequent_injection_stmt(*t_, subscripts);
+        else if (subscripts.size() + 1 == dimensions.size())
+        {
+            // A wide helper writes all words of one unpacked element, not
+            // other elements whose assignments may still follow this call.
+            subscripts.push_back("__vrtlmod_word");
+            injection = util::concat("for (unsigned __vrtlmod_word = 0; __vrtlmod_word < ",
+                                     std::to_string(dimensions.back()), "; ++__vrtlmod_word) ",
+                                     prefix_, get_sequent_injection_stmt(*t_, subscripts));
+        }
+        else
+            return; // Leave unsupported argument shapes to the existing function fallback.
+    }
+
     std::string str = parser.getRewriter().getRewrittenText(expr_->getSourceRange());
     str += "; ";
     if (write_as_comment)
     {
         str += "// ";
-        str += prefix_;
-        auto sis_str = get_synchronous_injection_stmt(*t_);
-        util::strhelp::replaceAll(sis_str, "\n", "\n// ");
-        str += sis_str;
+        util::strhelp::replaceAll(injection, "\n", "\n// ");
+        str += injection;
     }
     else
-    {
-        str += prefix_;
-        str += get_synchronous_injection_stmt(*t_);
-    }
+        str += injection;
 
     parser.getRewriter().ReplaceText(expr_->getSourceRange(), str);
 }
 
 void InjectionRewriter::wrap_up_sequent_function(const clang::FunctionDecl *func, const VrtlParser &parser) const
 {
-    std::stringstream insert;
-    insert.str("");
-    insert.clear();
+    const auto &ts = map_injected_targets_.at(func);
+    if (ts.empty())
+        return;
+    const auto *body = llvm::dyn_cast<clang::CompoundStmt>(func->getBody());
+    if (!body)
+        return;
 
-    auto &ts = map_injected_targets_.at(func);
-    LOG_INFO("INJREW Adding non-dominant injection points to end of sequential function:", func->getNameAsString());
-
-    std::string newc = parser.getRewriter().getRewrittenText(func->getSourceRange());
-
-    LOG_VERBOSE("{compset}: of func ", func->getNameAsString());
-    insert << std::endl << "    //>>> vRTLmod non-dominant target injections" << std::endl;
-
-    for (auto const &it : ts)
+    using Targets = std::set<std::pair<std::string, const types::Target *>>;
+    std::map<const clang::CompoundStmt *, Targets> fallback_targets;
+    if (func->getNameAsString().find("___eval_") == std::string::npos)
+        fallback_targets[body] = ts;
+    else
     {
-        LOG_VERBOSE("\\-> target ", it.second->_self());
-        insert << "    " << it.first << get_synchronous_injection_stmt(*(it.second)) << ";" << std::endl;
+        // Region drivers run even when no clock event is active. Keep fallback
+        // injections inside the trigger block when a helper was inlined there.
+        std::vector<const clang::CompoundStmt *> trigger_bodies;
+        std::function<void(const clang::Stmt *)> find_triggers = [&](const clang::Stmt *stmt) {
+            if (!stmt)
+                return;
+            if (const auto *condition = llvm::dyn_cast<clang::IfStmt>(stmt))
+            {
+                const auto text = parser.get_source_code_str(condition->getCond());
+                if (text.find("__VactTriggered") != std::string::npos
+                    || text.find("__VnbaTriggered") != std::string::npos
+                    || text.find("__VactExecute") != std::string::npos
+                    || text.find("__VnbaExecute") != std::string::npos)
+                    if (const auto *block = llvm::dyn_cast<clang::CompoundStmt>(condition->getThen()))
+                        trigger_bodies.push_back(block);
+            }
+            for (const auto *child : stmt->children())
+                find_triggers(child);
+        };
+        find_triggers(body);
+
+        for (const auto &compound : map_seq_compounds_.at(func))
+            for (const auto &assignment : compound->asngs_)
+            {
+                const auto *expr = assignment->get_base_expr();
+                const clang::CompoundStmt *destination = body;
+                for (const auto *trigger : trigger_bodies)
+                    if (expr->getBeginLoc() >= trigger->getBeginLoc()
+                        && expr->getEndLoc() <= trigger->getEndLoc()
+                        && trigger->getBeginLoc() > destination->getBeginLoc())
+                        destination = trigger;
+                fallback_targets[destination].insert({ assignment->prefix_, assignment->t_ });
+            }
     }
-    insert << "    //<<< VRTLFI non-dominant target injections" << std::endl;
-    insert << "}";
 
-    // find last '}' as function body end
-    auto posLastBr = newc.rfind("}");
-    if (posLastBr != std::string::npos)
+    for (const auto &[block, targets] : fallback_targets)
     {
-        newc.erase(posLastBr);
-        newc.append(insert.str());
-        parser.getRewriter().ReplaceText(func->getSourceRange(), newc);
+        std::stringstream insert;
+        insert << std::endl << "    //>>> vRTLmod non-dominant target injections" << std::endl;
+        for (const auto &target : targets)
+            insert << "    " << target.first << get_synchronous_injection_stmt(*target.second) << ";" << std::endl;
+        insert << "    //<<< VRTLFI non-dominant target injections" << std::endl;
+
+        auto insertion_loc = block->getRBracLoc();
+        // Verilator 5 region drivers return a progress flag. Their fallback
+        // injections must run before the terminal return rather than after it.
+        if (!block->body_empty())
+            if (const auto *ret = llvm::dyn_cast<clang::ReturnStmt>(block->body_back()))
+                insertion_loc = ret->getBeginLoc();
+        parser.getRewriter().InsertTextBefore(insertion_loc, insert.str());
     }
 }
 

@@ -30,10 +30,10 @@ jobs:
           - {name: "ubuntu", version: "24.04"}
           - {name: "ubuntu", version: "22.04"}
         llvm:
-          - {name: "src", src: "true", version: "13.0.1"}
+          #- {name: "src", src: "true", version: "13.0.1"}
           - {name: "pkg", src: "false", version: "15"}
         systemc_version: ['2.3.3']
-        verilator_version: ['4.228']
+        verilator_version: ['4.228', '5.054']
 
     runs-on: ${{ matrix.os.name }}-${{ matrix.os.version }}
     container: ${{ matrix.os.name }}:${{ matrix.os.version }}
@@ -132,10 +132,10 @@ jobs:
           - {name: "ubuntu", version: "24.04"}
           - {name: "ubuntu", version: "22.04"}
         llvm:
-          - {name: "src", src: "true", version: "13.0.1"}
+          #- {name: "src", src: "true", version: "13.0.1"}
           - {name: "pkg", src: "false", version: "15"}
         systemc_version: ['2.3.3']
-        verilator_version: ['4.228']
+        verilator_version: ['4.228', '5.054']
 
         cmakegen: ["Release"]
 
@@ -264,10 +264,10 @@ jobs:
           - {name: "ubuntu", version: "24.04"}
           - {name: "ubuntu", version: "22.04"}
         llvm:
-          - {name: "src", src: "true", version: "13.0.1"}
+          #- {name: "src", src: "true", version: "13.0.1"}
           - {name: "pkg", src: "false", version: "15"}
         systemc_version: ['2.3.3']
-        verilator_version: ['4.228']
+        verilator_version: ['4.228', '5.054']
 
         cmakegen: ["Release"]      
 
@@ -314,6 +314,8 @@ jobs:
         . ./vrtlmod/vrtlmod_src/docker/.env
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
         setup_env
+        # The benchmark's SCC dependency requires Boost independently of vrtlmod.
+        apt install -y libboost-system-dev libboost-date-time-dev libboost-filesystem-dev
     - name: Cache Verilator
       id: cache-verilator
       uses: actions/cache@v4

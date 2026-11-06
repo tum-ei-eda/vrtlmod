@@ -77,8 +77,8 @@ endif("${isSystemDir}" STREQUAL "-1")
 ####################################################################################################
 # Verilator
 find_package(VERILATOR REQUIRED)
-if( ${verilator_VERSION_MAJOR} LESS 4 OR ${verilator_VERSION_MAJOR} GREATER 4)
-    message(FATAL_ERROR "Verilator version \"${verilator_VERSION}\" is not required major 4.xxx" )
+if(verilator_VERSION_MAJOR LESS 4 OR verilator_VERSION_MAJOR GREATER 5)
+    message(FATAL_ERROR "Unsupported Verilator version \"${verilator_VERSION}\". Expected major version 4 or 5.")
 endif()
 ####################################################################################################
 # LLVM
@@ -129,11 +129,9 @@ else()
     endif()
 endif()
 
-if(CMAKE_CXX_STANDARD LESS_EQUAL 17)
-find_package(Boost 1.70 REQUIRED
-    COMPONENTS filesystem
-)
-message("Boost Version: ${Boost_VERSION}")
+if(CMAKE_CXX_STANDARD LESS 17)
+    find_package(Boost 1.70 REQUIRED COMPONENTS filesystem)
+    message("Boost Version: ${Boost_VERSION}")
 endif()
 
 message("Using LLVM_DIR: ${LLVM_DIR}")
@@ -246,12 +244,12 @@ if(LLVM_FOUND AND Clang_FOUND AND verilator_FOUND)
         ${CLANG_LIBS}
         ${LLVM_LIBS}
     )
-    if(CMAKE_CXX_STANDARD LESS_EQUAL 17)
-        set(VRTLMOD_PRIVATE_LINK_LIBRARIES ${VRTLMOD_PRIVATE_LINK_LIBRARIES} Boost::filesystem)
-    endif()
     target_link_libraries(${PROJECT_NAME}-core PRIVATE
         ${VRTLMOD_PRIVATE_LINK_LIBRARIES}
     )
+    if(CMAKE_CXX_STANDARD LESS 17)
+        target_link_libraries(${PROJECT_NAME}-core PUBLIC Boost::filesystem)
+    endif()
 
     target_include_directories(${PROJECT_NAME}-core PUBLIC
         include

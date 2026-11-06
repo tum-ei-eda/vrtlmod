@@ -21,9 +21,10 @@
 #include "Vfiapp_vrtlmod_diffapi.hpp"
 #include "Vfiapp_vrtlmodapi.hpp"
 #include "Vfiapp.h"
+#include "VfiappReference.h"
 #include "verilated.h"
 
-#include "testinject.hpp"
+#include "fiapp_test.hpp"
 
 #include <iostream>
 #include <sstream>
@@ -39,11 +40,16 @@ int main(int argc, char *argv[])
 
     VfiappVRTLmodAPI gFault;
     VfiappVRTLmodAPI gRef;
+    VfiappReference original("original");
     VfiappVRTLmodAPIDifferential gDiff(gFault, gRef);
+
+    if (!check_fiapp_target_coverage(gFault))
+        return 1;
 
     bool testreturn = true;
 
-    auto clockspin = [&](int n = 1) -> void {
+    auto clockspin = [&](int n = 1) -> void
+    {
         for (; n > 0; --n)
         {
             gFault.vrtl_.eval();
@@ -57,14 +63,24 @@ int main(int argc, char *argv[])
         }
     };
 
-    auto reset = [&](void) -> void {
+    auto reset = [&](bool background = false) -> void
+    {
+        gFault.vrtl_.a = gRef.vrtl_.a = 0;
+        gFault.vrtl_.enable = gRef.vrtl_.enable = 0;
         gFault.vrtl_.reset = 1;
         gRef.vrtl_.reset = 1;
         clockspin(3);
         gFault.vrtl_.reset = 0;
         gRef.vrtl_.reset = 0;
+        if (background)
+        {
+            gFault.vrtl_.a = gRef.vrtl_.a = 1;
+            gFault.vrtl_.enable = gRef.vrtl_.enable = 1;
+            clockspin(300);
+        }
     };
-    auto check_diff = [&](vrtlfi::td::TDentry const *target) -> int {
+    auto check_diff = [&](vrtlfi::td::TDentry const *target) -> int
+    {
         vrtlfi::td::TDentry const *diff_target = nullptr;
         int ret = 0;
         if (diff_target = gDiff.compare_fast(target); diff_target != nullptr)
@@ -124,32 +140,48 @@ int main(int argc, char *argv[])
         return ret;
     };
 
+    auto equivalence_step = [&](bool clk, bool rst, bool data, bool enable, unsigned event)
+    {
+        original.clk = gFault.vrtl_.clk = gRef.vrtl_.clk = clk;
+        original.reset = gFault.vrtl_.reset = gRef.vrtl_.reset = rst;
+        original.a = gFault.vrtl_.a = gRef.vrtl_.a = data;
+        original.enable = gFault.vrtl_.enable = gRef.vrtl_.enable = enable;
+        original.eval();
+        gFault.vrtl_.eval();
+        gRef.vrtl_.eval();
+        bool equal = original.o1 == gFault.vrtl_.o1 && original.o2 == gFault.vrtl_.o2 &&
+                     original.o3 == gFault.vrtl_.o3 && original.state_signature == gFault.vrtl_.state_signature;
+        for (unsigned word = 0; word < 3; ++word)
+            equal &= original.o4[word] == gFault.vrtl_.o4[word];
+        if (!equal)
+            std::cerr << "Plain/rewritten fiapp mismatch at event " << event << '\n';
+        return equal;
+    };
+    testreturn &= check_fiapp_equivalence(equivalence_step);
+
     // VRTL warm-up
     gFault.vrtl_.eval();
     gRef.vrtl_.eval();
 
     reset();
 
-    std::cout << std::endl
-              << "Running test for simple fault injection application (fiapp)"
-              << "..." << std::endl;
+    std::cout << std::endl << "Running test for simple fault injection application (fiapp)" << "..." << std::endl;
     // test injections
 
     for (auto &it : gFault.td_)
     {
-        testreturn &= testinject(*(it.second), gFault, clockspin, reset, check_diff);
+        if (it.second->injectable_)
+            testreturn &= testinject(*(it.second), gFault, clockspin, reset, check_diff,
+                                     [&](vrtlfi::td::TDentry &target, unsigned bit)
+                                     { return check_fiapp_fault(target, *gRef.td_.at(target.get_name()), bit); });
     }
     if (testreturn && gFault.td_.size() > 0)
     {
-        std::cout << std::endl
-                  << "..."
-                  << "All passed. \033[0;32mTest successful.\033[0m" << std::endl;
+        std::cout << std::endl << "..." << "All passed. \033[0;32mTest successful.\033[0m" << std::endl;
     }
     else
     {
-        std::cout << std::endl
-                  << "..."
-                  << "\033[0;31mTest failed.\033[0m" << std::endl;
+        std::cout << std::endl << "..." << "\033[0;31mTest failed.\033[0m" << std::endl;
         return 1;
     }
 

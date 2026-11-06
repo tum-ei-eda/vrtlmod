@@ -27,6 +27,7 @@
 #include <sstream>
 #include <string>
 #include <algorithm>
+#include <functional>
 
 using namespace clang;
 using namespace clang::ast_matchers;
@@ -45,6 +46,10 @@ void VrtlParser::run(const clang::ast_matchers::MatchFinder::MatchResult &Result
         last_seq_compound_begin_ = x->getBeginLoc();
         last_seq_compound_end_ = x->getEndLoc();
         last_seq_compound_ctx_ = ctx;
+        const auto *function = Result.Nodes.getNodeAs<clang::FunctionDecl>("sequent_function_def");
+        const auto function_name = function ? function->getNameAsString() : std::string{};
+        last_seq_is_comb_ = function_name.find("___act_comb__") != std::string::npos
+                            || function_name.find("___nba_comb__") != std::string::npos;
         LOG_VERBOSE("{comp}: ", get_source_code_str(x));
     }
 
@@ -52,6 +57,39 @@ void VrtlParser::run(const clang::ast_matchers::MatchFinder::MatchResult &Result
     {
         pass->action(*this, Result);
     }
+}
+
+bool VrtlParser::is_delayed_commit(const clang::ast_matchers::MatchFinder::MatchResult &result) const
+{
+    std::function<bool(const clang::Stmt *)> reads_delayed = [&](const clang::Stmt *stmt) {
+        if (!stmt)
+            return false;
+        const clang::NamedDecl *decl = nullptr;
+        if (const auto *member = llvm::dyn_cast<clang::MemberExpr>(stmt))
+            decl = member->getMemberDecl();
+        else if (const auto *reference = llvm::dyn_cast<clang::DeclRefExpr>(stmt))
+            decl = reference->getDecl();
+        if (decl && decl->getNameAsString().find("__Vdly") == 0)
+            return true;
+        for (const auto *child : stmt->children())
+            if (reads_delayed(child))
+                return true;
+        return false;
+    };
+
+    for (const auto &[id, node] : result.Nodes.getMap())
+        if (id.find("sea_binary_") == 0)
+            if (const auto *assignment = node.get<clang::BinaryOperator>())
+                return reads_delayed(assignment->getRHS());
+
+    if (const auto *call = result.Nodes.getNodeAs<clang::CallExpr>("sea_func"))
+        if (const auto *callee = call->getDirectCallee())
+            for (const auto &[name, destination] : func_macros_regex_paraidx_)
+                if (name == callee->getNameAsString())
+                    for (unsigned index = 0; index < call->getNumArgs(); ++index)
+                        if (index != static_cast<unsigned>(destination) && reads_delayed(call->getArg(index)))
+                            return true;
+    return false;
 }
 
 void VrtlParser::addMatcher(clang::ast_matchers::MatchFinder &finder)
@@ -73,14 +111,19 @@ void VrtlParser::addMatcher(clang::ast_matchers::MatchFinder &finder)
         matchesName("__Vilp__"),
         matchesName("__Vdpiimwrap__"),
         matchesName("__Vconst__"),
-        matchesName("__Vdpi_")
+        matchesName("__Vdpi_"),
+        matchesName("::vlNamep$")
     );
 
     const auto sc_module_decl =
         cxxRecordDecl(isDirectlyDerivedFrom("sc_core::sc_module"))
             .bind("module"); ///<  decl type of systemc modules (can match systemc verilated modules)
 
-    const auto cc_module_decl = cxxRecordDecl(isDirectlyDerivedFrom("VerilatedModule"))
+    const auto cc_module_decl = cxxRecordDecl(
+                                    anyOf(isDirectlyDerivedFrom("VerilatedModule"),
+                                          allOf(has(fieldDecl(hasName("vlSymsp"),
+                                                              hasType(pointsTo(cxxRecordDecl(matchesName("__Syms$")))))),
+                                                unless(isDerivedFrom("VerilatedModel")))))
                                     .bind("module"); ///<  decl type of cc modules (can match cc verilated modules that
                                                      ///<  inherit from Verilator sim class)
 
@@ -124,7 +167,8 @@ void VrtlParser::addMatcher(clang::ast_matchers::MatchFinder &finder)
 
     const auto signal_decl =
         fieldDecl(
-            isPublic(), anyOf(hasAncestor(sc_module_decl), hasAncestor(cc_module_decl)), unless(vrtl_internal),
+            isPublic(), unless(isImplicit()),
+            anyOf(hasAncestor(sc_module_decl), hasAncestor(cc_module_decl)), unless(vrtl_internal),
 #if VRTLMOD_VERILATOR_VERSION <= 4204
             unless(hasType(pointsTo(
                 cxxRecordDecl()))) // we can not use {sc,cc}_module_decl fine grained matching because verilator builds
@@ -146,27 +190,51 @@ void VrtlParser::addMatcher(clang::ast_matchers::MatchFinder &finder)
                 matchesName("::_sequent__*"),
                 matchesName("::_multiclk__*")
             )
-#else // VERILATOR_VERSION <= 4.228
+#elif VRTLMOD_VERILATOR_VERSION < 5000
             anyOf(
                 matchesName("__sequent__*"),
                 matchesName("__multiclk__*")
+            )
+#else
+            // Verilator 5 schedules clocked logic in the active and NBA regions.
+            // Input-combinational (ico) and settle (stl) functions also contain
+            // "sequent" in their names, but are not clocked injection locations.
+            anyOf(
+                matchesName("___(act|nba)_sequent__"),
+                matchesName("___(act|nba)_comb__"),
+                // Recent releases inline small region functions into these drivers.
+                matchesName("___eval_(act|nba)(__[0-9]+)?$"),
+                matchesName("___eval_body__(act|nba)(__[0-9]+)?$")
             )
 #endif
         ).bind("sequent_function_def")))
             .bind("compound_of_sequent_func"); ///< compound statements (`{...}`) of sequential evaluation functions
 
-    const auto symtbl_instance_signal_expr = // {symboltable}->{instance}.{signal}
-        memberExpr(                          // {signal}
-            hasObjectExpression(
+    const auto symtable_expr = expr(hasType(pointsTo(cxxRecordDecl(matchesName("__Syms$")))))
+                                  .bind("symboltable");
+    const auto symtable_object_expr = expr(anyOf(
+        symtable_expr,
+        memberExpr(hasDeclaration(fieldDecl(isImplicit())), hasObjectExpression(symtable_expr))));
+    const auto symtable_storage_expr = expr(anyOf(
+        symtable_expr,
+        memberExpr(hasDeclaration(fieldDecl(hasName("vlInst"))), hasObjectExpression(symtable_object_expr))));
+    const auto symtbl_instance_expr =
                 memberExpr(                   // {instance}
-                    hasObjectExpression(expr( // {symboltable} implicitCastExpr -> declRefExpr
-                                            hasType(pointsTo(cxxRecordDecl(matchesName("__Syms$")))))
-                                            .bind("symboltable") // symboltable reference
-                                        ),
+                    hasObjectExpression(symtable_storage_expr),
                     anyOf(hasType(pointsTo(sc_module_decl)), hasType(pointsTo(cc_module_decl)), hasType(sc_module_decl),
                           hasType(cc_module_decl)))
-                    .bind("instance") // instance member of symboltable
-                ),
+                    .bind("instance"); // instance member of symboltable
+    const auto symtbl_instance_object_expr = expr(anyOf(
+        symtbl_instance_expr,
+        memberExpr(hasDeclaration(fieldDecl(isImplicit())), hasObjectExpression(symtbl_instance_expr))));
+
+    const auto symtbl_instance_signal_expr = // {symboltable}->{instance}.{signal}
+        memberExpr(                          // {signal}
+            hasObjectExpression(anyOf(
+                symtbl_instance_expr,
+                memberExpr(hasDeclaration(fieldDecl(hasName("__VprimaryPorts"))),
+                           hasObjectExpression(symtbl_instance_object_expr)).bind("signal_base")
+                )),
             unless(anyOf(hasDeclaration(namedDecl(matchesName("::__V"))),
                          hasDeclaration(namedDecl(matchesName("->__V"))),
                          hasDeclaration(namedDecl(matchesName(".__V"))),
@@ -179,14 +247,25 @@ void VrtlParser::addMatcher(clang::ast_matchers::MatchFinder &finder)
             hasObjectExpression(symtbl_instance_signal_expr))
             .bind("wsignal_field"); ///< signal member of instance reference;
 
-    const auto top_signal_expr = // vlTOPp->{signal}
-        memberExpr(              // {signal}
-            hasObjectExpression(implicitCastExpr(anyOf(hasImplicitDestinationType(pointsTo(sc_module_decl)),
+    const auto module_object_expr = expr(anyOf(
+                                implicitCastExpr(anyOf(hasImplicitDestinationType(pointsTo(sc_module_decl)),
                                                        hasImplicitDestinationType(pointsTo(cc_module_decl)),
                                                        hasImplicitDestinationType(references(cc_module_decl)),
-                                                       hasImplicitDestinationType(references(cc_module_decl))))
-                                    .bind("top") // top reference
-                                ),
+                                                       hasImplicitDestinationType(references(cc_module_decl)))),
+                                // Verilator 5 can access the module through vlSelfRef.
+                                declRefExpr(anyOf(hasType(sc_module_decl), hasType(cc_module_decl)))
+                                )).bind("top");
+    const auto module_storage_expr = expr(anyOf(
+        module_object_expr,
+        memberExpr(hasDeclaration(fieldDecl(isImplicit())), hasObjectExpression(module_object_expr))));
+
+    const auto top_signal_expr = // vlTOPp->{signal}
+        memberExpr(              // {signal}
+            hasObjectExpression(anyOf(
+                module_object_expr,
+                memberExpr(hasDeclaration(fieldDecl(hasName("__VprimaryPorts"))),
+                           hasObjectExpression(module_storage_expr)).bind("top")
+                )),
             unless(anyOf(hasDeclaration(namedDecl(matchesName("::__V"))),
                          hasDeclaration(namedDecl(matchesName("->__V"))),
                          hasDeclaration(namedDecl(matchesName(".__V"))),
@@ -614,18 +693,38 @@ void VrtlParser::addMatcher(clang::ast_matchers::MatchFinder &finder)
     // matches: VlUnpacked<VlUnpacked<VlWide<>>>
     finder.addMatcher(sea_binary_array_oop_oop_3d.bind("sea_binary_array_oop_oop_3d"), this);
 
+    const auto wide_destination_signal = expr(anyOf(
+        top_wsignal_expr, top_signal_expr,
+        symtbl_instance_wsignal_expr, symtbl_instance_signal_expr,
+        this_wsignal_expr, this_signal_expr));
+    // Follow only array bases; signals used as indices remain readable inputs.
+    const auto wide_destination_1d = cxxOperatorCallExpr(
+        hasOverloadedOperatorName("[]"), hasArgument(0, wide_destination_signal));
+    const auto wide_destination_2d = cxxOperatorCallExpr(
+        hasOverloadedOperatorName("[]"), hasArgument(0, wide_destination_1d));
+    const auto wide_destination_3d = cxxOperatorCallExpr(
+        hasOverloadedOperatorName("[]"), hasArgument(0, wide_destination_2d));
+    const auto wide_destination = expr(anyOf(
+        wide_destination_signal, wide_destination_1d,
+        wide_destination_2d, wide_destination_3d)).bind("arg1_expr");
+
     for (const auto &it : func_macros_regex_paraidx_)
     {
         const auto seq_assignment_func_matcher = callExpr(
             allOf(
                 callee(
                     functionDecl(
-                        matchesName(it.first)
+                        matchesName("(^|::)" + it.first + "$")
                     )
                 ),
                 hasArgument(
                     it.second,
                     anyOf(
+                        // Newer Verilator wraps writable wide arguments in a
+                        // WDataOutP constructor instead of a conversion operator.
+                        ignoringImpCasts(cxxConstructExpr(
+                            hasType(cxxRecordDecl(hasName("WDataOutP"))),
+                            hasArgument(0, wide_destination))),
                         cxxMemberCallExpr(
                             anyOf(
                                 callee(top_wsignal_expr),

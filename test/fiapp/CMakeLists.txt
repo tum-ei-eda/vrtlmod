@@ -27,10 +27,6 @@ if(NOT CMAKE_CXX_STANDARD)
     message(WARNING "CMAKE_CXX_STANDARD not set. Default to ${CMAKE_CXX_STANDARD}")
 endif()
 
-if(NOT VERILATOR_ROOT)
-    set(VERILATOR_ROOT "$ENV{VERILATOR_ROOT}")
-endif()
-message(STATUS "VERILATOR_ROOT: ${VERILATOR_ROOT}")
 find_package(VERILATOR REQUIRED)
 
 find_package(SystemCLanguage REQUIRED)
@@ -68,13 +64,16 @@ set(VERILATE_ARGS
 
 message(${RTL_SRCS})
 
+include(${CMAKE_CURRENT_SOURCE_DIR}/reference.cmake)
+add_fiapp_reference(fiapp-reference-sc SYSTEMC VERILATOR_ARGS ${VERILATE_ARGS})
+
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/null.cpp "")
 
 add_library(dummy_proj SHARED
     ${CMAKE_CURRENT_BINARY_DIR}/null.cpp
 )
 
-verilate(dummy_proj
+vrtlmod_verilate(dummy_proj
     PREFIX V${TOP_NAME}
     SYSTEMC
     TOP_MODULE ${TOP_NAME}
@@ -152,6 +151,7 @@ add_executable(${PROJECT_NAME}
 )
 target_link_libraries(${PROJECT_NAME} PUBLIC
     V${TOP_NAME}_vrtlmod
+    fiapp-reference-sc
 )
 target_include_directories(${PROJECT_NAME} PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/../

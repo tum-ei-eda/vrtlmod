@@ -46,6 +46,8 @@ void ElaboratePass::action(const VrtlParser &parser, const clang::ast_matchers::
     if (const clang::FieldDecl *x = Result.Nodes.getNodeAs<clang::FieldDecl>("instance_decl"))
     {
         LOG_VERBOSE("{instance_decl}: ", x->getNameAsString(), "\n  \\-", parser.get_source_code_str(x));
+        if (const auto *module = Result.Nodes.getNodeAs<clang::CXXRecordDecl>("module"))
+            get_core().add_module_instance(x, module, *ctx);
     }
     if (const clang::FieldDecl *x = Result.Nodes.getNodeAs<clang::FieldDecl>("cell_decl"))
     {

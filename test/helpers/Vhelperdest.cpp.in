@@ -1,0 +1,61 @@
+#include "Vhelperdest__Syms.h"
+
+Vhelperdest___024root::Vhelperdest___024root(Vhelperdest__Syms* symsp)
+    : vlSymsp{symsp}
+{
+    src0[0] = 0x12345678U;
+    src0[1] = 0xabcdef01U;
+    src0[2] = 0x13579bdfU;
+    src1[0] = 0x87654321U;
+    src1[1] = 0x10fedcbaU;
+    src1[2] = 0xfdb97531U;
+}
+
+Vhelperdest__Syms::Vhelperdest__Syms()
+    : VerilatedSyms{nullptr}, TOP{this}
+{
+}
+
+Vhelperdest::Vhelperdest(const char*)
+    : rootp{nullptr}, __Vsymsp{new Vhelperdest__Syms}
+{
+    rootp = &__Vsymsp->TOP;
+}
+
+Vhelperdest::~Vhelperdest()
+{
+    delete __Vsymsp;
+}
+
+void @HELPER_SEQUENT_FUNCTION@(Vhelperdest___024root* vlSelf)
+{
+    VL_CLEAN_WW(96, vlSelf->clean_dst, vlSelf->src0);
+    VL_COND_WIWW(96, vlSelf->cond_dst, 1, vlSelf->src0, vlSelf->src1);
+    VL_ASSIGNBIT_WI(0, vlSelf->bit_dst, vlSelf->bit_source);
+    VL_ASSIGN_W(96, vlSelf->wide_dst, vlSelf->src0);
+    // Separate compounds reproduce generated delayed-commit blocks. An early
+    // whole-array injection would be overwritten by the second element's write.
+    if (vlSelf->index == 1) {
+        VL_ASSIGN_W(96, vlSelf->one[0], vlSelf->src1);
+    }
+    if (vlSelf->index == 1) {
+        VL_ASSIGN_W(96, vlSelf->one[1], vlSelf->src0);
+    }
+    if (vlSelf->index == 1) {
+        VL_ASSIGN_W(96, vlSelf->two[0][0], vlSelf->src1);
+    }
+    if (vlSelf->index == 1) {
+        VL_ASSIGN_W(96, vlSelf->two[vlSelf->index][0], vlSelf->src0);
+    }
+#ifdef HELPER_THREE_UNPACKED
+    VL_ASSIGN_W(96, vlSelf->three[0][vlSelf->index][0], vlSelf->src0);
+#endif
+    // The only user signal in this destination is a readable array index.
+    // It must not become injectable just because an internal temporary is written.
+    VL_ASSIGN_W(96, vlSelf->__Vtemp[0][vlSelf->index][0], vlSelf->src1);
+}
+
+void Vhelperdest::eval()
+{
+    @HELPER_SEQUENT_FUNCTION@(rootp);
+}

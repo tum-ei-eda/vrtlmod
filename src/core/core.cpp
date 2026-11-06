@@ -44,10 +44,98 @@
 #include <regex>
 #include <algorithm>
 
-#include <boost/lexical_cast.hpp>
+#include <stdexcept>
 
 namespace vrtlmod
 {
+
+namespace
+{
+
+const clang::RecordDecl *get_named_parent(const clang::RecordDecl *record)
+{
+    while (record && record->getName().empty())
+    {
+        const auto parent = llvm::dyn_cast<clang::RecordDecl>(record->getDeclContext());
+        if (!parent)
+            break;
+        record = parent;
+    }
+    return record;
+}
+
+std::string get_member_prefix(const clang::FieldDecl *field)
+{
+    std::string prefix;
+    auto record = field->getParent();
+    while (record && record->getName().empty())
+    {
+        const auto parent = llvm::dyn_cast<clang::RecordDecl>(record->getDeclContext());
+        if (!parent)
+            break;
+        for (const auto *member : parent->fields())
+        {
+            if (!member->getName().empty() && member->getType()->getAsRecordDecl() == record)
+            {
+                prefix = member->getNameAsString() + "." + prefix;
+                break;
+            }
+        }
+        record = parent;
+    }
+    return prefix;
+}
+
+std::string without_global_qualification(std::string type)
+{
+    // Qualification changes the spelling, not the packed/unpacked dimensions.
+    // Remove it only at the outer type being inspected, leaving source types intact.
+    const auto begin = type.find_first_not_of(" \t\r\n");
+    if (begin != std::string::npos && type.compare(begin, 2, "::") == 0)
+        type.erase(begin, 2);
+    return type;
+}
+
+// Generated state blocks can contain nested records. Ignore braces in comments
+// and literals when finding the brace that belongs to an anonymous struct.
+size_t find_closing_brace(const std::string &data, size_t open)
+{
+    size_t depth = 1;
+    for (size_t pos = open + 1; pos < data.size(); ++pos)
+    {
+        if (data.compare(pos, 2, "//") == 0)
+        {
+            pos = data.find('\n', pos + 2);
+            if (pos == std::string::npos)
+                break;
+        }
+        else if (data.compare(pos, 2, "/*") == 0)
+        {
+            pos = data.find("*/", pos + 2);
+            if (pos == std::string::npos)
+                break;
+            ++pos;
+        }
+        else if (data[pos] == '\"' || data[pos] == '\'')
+        {
+            const auto quote = data[pos];
+            while (++pos < data.size())
+            {
+                if (data[pos] == '\\')
+                    ++pos;
+                else if (data[pos] == quote)
+                    break;
+            }
+        }
+        else if (data[pos] == '{')
+            ++depth;
+        else if (data[pos] == '}' && --depth == 0)
+            return pos;
+    }
+    return std::string::npos;
+}
+
+} // namespace
 
 VrtlmodCore::VrtlmodCore(const char *out_dir_path, bool systemc)
     : out_dir_path_(out_dir_path)
@@ -157,18 +245,22 @@ void remove_anonstructs(const std::string &file_path)
     std::string data = util::file2string(file_path);
     size_t pos = 0;
 
-    do
+    while ((pos = data.find("struct {", pos)) != std::string::npos)
     {
-        pos = data.find("struct {", pos); // TODO: what are these again?
-        if (pos != std::string::npos)
+        const auto closepos = find_closing_brace(data, pos + 7);
+        if (closepos == std::string::npos)
+            break;
+        const auto semicolon = data.find_first_not_of(" \t\r\n", closepos + 1);
+        // A struct with a named object (e.g. __VprimaryPorts or vlInst) must
+        // remain intact: generated expressions and lifetime management use it.
+        if (semicolon != std::string::npos && data[semicolon] == ';')
         {
             LOG_VERBOSE(">>> replace anonymous struct.");
-            data.replace(pos, 8, "// anon-struct-start");
-            auto closepos = data.find("};", pos);
-            data.replace(closepos, 2, "// anon-struct-end");
+            data.replace(closepos, semicolon - closepos + 1, "/* anon-struct-end */");
+            data.replace(pos, 8, "/* anon-struct-start */");
         }
-
-    } while (pos != std::string::npos);
+        pos += 8;
+    }
 
     util::string2file(file_path, data);
 }
@@ -195,19 +287,8 @@ void reintroduce_anonstructs(const std::string &file_path)
     LOG_VERBOSE("> Adding anonymous structs to", file_path);
 
     std::string data = util::file2string(file_path);
-    size_t pos = 0;
-    do
-    {
-        pos = data.find("// anon-struct-start", pos); // TODO: what are these again?
-        if (pos != std::string::npos)
-        {
-            LOG_VERBOSE(">>> re-add anonymous struct.");
-            data.replace(pos, 20, "struct {");
-            auto closepos = data.find("// anon-struct-end", pos);
-            data.replace(closepos, 18, "};");
-        }
-
-    } while (pos != std::string::npos);
+    util::strhelp::replaceAll(data, "/* anon-struct-start */", "struct {");
+    util::strhelp::replaceAll(data, "/* anon-struct-end */", "};");
 
     util::string2file(file_path, data);
 }
@@ -272,7 +353,7 @@ int VrtlmodCore::is_decl_target(const clang::FieldDecl *target) const
     std::string t_type = target->getType().getAsString();
     std::string t_name = target->getName().str();
     std::string t_a_type = target->getParent()->getTypeForDecl()->getTypeClassName();
-    std::string t_a_name = target->getParent()->getName().str();
+    std::string t_a_name = get_named_parent(target->getParent())->getName().str();
 
     LOG_VERBOSE("t_a_name: ", t_a_name, " of type ", t_a_type);
     LOG_VERBOSE("t_name: ", t_name, " of type ", t_type);
@@ -364,7 +445,7 @@ const types::Cell *VrtlmodCore::add_cell(const clang::FieldDecl *cell, const cla
     util::strhelp::replaceAll(cell_type, "class ", "");
     util::strhelp::replaceAll(cell_type, "*", "");
     util::strhelp::replaceAll(cell_type, " ", "");
-    std::string module_id = cell->getParent()->getName().str();
+    std::string module_id = get_named_parent(cell->getParent())->getName().str();
 
     std::set<std::unique_ptr<types::Module>>::iterator mod_iter;
     mod_iter = std::find_if(ctx_->modules_.begin(), ctx_->modules_.end(),
@@ -406,7 +487,7 @@ const types::Variable *VrtlmodCore::add_variable(const clang::FieldDecl *variabl
 
     std::string id = variable->getNameAsString();
     std::string type = variable->getType().getAsString();
-    std::string module_id = variable->getParent()->getName().str();
+    std::string module_id = get_named_parent(variable->getParent())->getName().str();
 
     std::set<std::unique_ptr<types::Module>>::iterator mod_iter;
     mod_iter = std::find_if(ctx_->modules_.begin(), ctx_->modules_.end(),
@@ -448,13 +529,14 @@ const types::Variable *VrtlmodCore::add_variable(const clang::FieldDecl *variabl
     std::vector<std::pair<std::string, std::string>> unpacked;
 
     auto unpack = [&unpacked](std::string &packed_str, const std::regex &break_regex) {
+        packed_str = without_global_qualification(packed_str);
         auto open_templ = packed_str.find("<");
         auto close_templ = packed_str.rfind(">");
         auto comma = packed_str.rfind(",");
         std::string outer_type = packed_str.substr(0, open_templ);
         std::string outer_dim = packed_str.substr(comma + 1, close_templ - (comma + 1));
         auto base = packed_str.substr(0, open_templ);
-        packed_str = packed_str.substr(open_templ + 1, comma - (open_templ + 1));
+        packed_str = without_global_qualification(packed_str.substr(open_templ + 1, comma - (open_templ + 1)));
         unpacked.push_back(std::make_pair<>(std::string(base), std::string(outer_dim)));
         bool cont = std::regex_search(packed_str, break_regex);
         if (!cont)
@@ -501,7 +583,9 @@ const types::Variable *VrtlmodCore::add_variable(const clang::FieldDecl *variabl
     else if (std::regex_search(decl_source_code_text, sctype_portdecl))
     {
         var_type = std::regex_search(decl_source_code_text, std::regex("sc_in<")) ? "in" : "out";
-        auto cxx_base_type_str = decl_source_code_text.substr(0, decl_source_code_text.find(id));
+        // A short port name may also occur in its namespace or template type.
+        auto type_range = clang::CharSourceRange::getCharRange(variable->getBeginLoc(), variable->getLocation());
+        auto cxx_base_type_str = rew.getRewrittenText(type_range);
 
         bool still_going = false;
         std::string search = decl_source_code_text; // var_type;
@@ -510,35 +594,40 @@ const types::Variable *VrtlmodCore::add_variable(const clang::FieldDecl *variabl
         auto close_templ = search.rfind(">");
         auto outer_str = search.substr(0, open_templ);
         auto inner_str = search.substr(open_templ + 1, close_templ - (open_templ + 1));
+        auto inner_type = without_global_qualification(inner_str);
+        if (inner_type.compare(0, 7, "sc_dt::") == 0)
+            inner_type.erase(0, 7);
+        else if (inner_type.compare(0, 9, "sc_core::") == 0)
+            inner_type.erase(0, 9);
 
-        if (std::regex_search(inner_str, std::regex("^sc_bv<")))
+        if (std::regex_search(inner_type, std::regex("^sc_bv<")))
         {
-            auto open_templ = inner_str.find("<");
-            auto close_templ = inner_str.rfind(">");
-            msb = std::to_string(std::stoi(inner_str.substr(open_templ + 1, close_templ - (open_templ + 1))) - 1);
+            auto open_templ = inner_type.find("<");
+            auto close_templ = inner_type.rfind(">");
+            msb = std::to_string(std::stoi(inner_type.substr(open_templ + 1, close_templ - (open_templ + 1))) - 1);
             lsb = "0";
         }
-        else if (std::regex_search(inner_str, std::regex("int64_")))
+        else if (std::regex_search(inner_type, std::regex("int64_")))
         {
             msb = "63";
             lsb = "0";
         }
-        else if (std::regex_search(inner_str, std::regex("int32_")))
+        else if (std::regex_search(inner_type, std::regex("int32_")))
         {
             msb = "31";
             lsb = "0";
         }
-        else if (std::regex_search(inner_str, std::regex("int16_")))
+        else if (std::regex_search(inner_type, std::regex("int16_")))
         {
             msb = "15";
             lsb = "0";
         }
-        else if (std::regex_search(inner_str, std::regex("int8_")))
+        else if (std::regex_search(inner_type, std::regex("int8_")))
         {
             msb = "7";
             lsb = "0";
         }
-        else if (std::regex_search(inner_str, std::regex("^bool|^Bool_|^Bool")))
+        else if (std::regex_search(inner_type, std::regex("^bool|^Bool_|^Bool")))
         {
             msb = "0";
             lsb = "0";
@@ -557,7 +646,7 @@ const types::Variable *VrtlmodCore::add_variable(const clang::FieldDecl *variabl
     }
     else // something else aka must be a signal
     {
-        if (std::regex_search(type, std::regex("^VlUnpacked<")))
+        if (std::regex_search(without_global_qualification(type), std::regex("^VlUnpacked<")))
         {
             bool still_going = false;
             std::string search = decl_source_code_text; // type;
@@ -570,7 +659,7 @@ const types::Variable *VrtlmodCore::add_variable(const clang::FieldDecl *variabl
         {
             std::string type_str;
             auto close_space = decl_source_code_text.find(" ");
-            type_str = decl_source_code_text.substr(0, close_space);
+            type_str = without_global_qualification(decl_source_code_text.substr(0, close_space));
 
             unpacked.push_back(std::make_pair<>(std::string(type_str), std::string("0")));
         }
@@ -615,10 +704,14 @@ const types::Variable *VrtlmodCore::add_variable(const clang::FieldDecl *variabl
         try
         {
             bits *= (pair_.second.find(":") == std::string::npos)
-                        ? boost::lexical_cast<int>(pair_.second)
-                        : ((boost::lexical_cast<int>(msb) + 1) - boost::lexical_cast<int>(lsb));
+                        ? util::parse_int(pair_.second)
+                        : ((util::parse_int(msb) + 1) - util::parse_int(lsb));
         }
-        catch (boost::bad_lexical_cast)
+        catch (const std::invalid_argument &)
+        {
+            bits *= 0; // force total bit length to zero to trigger invalidation.
+        }
+        catch (const std::out_of_range &)
         {
             bits *= 0; // force total bit length to zero to trigger invalidation.
         }
@@ -647,6 +740,9 @@ const types::Variable *VrtlmodCore::add_variable(const clang::FieldDecl *variabl
     xml_node.append_attribute("bases") = util::concat("[", bases, "]").c_str();
     xml_node.append_attribute("dim") = util::concat("[", dim, "]").c_str();
     xml_node.append_attribute("cxx_type") = type.c_str();
+    const auto member_prefix = get_member_prefix(variable);
+    if (!member_prefix.empty())
+        xml_node.append_attribute("cxx_member_prefix") = member_prefix.c_str();
     // xml_node.append_attribute("decl") = decl_source_code_text.c_str();
     xml_node.append_attribute("bits") = bits;
 
@@ -682,6 +778,9 @@ const types::Cell *VrtlmodCore::set_top_cell(const clang::FieldDecl *cell, const
         auto xml_node = ctx_->xml_netlist_node_->append_child("cell");
         xml_node.append_attribute("id") = id.c_str();
         xml_node.append_attribute("type") = cell_type.c_str();
+        const auto member_prefix = get_member_prefix(cell);
+        if (!member_prefix.empty())
+            xml_node.append_attribute("cxx_member_prefix") = member_prefix.c_str();
 
         ctx_->top_cell_ = std::make_unique<types::Cell>(xml_node);
 
@@ -699,7 +798,7 @@ int VrtlmodCore::is_expr_target(const clang::MemberExpr *assignee, const clang::
 
     std::string var_id = assignee->getMemberNameInfo().getAsString(); // assignee->getNameAsString();
     std::string var_type = assignee->getType().getAsString();
-    std::string module_id = parent->getName().str();
+    std::string module_id = get_named_parent(parent)->getName().str();
     std::string module_type = parent->getTypeForDecl()->getTypeClassName();
 
     LOG_VERBOSE(">>>>> INJREW: {variable}: [", var_id, "] of parent [", module_id, "]");
@@ -1181,10 +1280,10 @@ std::string VrtlmodCore::get_memberstr(types::Cell const *c, const types::Target
 #if VRTLMOD_VERILATOR_VERSION <= 4202
         SYMBOLTABLE_NAME, "->", prefix, (*c == get_top_cell()) ? "->" : "."
 #else // VRTLMOD_VERILATOR_VERSION <= 4228
-        "rootp->", SYMBOLTABLE_NAME, "->", prefix, "."
+        "rootp->", SYMBOLTABLE_NAME, "->", get_top_cell().attribute("cxx_member_prefix").value(), prefix, "."
 #endif
         ,
-        t.get_id());
+        t.attribute("cxx_member_prefix").value(), t.get_id());
 }
 
 } // namespace vrtlmod

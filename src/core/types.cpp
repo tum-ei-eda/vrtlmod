@@ -24,14 +24,27 @@
 #include "vrtlmod/util/logging.hpp"
 #include "vrtlmod/util/utility.hpp"
 
+#include <cstdint>
+#include <limits>
 #include <sstream>
-
-#include "verilated.h"
 
 namespace vrtlmod
 {
 namespace types
 {
+
+static const clang::RecordDecl *get_named_record(const clang::FieldDecl *decl)
+{
+    const auto *record = decl->getParent();
+    while (record->getName().empty())
+    {
+        const auto *outer = llvm::dyn_cast<clang::RecordDecl>(record->getDeclContext());
+        if (outer == nullptr)
+            break;
+        record = outer;
+    }
+    return record;
+}
 
 std::string Target::get_hierarchy(void) const
 {
@@ -52,7 +65,7 @@ std::string Target::_self(void) const
 bool Target::is_declared_here(const clang::FieldDecl *decl) const
 {
     std::string decl_name = decl->getName().str();
-    std::string decl_ancestor_name = decl->getParent()->getName().str();
+    std::string decl_ancestor_name = get_named_record(decl)->getName().str();
     LOG_VERBOSE("Target::is_declared_here: ", get_id(), " == ", decl_name, "?");
     if (get_id() == decl_name)
     {
@@ -70,7 +83,7 @@ bool Target::is_assigned_here(const clang::MemberExpr *assignee, const clang::CX
 {
     std::string decl_name = assignee->getMemberNameInfo().getAsString();
     std::string decl_ancestor_name =
-        static_cast<const clang::FieldDecl *>(assignee->getMemberDecl())->getParent()->getName().str();
+        get_named_record(static_cast<const clang::FieldDecl *>(assignee->getMemberDecl()))->getName().str();
 
     if (get_id() == decl_name)
     {
@@ -125,8 +138,8 @@ inline std::pair<int, int> Target::get_element_msb_lsb_pair(void) const
         {
             std::string up = s.substr(0, s.find(':'));
             std::string to = s.substr(s.find(':') + 1);
-            msb = boost::lexical_cast<int>(up);
-            lsb = boost::lexical_cast<int>(to);
+            msb = util::parse_int(up);
+            lsb = util::parse_int(to);
             break;
         }
     }
@@ -146,13 +159,13 @@ inline std::vector<int> Target::get_dimension_lengths(void) const
     {
         s = s.substr(s.find("'") + 1, s.rfind("'") - s.find("'") - 1);
         if (s.find(':') == std::string::npos)
-            dim.push_back(boost::lexical_cast<int>(s));
+            dim.push_back(util::parse_int(s));
         else
         {
             std::string up = s.substr(0, s.find(':'));
             std::string to = s.substr(s.find(':') + 1);
-            int iup = boost::lexical_cast<int>(up);
-            int ito = boost::lexical_cast<int>(to);
+            int iup = util::parse_int(up);
+            int ito = util::parse_int(to);
             dim.push_back(iup - ito + 1);
         }
     }
@@ -185,7 +198,7 @@ inline std::pair<std::vector<std::string>, std::vector<int>> Target::get_cxx_dim
         brOpen = dimstr.find('<');
         brClose = dimstr.rfind('>');
         dimstr = dimstr.substr(brOpen + 1, brClose - brOpen - 1);
-        cxxdim.back() = boost::lexical_cast<int>(dimstr);
+        cxxdim.back() = util::parse_int(dimstr);
         cxxtypedim.push_back("EData");
     }
     else if (cxxtypedim.back().find("WData[") != std::string::npos)
@@ -194,7 +207,7 @@ inline std::pair<std::vector<std::string>, std::vector<int>> Target::get_cxx_dim
         brOpen = dimstr.find('[');
         brClose = dimstr.rfind(']');
         dimstr = dimstr.substr(brOpen + 1, brClose - brOpen - 1);
-        cxxdim.back() = boost::lexical_cast<int>(dimstr);
+        cxxdim.back() = util::parse_int(dimstr);
         cxxtypedim.push_back("EData");
     }
     else
@@ -228,23 +241,23 @@ unsigned long Target::get_element_mask(std::initializer_list<size_t> subscripts)
     auto msb = msblsb_pair.first;
     auto lsb = msblsb_pair.second;
 
-    if (one_dim_bits >
-        sizeof(QData) * 8) //(cxxtypedim.back().find("WData[") != std::string::npos) //(one_dim_bits > 64)
+    // Verilator uses 64-bit scalars and 32-bit words for wider packed values.
+    if (one_dim_bits > std::numeric_limits<std::uint64_t>::digits)
     {
         int elementsubs = *(subscripts.end() - 1);
         int elementsize = dimlens.back();
-        auto active_bits = one_dim_bits % (sizeof(WData) * 8);
+        auto active_bits = one_dim_bits % std::numeric_limits<std::uint32_t>::digits;
         // packed in WData
         if (((elementsubs + 1) != elementsize) || (active_bits == 0) // fully used last element, i.e., no inactive rest
         )
         {
-            mask = WData(-1);
+            mask = std::numeric_limits<std::uint32_t>::max();
         }
         else
         {
             for (int i = 0; i < active_bits; ++i)
             {
-                mask |= 1 << i;
+                mask |= 1UL << i;
             }
         }
     }
@@ -252,7 +265,7 @@ unsigned long Target::get_element_mask(std::initializer_list<size_t> subscripts)
     {
         // unpacked
         for (int i = lsb; i < msb + 1; ++i)
-            mask |= 1 << i;
+            mask |= 1UL << i;
     }
     return mask;
 }

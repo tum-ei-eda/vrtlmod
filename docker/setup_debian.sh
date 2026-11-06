@@ -7,8 +7,11 @@ LLVM_FROM_SOURCE="${LLVM_FROM_SOURCE:-${ENV_LLVM_FROM_SOURCE:-OFF}}"
 ########################################################################################################################
 # Package dependencies
 get_apt_deps() {
-  verilator_apt_dep="autoconf automake autotools-dev bison curl flex g++ git xz-utils wget"
-  vrtlmod_apt_dep="cmake libboost-filesystem-dev libboost-date-time-dev libfl-dev build-essential ccache python3 python3-virtualenv python3-dev"
+  verilator_apt_dep="autoconf automake autotools-dev bison curl flex g++ git help2man xz-utils wget"
+  vrtlmod_apt_dep="cmake libfl-dev build-essential ccache python3 python3-virtualenv python3-dev"
+  if [ "${BUILD_CXX_STANDARD}" -lt 17 ]; then
+    vrtlmod_apt_dep="${vrtlmod_apt_dep} libboost-filesystem-dev"
+  fi
   echo "${verilator_apt_dep} ${vrtlmod_apt_dep}"
 }
 setup_env() {
@@ -314,7 +317,7 @@ test_vrtlmod() {
 
   echo "[test] vRTLmod"
   echo "SYSTEMC_HOME=${SYSTEMC_HOME}"
-  cmake --build ${build_dir} --parallel $(nproc) --target test
+  CTEST_OUTPUT_ON_FAILURE=1 cmake --build ${build_dir} --parallel $(nproc) --target test
 }
 install_vrtlmod() {
   src_dir="$1"
