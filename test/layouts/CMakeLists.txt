@@ -8,7 +8,7 @@ file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/sc_null.cpp
     "#include <systemc>\nint sc_main(int, char**) { return 0; }\n")
 add_executable(layout-ports-original EXCLUDE_FROM_ALL ${CMAKE_CURRENT_BINARY_DIR}/sc_null.cpp)
 target_link_libraries(layout-ports-original PRIVATE SystemC::systemc)
-verilate(layout-ports-original SYSTEMC TOP_MODULE port_types PREFIX Vport_types
+vrtlmod_verilate(layout-ports-original SYSTEMC TOP_MODULE port_types PREFIX Vport_types
     DIRECTORY ${PORTS_RAW} SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/ports.sv
     VERILATOR_ARGS -O3 --pins-bv 65 -Wno-fatal)
 get_target_property(LAYOUT_RUNTIME layout-ports-original SOURCES)

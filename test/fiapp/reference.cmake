@@ -8,7 +8,7 @@ function(add_fiapp_reference target)
         set(mode SYSTEMC)
     endif()
     add_library(${target} STATIC EXCLUDE_FROM_ALL)
-    verilate(${target}
+    vrtlmod_verilate(${target}
         ${mode}
         TOP_MODULE fiapp
         PREFIX VfiappReference

@@ -17,7 +17,7 @@ foreach(SCHEDULING_MODE IN ITEMS split inline filesplit)
     endif()
 
     add_executable(${SCHEDULING_ORIGINAL_TARGET} EXCLUDE_FROM_ALL ${CMAKE_CURRENT_BINARY_DIR}/null.cpp)
-    verilate(${SCHEDULING_ORIGINAL_TARGET}
+    vrtlmod_verilate(${SCHEDULING_ORIGINAL_TARGET}
         TOP_MODULE scheduling
         # A model prefix containing _comb must not identify a comb region.
         PREFIX ${SCHEDULING_PREFIX}

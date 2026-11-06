@@ -71,7 +71,7 @@ if(BUILD_TESTING)
 
     # VERILATE to C++ VRTL
     set(DUT_NAME fiapp)
-    verilate(null
+    vrtlmod_verilate(null
         TOP_MODULE ${DUT_NAME}
         DIRECTORY ${CC_SUBDIR}
         SOURCES ${TDIR}/${DUT_NAME}/${DUT_NAME}.sv
@@ -139,7 +139,7 @@ if(BUILD_TESTING)
     set(SYSTEMC_INCLUDE_DIRS ${SYSTEMC_INCLUDE_DIRS} PARENT_SCOPE) # <-- allow propagation of vrtlmod-buildtime-systemc into vrtlmod-config.cmake script 
 
     set(DUT_NAME fiapp)
-    verilate(sc-null
+    vrtlmod_verilate(sc-null
         SYSTEMC
         TOP_MODULE ${DUT_NAME}
         DIRECTORY ${SC_SUBDIR}
@@ -270,4 +270,5 @@ if(BUILD_TESTING)
     add_subdirectory(layouts)
     add_subdirectory(targetdictionary)
     add_subdirectory(utility)
+    add_subdirectory(verilator_discovery)
 endif()
