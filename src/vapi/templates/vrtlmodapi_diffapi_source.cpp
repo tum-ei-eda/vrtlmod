@@ -19,8 +19,6 @@
 #include "vrtlmod/core/types.hpp"
 #include "vrtlmod/util/logging.hpp"
 
-#include <boost/algorithm/string/replace.hpp>
-
 #include "llvm/Support/CommandLine.h"
 extern llvm::cl::opt<bool> DiffApiHardUnroll;
 

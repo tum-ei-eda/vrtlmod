@@ -138,8 +138,8 @@ inline std::pair<int, int> Target::get_element_msb_lsb_pair(void) const
         {
             std::string up = s.substr(0, s.find(':'));
             std::string to = s.substr(s.find(':') + 1);
-            msb = boost::lexical_cast<int>(up);
-            lsb = boost::lexical_cast<int>(to);
+            msb = util::parse_int(up);
+            lsb = util::parse_int(to);
             break;
         }
     }
@@ -159,13 +159,13 @@ inline std::vector<int> Target::get_dimension_lengths(void) const
     {
         s = s.substr(s.find("'") + 1, s.rfind("'") - s.find("'") - 1);
         if (s.find(':') == std::string::npos)
-            dim.push_back(boost::lexical_cast<int>(s));
+            dim.push_back(util::parse_int(s));
         else
         {
             std::string up = s.substr(0, s.find(':'));
             std::string to = s.substr(s.find(':') + 1);
-            int iup = boost::lexical_cast<int>(up);
-            int ito = boost::lexical_cast<int>(to);
+            int iup = util::parse_int(up);
+            int ito = util::parse_int(to);
             dim.push_back(iup - ito + 1);
         }
     }
@@ -198,7 +198,7 @@ inline std::pair<std::vector<std::string>, std::vector<int>> Target::get_cxx_dim
         brOpen = dimstr.find('<');
         brClose = dimstr.rfind('>');
         dimstr = dimstr.substr(brOpen + 1, brClose - brOpen - 1);
-        cxxdim.back() = boost::lexical_cast<int>(dimstr);
+        cxxdim.back() = util::parse_int(dimstr);
         cxxtypedim.push_back("EData");
     }
     else if (cxxtypedim.back().find("WData[") != std::string::npos)
@@ -207,7 +207,7 @@ inline std::pair<std::vector<std::string>, std::vector<int>> Target::get_cxx_dim
         brOpen = dimstr.find('[');
         brClose = dimstr.rfind(']');
         dimstr = dimstr.substr(brOpen + 1, brClose - brOpen - 1);
-        cxxdim.back() = boost::lexical_cast<int>(dimstr);
+        cxxdim.back() = util::parse_int(dimstr);
         cxxtypedim.push_back("EData");
     }
     else

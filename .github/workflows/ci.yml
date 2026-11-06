@@ -311,6 +311,8 @@ jobs:
         . ./vrtlmod/vrtlmod_src/docker/.env
         . ./vrtlmod/vrtlmod_src/docker/setup_debian.sh
         setup_env
+        # The benchmark's SCC dependency requires Boost independently of vrtlmod.
+        apt install -y libboost-system-dev libboost-date-time-dev
     - name: Cache Verilator
       id: cache-verilator
       uses: actions/cache@v4

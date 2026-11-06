@@ -44,7 +44,7 @@
 #include <regex>
 #include <algorithm>
 
-#include <boost/lexical_cast.hpp>
+#include <stdexcept>
 
 namespace vrtlmod
 {
@@ -704,10 +704,14 @@ const types::Variable *VrtlmodCore::add_variable(const clang::FieldDecl *variabl
         try
         {
             bits *= (pair_.second.find(":") == std::string::npos)
-                        ? boost::lexical_cast<int>(pair_.second)
-                        : ((boost::lexical_cast<int>(msb) + 1) - boost::lexical_cast<int>(lsb));
+                        ? util::parse_int(pair_.second)
+                        : ((util::parse_int(msb) + 1) - util::parse_int(lsb));
         }
-        catch (boost::bad_lexical_cast)
+        catch (const std::invalid_argument &)
+        {
+            bits *= 0; // force total bit length to zero to trigger invalidation.
+        }
+        catch (const std::out_of_range &)
         {
             bits *= 0; // force total bit length to zero to trigger invalidation.
         }

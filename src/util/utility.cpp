@@ -23,12 +23,26 @@
 #include <memory>
 #include <sstream>
 #include <fstream>
+#include <stdexcept>
 
 #include "vrtlmod/util/utility.hpp"
 #include "vrtlmod/util/logging.hpp"
 
 namespace util
 {
+
+int parse_int(const std::string &text)
+{
+    if (text.empty())
+        throw std::invalid_argument("Expected an ASCII decimal integer");
+    const std::size_t first_digit = (text.front() == '+' || text.front() == '-') ? 1 : 0;
+    if (first_digit == text.size())
+        throw std::invalid_argument("Expected an ASCII decimal integer");
+    for (std::size_t index = first_digit; index < text.size(); ++index)
+        if (text[index] < '0' || text[index] > '9')
+            throw std::invalid_argument("Expected an ASCII decimal integer");
+    return std::stoi(text, nullptr, 10);
+}
 
 int check_file(const fs::path &fpath)
 {

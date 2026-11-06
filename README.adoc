@@ -56,8 +56,10 @@ If you use vRTLmod in your academic work you can cite it like this:
 
 ==== Requirements
 
-. vRTLmod dependencies: `build-essentials, gmake, cmake, g++, libboost-filesystem-dev libboost-date-time-dev`
+. vRTLmod dependencies: `build-essential, make, cmake, g++`
   * Verilator v5.054's CMake integration requires CMake >=3.19.
+  * C++17 and newer builds do not require Boost.
+  * Older C++ standards additionally require Boost.Filesystem >=1.70 (`libboost-filesystem-dev`).
 . Verilator (see: https://www.veripool.org/wiki/verilator and install guide).
   * Supports Verilator major versions 4 and 5; the v5 compatibility target is v5.054.
   * Regression-tested with v4.228 and v5.054 using LLVM 18 and SystemC 2.3.4.
@@ -75,7 +77,9 @@ Dependencies::
 [,bash]
 ----
 apt update
-apt install build-essentials, gmake, cmake, g++, libboost-filesystem-dev libboost-date-time-dev
+apt install build-essential make cmake g++
+# Only for builds using a C++ standard older than C++17:
+# apt install libboost-filesystem-dev
 ----
 ====
 .Click-me. How to setup Verilator (Debian)?
